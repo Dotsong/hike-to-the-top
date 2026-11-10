@@ -268,6 +268,14 @@ h1{font-size:clamp(2.5rem, 8vw, 4.8rem)}
 .intro{inset:0;z-index:7;display:grid;place-items:center;overflow:auto;background:none;transition:opacity .9s ease;
   padding-top:calc(24px + env(safe-area-inset-top, 0px));padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px))}
 .intro .story{box-shadow:0 26px 60px rgba(4,18,8,.6), inset 10px 0 0 -2px #e7a3a0, inset 13px 0 16px -8px rgba(80,50,60,.3)}
+/* the narrator: a line of the story at the top of the screen, in the same storybook face as the place names at the bottom left */
+.narrator{position:fixed;z-index:3;left:50%;top:calc(20px + env(safe-area-inset-top, 0px));transform:translate(-50%,-8px);width:min(36rem, calc(100vw - 220px));margin:0;
+  text-align:center;text-wrap:balance;font:400 clamp(1.08rem, 2.5vw, 1.45rem)/1.3 var(--display);color:var(--ink);
+  text-shadow:0 2px 18px rgba(10,8,30,.7), 0 1px 3px rgba(10,8,30,.55);opacity:0;pointer-events:none;transition:opacity 1.3s ease, transform 1.3s ease}
+.narrator.show{opacity:1;transform:translate(-50%,0)}
+body.is-paused .narrator{opacity:0}
+@media (max-width:640px){ .narrator{top:calc(86px + env(safe-area-inset-top, 0px));width:calc(100vw - 40px)} }
+@media (prefers-reduced-motion:reduce){ .narrator{transform:translate(-50%,0);transition:opacity .6s} }
 /* Dad's map: a scroll that unrolls in the middle of the screen while the game is paused */
 .map-scroll{position:fixed;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);width:min(660px,calc(100vw - 40px));display:flex;flex-direction:column;align-items:center;
   pointer-events:none;opacity:0;transition:opacity .35s ease}
@@ -307,6 +315,8 @@ h1{font-size:clamp(2.5rem, 8vw, 4.8rem)}
 
 <div class="say june" id="bubJune" aria-live="polite"><div class="bub"><span class="who">June</span><span class="txt"></span></div></div>
 <div class="say pip" id="bubPip" aria-live="polite"><div class="bub"><span class="who">Pip</span><span class="txt"></span></div></div>
+
+<p class="narrator" id="narrator" aria-live="polite"></p>
 
 <div class="caption" id="caption" aria-live="polite">
   <h2 class="cap-title" id="capTitle"></h2>
@@ -1059,7 +1069,7 @@ const WALK=0.8;
 const party={s:0,v:0,vT:0,rest:0,restIn:200};   /* standing at the trailhead until the hike starts */
 /* the story so far: 0 walking to the rest site, 1 arriving and deciding to take a break, 2 in the rest scene until the player picks a path,
    3 on the chosen path and heading for its gateway, 4 out the other side in the new forest */
-const fork={stage:0,t:0,entered:false,gateEvt:false,river:false,deepSaid:false};
+const fork={stage:0,t:0,entered:false,gateEvt:false,river:false,deepSaid:false,hopSaid:false};
 let landY=groundY;   /* the height of the ground under the girls' feet: the trail's, or the rest scene's */
 const R={};
 function makeBrain(girl,o){ return Object.assign({girl,pos:new THREE.Vector2(),y:0,face:0,faceT:0,queue:[],cur:null,t:0,walkPhase:0,skip:0,
@@ -1100,6 +1110,7 @@ function startRest(){
   juneB.skip=pipB.skip=0;
   juneB.queue.push({k:'pose',pose:'idle',dur:1.2},{k:'pose',pose:sc.j,dur:party.rest-2.2,face:hd+sc.jf});
   pipB.queue.push({k:'pose',pose:'idle',dur:1.4},{k:'pose',pose:sc.p,dur:party.rest-2.4,face:hd+sc.pf});
+  onRestStop();
 }
 function updateParty(dt){
   if(state.started){
@@ -1184,7 +1195,7 @@ function updateBrain(b,dt){
     if(b.t>=st.dur) b.cur=null;
   }
   b.duck=duckAt(b.pos.y);
-  { const h=walking?logHop(b.pos.y):0; if(h>0&&!(b.hop>0)&&Math.random()<0.4) sayIf(b,pick(['Hup!','Boing!','Over we go!','Wheee!'])); b.hop=h; }   /* a log across the trail: hop it */
+  { const h=walking?logHop(b.pos.y):0; if(h>0&&!fork.hopSaid){ fork.hopSaid=true; onHop(); } if(h>0&&!(b.hop>0)&&Math.random()<0.4) sayIf(b,pick(['Hup!','Boing!','Over we go!','Wheee!'])); b.hop=h; }   /* a log across the trail: hop it */
   finishBrain(b,pose,walking,dt);
 }
 /* the part every brain shares: keep clear of your sister, turn, pose the rig, blink */
@@ -1408,13 +1419,14 @@ function startHike(){
   openDoors();
   ['alt','controls'].forEach(id=>$(id).classList.remove('hud-off'));
   hushBubbles(); speakIn=9; EVT.inT=18; BRAINS.forEach(b=>{ b.actIn=12+Math.random()*10; });
+  setTimeout(()=>{ if(state.started) narrate('One bright morning, June and Pip set out to climb the little mountain behind their house.'); },1400);
   say(0,'Come on, Pip! The trail starts here.'); say(1,'Right behind you, Captain June!'); say(1,'Bye, house! Back by dinner!');
   pipB.queue.push({k:'pose',pose:'idle',dur:5.2},{k:'pose',pose:'wave',dur:2.4,face:heading(4)+Math.PI});   /* Pip turns round to wave at it */
   setTimeout(()=>{ if(state.started) showCaption({t:'The edge of the woods',b:'Trees on one side, open meadow on the other. There is no hurry at all.'}); },2600);
 }
 function backToStart(){
   if(bookOpen) closeBook(); autoPaused=false; setPaused(false);
-  restToken++; $('fade').classList.remove('on');
+  restToken++; $('fade').classList.remove('on'); hushNarrator();
   state.started=false; hushBubbles(); capEl.classList.remove('show'); $('pauseBtn').hidden=true;
   ['alt','controls'].forEach(id=>$(id).classList.add('hud-off'));
   party.vT=0; party.rest=0; hideFork(); BRAINS.forEach(b=>{ b.queue.length=0; b.cur=null; b.skip=0; });
@@ -1423,16 +1435,16 @@ function backToStart(){
 }
 function resetHike(){
   if(mode==='rest') leaveRest(0); restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
-  choice=0; fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
+  choice=0; fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
 }
 /* things the girls notice on the way to the rest site */
-function onRiver(){ playScript([[1,'A river!'],[0,'We can\'t cross here. The trail goes round to the right.'],[1,'Into the trees!']]); speakIn=14;
+function onRiver(){ narrate('But the trail could not go straight for long. A river had got there first.'); playScript([[1,'A river!'],[0,'We can\'t cross here. The trail goes round to the right.'],[1,'Into the trees!']]); speakIn=14;
   showCaption({t:'The river bend',b:'The water is too wide to cross, so the trail turns right, straight into the woods.'}); }
-function onDeep(){ playScript([[1,'The trees are HUGE in here.'],[0,'It\'s like the forest swallowed us up.'],[1,'I can\'t see where the trail goes!']]); speakIn=16;
+function onDeep(){ narrate('So into the deep woods they went, where the trees were older than anyone they knew.'); playScript([[1,'The trees are HUGE in here.'],[0,'It\'s like the forest swallowed us up.'],[1,'I can\'t see where the trail goes!']]); speakIn=16;
   showCaption({t:'The deep woods',b:'Big old trees close in on every side. The trail winds between them, and you can never see far ahead.'}); }
 /* arriving at the rest site: a few words, then the screen fades and the rest scene takes over */
-function onForkArrive(){ hushBubbles(); playScript([[0,'Phew. Let\'s take a break here.'],[1,'Yes, please. My legs are noodles.']]); }
+function onForkArrive(){ narrate('By and by they came to a clearing that seemed to have been waiting for them.'); hushBubbles(); playScript([[0,'Phew. Let\'s take a break here.'],[1,'Yes, please. My legs are noodles.']]); }
 function onForkReady(){ capEl.classList.remove('show'); enterRest(); }
 
 /* ---------- the rest site: a small scene of its own ---------- */
@@ -1614,8 +1626,8 @@ function updateRest(dt,rawDt){
   BRAINS.forEach(b=>updateRestBrain(b,dt));
   /* the scene: sit down and sigh, look around for a while, notice the two paths, then the buttons appear */
   if(rest.phase===0&&rest.t>4.5){ rest.phase=1; playScript(REST_ARRIVE); }
-  else if(rest.phase===1&&rest.t>8&&quiet()){ rest.phase=2; rest.t2=rest.t; rest.canAct=true; speakIn=6; }
-  else if(rest.phase===2&&rest.t>rest.t2+12){ rest.canAct=false; if(quiet()&&!BRAINS.some(b=>b.cur||b.queue.length)){ rest.phase=3; playScript(REST_PATHS);
+  else if(rest.phase===1&&rest.t>8&&quiet()){ rest.phase=2; rest.t2=rest.t; rest.canAct=true; speakIn=6; narrate('For a while nobody said anything important. That is what rest sites are for.'); }
+  else if(rest.phase===2&&rest.t>rest.t2+12){ rest.canAct=false; if(quiet()&&!BRAINS.some(b=>b.cur||b.queue.length)){ rest.phase=3; narrate('Then Pip noticed something. The trail had two ideas about where to go next.'); playScript(REST_PATHS);
       pipB.queue.push({k:'pose',pose:'sitpoint',dur:5,face:0}); juneB.queue.push({k:'pose',pose:'sit',dur:3},{k:'pose',pose:'sitlook',dur:4,face:0}); } }
   else if(rest.phase===3&&quiet()){ rest.phase=4; rest.ready=true; rest.canAct=true; speakIn=9; $('forkDock').hidden=false; }
   if(rest.leaving){ const lv=rest.leaving; lv.t+=dt;   /* off they go: a few steps toward the chosen path, then fade back to the trail */
@@ -1644,6 +1656,7 @@ function hideFork(){ $('forkDock').hidden=true; }
 /* the player taps one of the two buttons */
 function chooseTrail(c){
   if(mode!=='rest'||!rest.ready||rest.leaving) return;
+  narrate(c<0?'They chose the thicket, because it looked like a secret.':'They chose the cave, because Pip had never been inside a mountain before.');
   rest.ready=false; rest.canAct=false; rest.focus=c; rest.leaving={c,t:0,fading:false}; hideFork(); hushBubbles(); speakIn=30;
   playScript(c<0?[[0,'Through the thicket it is!'],[1,'I call going first! ...Okay, you go first.']]:[[1,'The cave! The cave!'],[0,'Okay. Stay close, and use your indoor voice.']]);
   const dx=Math.sin(c*0.6), dz=Math.cos(c*0.6);
@@ -1662,10 +1675,11 @@ function leaveRest(c){
 /* stepping into the gateway */
 function onGateEnter(){ playScript(choice<0?[[1,'It\'s a tunnel made of branches!'],[0,'Mind your head, Pip.']]:[[0,'Flashlights on!'],[1,'Hello-o-o! ...It said hello back!']]); speakIn=14; }
 /* the one thing in the way inside each gateway: a low branch to duck under, or a big rock to squeeze past */
-function onGateObstacle(){ tell(choice<0?[[1,'Duck!'],[0,'I AM ducking.']]:[[0,'Squeeze past the big rock.'],[1,'Look! The mushrooms are glowing!']]); }
+function onGateObstacle(){ narrate(choice<0?'The branches hung low, and the sisters had to make themselves small.':'It was dark in the cave, but two flashlights are braver than one.'); tell(choice<0?[[1,'Duck!'],[0,'I AM ducking.']]:[[0,'Squeeze past the big rock.'],[1,'Look! The mushrooms are glowing!']]); }
 /* coming out the far side: wind, leaves, light, and a first look at the new forest. The girls keep walking while they take it in. */
 function onReveal(){
   hushBubbles(); startGust(choice,party.s); Music.gust(); revealT=0; speakIn=16;
+  narrate(choice<0?'And then the dark was behind them, and the whole world turned white and gold.':'And then the dark was behind them, and the whole world was the color of a campfire.');
   const lines=choice<0?[[1,'WHOA.'],[0,'An aspen grove! Look at all the white trunks.'],[1,'The leaves are clapping for us!']]
     :[[1,'June. JUNE. Everything is orange!'],[0,'The autumn woods. It\'s like walking into a sunset.'],[1,'It\'s raining leaves!']];
   playScript(lines);
@@ -1679,6 +1693,33 @@ $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
 window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },stage:()=>fork.stage,choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,ready:()=>!!(rest&&rest.ready)};
+/* ---------- the narrator ---------- */
+/* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
+   Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
+   narrator now and then remarks on the place they are walking through. */
+const NARR_AMBIENT={
+  home:['The trail was easy here, and the sisters were in no hurry at all.','Pip counted her snacks again, just to be sure.','The morning was the kind that makes you want to walk somewhere.'],
+  deep:['Under the big trees the air was cool and green.','The trail wandered this way and that, as if it had all day.','Somewhere above them, the whole forest was whispering.'],
+  aspen:['The aspen leaves flickered like a thousand tiny flags.','Everything in the grove seemed to be made of white and gold.','The sky had never looked quite so blue.'],
+  autumn:['Leaves came spinning down as if the trees were waving goodbye to summer.','The whole wood glowed like the inside of a pumpkin.','Every step made a different kind of crunch.']};
+const NARR_BIRDS=['A flock of birds hurried up the trail, late for something.','Some birds crossed the trail without so much as a hello.','High overhead, the birds drew slow circles in the sky.','The birds came by so low that Pip nearly ducked.'];
+const NARR_EVENT={butterfly:'A butterfly decided that Pip was the most interesting flower in the forest.',squirrel:'A squirrel stopped to see who was using its trail.',
+  rabbit:'A rabbit showed them the way, for a little while.',swirl:'The wind picked up a handful of leaves and danced with them.',
+  woodpecker:'Far off, a woodpecker was knocking on a door that nobody answered.',owl:'Somewhere an owl called out in its sleep.'};
+const narrEl=$('narrator'), narr={q:[],t:0,gap:0,idle:34};
+function narrate(text){ if(!state.started) return; if(narr.q.length>1) narr.q.shift(); narr.q.push(text); }
+function hushNarrator(){ narr.q.length=0; narr.t=0; narr.gap=0; narr.idle=34; narrEl.classList.remove('show'); }
+function updateNarrator(dt){
+  if(narr.t>0){ narr.t-=dt; if(narr.t<=0){ narrEl.classList.remove('show'); narr.gap=1.7; } }
+  else if(narr.gap>0) narr.gap-=dt;
+  else if(narr.q.length){ const tx=narr.q.shift(); narrEl.textContent=tx; narrEl.classList.add('show'); narr.t=3.6+tx.length*0.065; narr.idle=36+Math.random()*24; }
+  else if(state.started&&mode==='trail'&&(fork.stage===0||fork.stage===4)&&!EVT.cur&&party.rest<=0){ narr.idle-=dt;
+    if(narr.idle<=0){ const p=eventPlace(); narrate(nextLine('narr-'+p,NARR_AMBIENT[p])); } }
+}
+/* moments on the trail that the narrator mentions */
+function onHop(){ narrate('A fallen log lay across the path. That was no trouble at all.'); }
+function onRestStop(){ narrate('It was a good moment to stop, so they stopped.'); }
+
 /* ---------- Dad's map ---------- */
 /* Drawn fresh each time it unrolls: the trail walked so far is inked in, June and Pip are two dots, and each forest past
    the fork stays a question mark until the girls have actually come out into it. */
@@ -1850,13 +1891,14 @@ function endEvent(){ flock.visible=false; squirrel.visible=false; rabbit.visible
   if(EVT.cur&&EVT.cur.kind==='swirl'&&gust.t<0) gustMesh.count=0; EVT.cur=null; EVT.inT=26+Math.random()*26; }
 function startEvent(kind){
   const e=EVT.cur={kind,t:0,said:false,cue:false,s0:party.s,place:eventPlace()}; EVT.last=kind;
+  if(NARR_EVENT[kind]) narrate(NARR_EVENT[kind]);
   if(kind==='birds'){ /* never the same flight twice running; in the deep woods they keep to the gap above the trail */
     e.pat=pick((e.place==='deep'?[0,3]:[0,1,2,3]).filter(p=>p!==EVT.lastPat)); EVT.lastPat=e.pat; e.n=3+Math.floor(Math.random()*5); e.near=1e9; e.px=null;
     const loose=Math.random()<0.4;   /* a tidy V, or a loose bunch */
     birds.forEach((b,i)=>{ b.g.visible=i<e.n; b.g.position.set(b.home[0]*(loose?1.5:1)+(loose?(Math.random()-0.5)*1.4:0),b.home[1]+(loose?Math.random()*1.1:0),b.home[2]*(loose?0.7:1)); }); }
   else if(kind==='squirrel'){ e.z=party.s+9.5; e.sg=Math.random()<0.5?-1:1; e.d=-7.5*e.sg; e.phase=0; e.wait=0; }
   else if(kind==='rabbit'){ e.s=party.s+5; e.d=2.9; }
-  else if(kind==='swirl'){ if(gust.t>=0){ EVT.cur=null; EVT.inT=6; return; } const pal=e.place==='aspen'?FALL_ASPEN:FALL_AUTUMN; e.z=party.s+7.5; e.bits=[];
+  else if(kind==='swirl'){ if(gust.t>=0){ EVT.cur=null; EVT.inT=6; narr.q.pop(); return; } const pal=e.place==='aspen'?FALL_ASPEN:FALL_AUTUMN; e.z=party.s+7.5; e.bits=[];
     for(let i=0;i<60;i++){ e.bits.push({a:Math.random()*6.283,r:0.3+Math.random()*1.5,h:Math.random()*3.2,w:3+Math.random()*3,sc:0.8+Math.random()*0.9}); gustMesh.setColorAt(i,pal[Math.floor(Math.random()*pal.length)]); }
     gustMesh.instanceColor.needsUpdate=true; gustMesh.count=60; }
 }
@@ -1875,7 +1917,7 @@ function updateEvents(dt){
     flock.visible=true; if(e.px!==null&&(x!==e.px||z!==e.pz)) flock.rotation.y=Math.atan2(x-e.px,z-e.pz); e.px=x; e.pz=z; flock.position.set(x,y,z);
     birds.forEach(b=>{ const f=Math.sin(time*9+b.ph)*0.65; b.wl.rotation.z=f; b.wr.rotation.z=-f; });
     const far=Math.hypot(x-px,z-party.s); e.near=Math.min(e.near,far);
-    if(!e.cue&&far<13){ e.cue=true; Music.sfx('chirp'); }                                                        /* they call as they come close */
+    if(!e.cue&&far<13){ e.cue=true; Music.sfx('chirp'); narrate(NARR_BIRDS[e.pat]); }                                                        /* they call as they come close */
     if(e.cue&&!e.said&&far>e.near+6){ e.said=true; announce(nextLine('birds'+e.pat,BIRD_LINES[e.pat])); }        /* the girls speak only once the flock has gone by */
     if(done) endEvent(); }
   else if(e.kind==='butterfly'){ const p=pip.g.position, a=t*2.3, up=Math.max(0,t-9.5), r=0.55+0.22*Math.sin(t*1.7)+up*1.4;   /* dances round Pip's head, then lifts away */
@@ -2188,7 +2230,7 @@ function frame(now){
 
   }
   updateMarks();
-  updateSpeech(dt);
+  updateSpeech(dt); updateNarrator(dt);
   if(wall.state!=='closed'||(frameNo++%20)===0) renderer.render(mode==='rest'?rest.scene:scene,camera);   /* behind the closed wall of leaves, only now and then */
   requestAnimationFrame(frame);
 }
