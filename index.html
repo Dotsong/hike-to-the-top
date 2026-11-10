@@ -416,8 +416,7 @@ let choice=0;   /* 0 = not chosen yet, -1 = the thicket path (aspen grove), 1 = 
 /* the middle of the trail: two lazy waves, the curve to the right at the river, and the tight bends that wind through the deep woods */
 const x0=s=>7*Math.sin(s*0.021)+3.5*Math.sin(s*0.047+1.3)-12*smooth(40,64,s)+3.2*Math.sin((s-64)*0.224)*smooth(62,72,s)*(1-smooth(88,97,s));
 const REST_X=x0(REST_C);
-const HOME_S=-136, HOME_X=x0(HOME_S)-1.5;   /* June and Pip's house: at the far end of the trail behind them, as far away as the land goes */
-const homeDist=(x,z)=>Math.hypot(x-HOME_X,z-HOME_S);
+const homeDist=()=>99;   /* (the house is not on the land any more: it is a small shape on the horizon, see homeG) */
 const spread=t=>t>0?18*(1-Math.exp(-t/35)):0;      /* how far each path has drifted from the middle, t metres past the fork */
 const keep=t=>1-smooth(55,85,t);                   /* the path not taken fades out between 55 and 85 m past the fork */
 let pL=0, pR=0;                                    /* paths(z) leaves the left and right path here; they are equal where there is one trail */
@@ -461,7 +460,6 @@ function groundY(x,z){
   let y=ty+lerp(open,walls,g)+bumps;
   if(d>0){ const rv=riverAt(x,z); if(rv>0) y=lerp(y,riverY(z)-0.7,rv); }               /* the river bed */
   const rc=restDist(x,z); if(rc<15) y=lerp(trailY(REST_C),y,smooth(10.5,15,rc));        /* the rest site is a level round clearing */
-  const hd=homeDist(x,z); if(hd<11) y=lerp(trailY(HOME_S),y,smooth(6.5,11,hd));         /* and so is the yard round the house */
   return y+ridge(x,z);
 }
 /* Things lying on the trail: a boulder on one half of the path, which the girls walk around, or a fallen log right across it, which they hop over. */
@@ -804,9 +802,10 @@ function makeForkSign(){
 const forkSign=makeForkSign();
 { const fx=REST_X+REST_KIT.sign[0], fz=REST_C+REST_KIT.sign[1]; forkSign.position.set(fx,groundY(fx,fz),fz); scene.add(forkSign); }
 
-/* home: cream walls, a red roof, a porch and warm windows, at the very far end of the trail. From where the hike starts it is a tiny shape
-   on the horizon. It is drawn through the haze (paler, and not fogged out) so it can still be picked out at that distance. */
-const homeG=new THREE.Group();
+/* Home: a small shape sitting on the horizon, back the way the girls came. It is not standing on the land at all: every frame it is put
+   420 m from the camera, level with the horizon, in the direction of home, and drawn over whatever far-off trees happen to be in line.
+   So it is always there in the opening shot, tiny and far away, however the trail and the hills lie in between. */
+const homeG=new THREE.Group(); let homeA=Math.PI;
 { const g=homeG, wall=L('#f6ead8'), roofM=L('#c96a55'), wood=L('#8a5a3c'), plank=L('#d9b98a'), glow=new THREE.MeshBasicMaterial({color:0xffe3a0});
   const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); g.add(m); return m; };
   add(new THREE.BoxGeometry(6,3.2,5),wall,0,1.6,0);
@@ -814,14 +813,13 @@ const homeG=new THREE.Group();
   add(new THREE.BoxGeometry(0.7,1.7,0.7),L('#b98a6a'),1.6,4.4,-0.8);
   add(new THREE.BoxGeometry(1,2,0.08),wood,0,1,2.52);
   [-1.9,1.9].forEach(x=>{ add(new THREE.BoxGeometry(1.3,1.3,0.06),plank,x,1.9,2.51); add(new THREE.BoxGeometry(1.05,1.05,0.08),glow,x,1.9,2.53); });
-  { add(new THREE.BoxGeometry(0.06,1.3,1.3),plank,3.01,1.9,0.2); add(new THREE.BoxGeometry(0.08,1.05,1.05),glow,3.03,1.9,0.2); }
   add(new THREE.BoxGeometry(3.2,0.2,1.5),plank,0,0.1,3.25);
   [-1.4,1.4].forEach(x=>add(new THREE.CylinderGeometry(0.07,0.07,2.2,7),wall,x,1.3,3.85));
   { const pr=add(new THREE.BoxGeometry(3.5,0.14,1.8),roofM,0,2.45,3.3); pr.rotation.x=0.12; }
-  for(let i=0;i<6;i++){ const st=add(new THREE.CylinderGeometry(0.34,0.36,0.06,9),L('#b9b3a4'),(i%2?0.22:-0.18),0.03,4.7+i*1.05); st.scale.z=0.8; }
-  g.position.set(HOME_X,trailY(HOME_S),HOME_S); g.rotation.y=heading(HOME_S)+0.1; g.scale.setScalar(1.7);
-  const haze=new THREE.Color(0xd3e6c2);
-  g.traverse(o=>{ if(o.isMesh){ o.material.fog=false; o.material.color.lerp(haze,o.material.type==='MeshBasicMaterial'?0.15:0.42); } }); scene.add(g); }
+  g.scale.setScalar(2.2);
+  const haze=new THREE.Color(0xd3e6c2); let n=0;
+  g.traverse(o=>{ if(o.isMesh){ const m=o.material; m.fog=false; m.depthTest=false; m.depthWrite=false; m.color.lerp(haze,m.type==='MeshBasicMaterial'?0.12:0.4); o.renderOrder=20+n++; } });   /* drawn last, back to front, in the order the parts were added */
+  scene.add(g); }
 
 /* a big log to sit on, as it looks from the trail when the girls walk into the rest site */
 function makeSeatLog(){
@@ -1399,7 +1397,7 @@ function backToStart(){
   const intro=$('intro'); intro.hidden=false; requestAnimationFrame(()=>intro.classList.remove('gone'));
 }
 function resetHike(){
-  if(mode==='rest') leaveRest(0); restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
+  if(mode==='rest') leaveRest(0); restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0; homeA=heading(0)+Math.PI-0.16;   /* home lies back down the trail, a touch to the open side */
   choice=0; fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; gust.t=-1; gustMesh.count=0; bloom=0; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
 }
@@ -2091,7 +2089,6 @@ function frame(now){
   if(gr!==groundRow){ groundRow=gr; rebuildGround(party.s); }
   if(fr!==forestRow){ forestRow=fr; rebuildForest(party.s); }
   updateEvents(dt); updateChirps(dt); updateGust(dt);
-  homeG.visible=party.s<24;   /* once the girls are well on their way, home is out of sight behind them */
   peak.position.set(-140,trailY(party.s)-10,party.s+640);
 
   /* camera: it circles the point the girls are strolling along with */
@@ -2099,7 +2096,7 @@ function frame(now){
   swayK=damp(swayK,idle>6?1:0,0.6,rawDt);
   /* the opening shot looks back down the trail, toward home on the horizon; then the camera eases round to the side */
   if(state.started){ hikeT+=dt; if(hikeT>6) lookBack=damp(lookBack,0,0.3,dt); }
-  let th=camHd+camTheta-0.85*lookBack+Math.sin(time*0.06)*0.28*swayK*motion;
+  let th=camHd+camTheta*(1-lookBack)+Math.sin(time*0.06)*0.28*swayK*motion*(1-lookBack);   /* straight ahead of the girls on the trail, looking back past them */
   const aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
   let r=8.6*zoom*aspectBoost, ph=clamp(0.2+userPhi,-0.1,1.2);
   const gK=gateK(party.s), wK=woodsK(party.s);
@@ -2115,6 +2112,8 @@ function frame(now){
     if(gK>0) camera.position.y=lerp(camera.position.y,clamp(camera.position.y,gy+0.9,gy+1.9),gK); }   /* stay under the roof */
   camera.lookAt(target);
   sky.position.copy(camera.position);
+  /* home, on the horizon behind them: gone from view once they are well on their way */
+  homeG.visible=party.s<26; homeG.position.set(camera.position.x+Math.sin(homeA)*420,camera.position.y-4,camera.position.z+Math.cos(homeA)*420); homeG.rotation.y=homeA+Math.PI+0.5;
   sun.position.copy(target).addScaledVector(SUN_DIR,110); sun.target.position.copy(target);
 
   /* light and haze: dim and cool down in the gully, bright in the aspens, warm in the autumn woods */
