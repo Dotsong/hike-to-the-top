@@ -561,8 +561,12 @@ function rowOf(ri){ let c=rowCache.get(ri); if(c) return c; const z=ri*ROW; fill
 function rowY(c,x){ const X=c.x; if(x<=X[0]) return c.y[0]; if(x>=X[NC-1]) return c.y[NC-1]; let lo=0, hi=NC-1;
   while(hi-lo>1){ const m=(lo+hi)>>1; if(X[m]<=x) lo=m; else hi=m; } const w=X[hi]-X[lo]; return w<1e-6?c.y[lo]:lerp(c.y[lo],c.y[hi],(x-X[lo])/w); }
 function floorY(x,z){ const ri=Math.floor(z/ROW), t=z/ROW-ri; return lerp(rowY(rowOf(ri),x),rowY(rowOf(ri+1),x),t); }
-/* where to stand a tree: at the lowest point of the ground under its trunk and roots, and a touch deeper, so that on a slope its downhill side is buried too */
-function treeBase(x,z,rad){ return Math.min(floorY(x,z),floorY(x+rad,z),floorY(x-rad,z),floorY(x,z+rad),floorY(x,z-rad))-0.15; }
+/* Where to stand a tree so that the bottom of its flared roots can never be seen. rad is how far the foot of the tree reaches (the rim of
+   the root flare). The ground is measured at the middle, at eight points round that rim and four half way in, and the tree is stood a little
+   below the lowest of them. On a slope that buries the uphill side deeper, which is how a real tree sits. */
+const RIM=[0,1,2,3,4,5,6,7].map(k=>[Math.cos(k*0.7854),Math.sin(k*0.7854)]);
+function lowestUnder(at,x,z,rad){ let y=at(x,z); for(let k=0;k<8;k++){ y=Math.min(y,at(x+RIM[k][0]*rad,z+RIM[k][1]*rad)); if(k%2) y=Math.min(y,at(x+RIM[k][0]*rad*0.5,z+RIM[k][1]*rad*0.5)); } return y-0.12; }
+function treeBase(x,z,rad){ return lowestUnder(floorY,x,z,rad); }
 function rebuildGround(s0){
   const r0=Math.floor((s0-BACK)/ROW);
   for(let i=0;i<NR;i++){ const r=r0+i, z=r*ROW;
@@ -627,7 +631,7 @@ const spots={tree:[],gold:[],pine:[],rock:[],mush:[],flower:[],aspen:[],quake:[]
 function plantTree(r,id,x,z,first,s0,fact,ring){
   if(wet(x,z)||!ring&&restDist(x,z)<12.4||homeDist(x,z)<8.5) return;
   if(Math.abs(x-trailX(z))<3) solids.push({x,z,r:0.7});   /* too close to the trail: the girls will go round it */   /* nothing grows in the river, and the rest site and the yard stay clear */
-  const y=treeBase(x,z,1.2), h=hash(r,id,4), ry=hash(r,id,6)*6.28, near=Math.abs(z-s0)<38&&Math.abs(x-trailX(z))<24;
+  const y=treeBase(x,z,0.6), h=hash(r,id,4), ry=hash(r,id,6)*6.28,   /* slim trunks; the big flared ones below measure their own, wider foot */ near=Math.abs(z-s0)<38&&Math.abs(x-trailX(z))<24;
   const g=deep(z), bi=hash(r,id,12)<bioK(z)?biomeAt(x,z):0;
   const tp=near?P.trunkN:P.trunkF, bp=near?P.blobN:P.blobF;
   if(bi<0){ /* an aspen: a slim white trunk and a small golden crown */
@@ -640,11 +644,11 @@ function plantTree(r,id,x,z,first,s0,fact,ring){
     if(fact){ spots.aspen.push({x,y:y+2.6,z}); spots.quake.push({x,y:top+cr*0.9,z}); spots.eye.push({x,y:y+th*0.46+0.3,z}); spots.bark.push({x,y:y+1.3,z}); spots.shoot.push({x,y:y+0.7,z}); } return; }
   if(!bi&&hash(r,id,14)<g*0.9){ /* the deep woods: a big old tree with a thick trunk, flaring roots and a wide crown high overhead */
     const sc=0.9+hash(r,id,5)*0.5, cp=near?P.coneN:P.coneF, bark=DEEP_BARK[Math.floor(hash(r,id,11)*3)];
-    if(!first&&hash(r,id,7)>0.7){ const th=2.2*sc, H=(11+4*h)*sc, rr=(2.6+0.8*hash(r,id,8))*sc, col=DEEPS[Math.floor(hash(r,id,10)*4)];
+    if(!first&&hash(r,id,7)>0.7){ const y=treeBase(x,z,0.95*sc+0.1), th=2.2*sc, H=(11+4*h)*sc, rr=(2.6+0.8*hash(r,id,8))*sc, col=DEEPS[Math.floor(hash(r,id,10)*4)];
       put(tp,x,y,z,0.42*sc,th+0.5,0.42*sc,ry,bark); put(cp,x,y,z,0.95*sc,1.4,0.95*sc,ry,bark);
       for(let k=0;k<4;k++) put(cp,x,y+th+k*H*0.2,z,rr*(1-0.22*k),H*0.42,rr*(1-0.22*k),ry+k,col);
       if(fact) spots.pine.push({x,y:y+th+H*0.3,z}); return; }
-    const th=(8+3.5*h)*sc, tr=(0.5+0.25*hash(r,id,15))*sc, cr=(3.2+1.2*hash(r,id,8))*sc, col=DEEPS[Math.floor(hash(r,id,10)*4)], top=y+th;
+    const tr=(0.5+0.25*hash(r,id,15))*sc, y=treeBase(x,z,tr*1.8+0.1), th=(8+3.5*h)*sc, cr=(3.2+1.2*hash(r,id,8))*sc, col=DEEPS[Math.floor(hash(r,id,10)*4)], top=y+th;
     put(tp,x,y,z,tr,th+0.8,tr,ry,bark); put(cp,x,y,z,tr*1.8,1.7,tr*1.8,ry,bark);
     put(bp,x,top+cr*0.5,z,cr,cr*0.7,cr,ry,col);
     for(let k=0;k<3;k++){ const a=ry+k*2.09; put(bp,x+Math.cos(a)*cr*0.7,top+cr*(0.1+0.12*k),z+Math.sin(a)*cr*0.7,cr*0.68,cr*0.5,cr*0.68,a,col); }
@@ -1461,19 +1465,19 @@ function buildRest(){
     const u=(rr-RADII[i])/(RADII[i+1]-RADII[i]), av=((Math.atan2(x,z)%6.2832)+6.2832)%6.2832/6.2832*NS, j=Math.floor(av), v=av-j;
     const at=(ii,jj)=>{ const a=(jj%NS)/NS*6.2832; return restY(Math.sin(a)*RADII[ii],Math.cos(a)*RADII[ii]); };
     return lerp(lerp(at(i,j),at(i,j+1),v),lerp(at(i+1,j),at(i+1,j+1),v),u); };
-  const restBase=(x,z,rad)=>Math.min(restFloor(x,z),restFloor(x+rad,z),restFloor(x-rad,z),restFloor(x,z+rad),restFloor(x,z-rad))-0.15;
+  const restBase=(x,z,rad)=>lowestUnder(restFloor,x,z,rad);   /* stood so the rim of the root flare is never above ground */
   /* pools of instanced things, just for this scene */
   const mk=(geo,cap,shadow,mat)=>{ const m=new THREE.InstancedMesh(geo,mat||white(),cap); m.frustumCulled=false; m.castShadow=!!shadow; m.setColorAt(0,new THREE.Color(0xffffff)); m.count=0; sc.add(m); return {m,cap,n:0}; };
   const T={trunk:mk(trunkGeo,340,true),blob:mk(blobGeo,2600,true),cone:mk(coneGeo,760,true),rock:mk(rockGeo,60,true),log:mk(logGeo,20,true),stem:mk(stemGeo,60),cap:mk(capGeo,60,true),petal:mk(petalGeo,260),
     leaf:mk(leafGeo,260,false,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}))};
   const LIGHTS=['#79b05a','#8fbf5f','#6aa857'].map(C);
   /* the big old trees of the deep woods: thick trunk, flaring roots, a wide dark crown high overhead (the same recipe as plantTree uses on the trail) */
-  function tree(x,z,sc1,pine){ const y=restBase(x,z,1.2), ry=r()*6.28, bark=DEEP_BARK[Math.floor(r()*3)], col=DEEPS[Math.floor(r()*4)];
-    if(pine){ const th=2.2*sc1, H=(11+r()*4)*sc1, rr=(2.6+r()*0.8)*sc1;
+  function tree(x,z,sc1,pine){ const ry=r()*6.28, bark=DEEP_BARK[Math.floor(r()*3)], col=DEEPS[Math.floor(r()*4)];
+    if(pine){ const y=restBase(x,z,0.95*sc1+0.1), th=2.2*sc1, H=(11+r()*4)*sc1, rr=(2.6+r()*0.8)*sc1;
       put(T.trunk,x,y,z,0.42*sc1,th+0.5,0.42*sc1,ry,bark); put(T.cone,x,y,z,0.95*sc1,1.4,0.95*sc1,ry,bark);
       for(let k=0;k<4;k++) put(T.cone,x,y+th+k*H*0.2,z,rr*(1-0.22*k),H*0.42,rr*(1-0.22*k),ry+k,col); return; }
-    const th=(8+r()*3.5)*sc1, tr=(0.5+r()*0.25)*sc1, cr=(3.2+r()*1.2)*sc1, top=y+th;
-    put(T.trunk,x,y,z,tr,th+0.8,tr,ry,bark); put(T.cone,x,y,z,tr*2.3,1.7,tr*2.3,ry,bark);
+    const th=(8+r()*3.5)*sc1, tr=(0.5+r()*0.25)*sc1, cr=(3.2+r()*1.2)*sc1, y=restBase(x,z,tr*1.8+0.1), top=y+th;
+    put(T.trunk,x,y,z,tr,th+0.8,tr,ry,bark); put(T.cone,x,y,z,tr*1.8,1.7,tr*1.8,ry,bark);
     put(T.blob,x,top+cr*0.5,z,cr,cr*0.7,cr,ry,col);
     for(let k=0;k<4;k++){ const a=ry+k*1.57+r()*0.4; put(T.blob,x+Math.cos(a)*cr*0.7,top+cr*(0.08+r()*0.3),z+Math.sin(a)*cr*0.7,cr*(0.62+r()*0.12),cr*(0.46+r()*0.1),cr*(0.62+r()*0.12),a,col); } }
   /* and their understory: small tangled trees, the kind the thicket is made of */
