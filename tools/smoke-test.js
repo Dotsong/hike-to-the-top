@@ -16,6 +16,14 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   await p.evaluate(()=>document.getElementById('bookBtn').click()); await p.waitForTimeout(500);
   const bookOpen=await p.evaluate(()=>!document.getElementById('bookScrim').hidden);
   await p.evaluate(()=>document.getElementById('bookClose').click());
+  // pausing unrolls Dad's map; tapping the map rolls it up; un-pausing carries on
+  await p.evaluate(()=>document.getElementById('pauseBtn').click()); await p.waitForTimeout(1200);
+  const mapOpen=await p.evaluate(()=>window.hikeDebug.mapOpen()&&document.getElementById('mapSvg').childElementCount>10);
+  if(!mapOpen) errs.push('the map did not unroll on pause');
+  await p.screenshot({path:require('os').tmpdir()+'/hike-map.png'});
+  await p.evaluate(()=>document.getElementById('mapSheet').click());
+  if(await p.evaluate(()=>window.hikeDebug.mapOpen())) errs.push('the map did not roll up when tapped');
+  await p.evaluate(()=>document.getElementById('pauseBtn').click());
   // the rest site: jump to just before 98 m; the girls stop, the screen fades to the rest scene,
   // they sit and talk, and the two path buttons appear
   await p.evaluate(()=>window.hikeDebug.walkTo(97.2));
@@ -32,7 +40,7 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   if(!revealed) errs.push('the new forest did not open up after the gateway');
   await p.evaluate(()=>document.getElementById('goodnightBtn').click()); await p.waitForTimeout(1600);
   const backToStart=await p.evaluate(()=>!document.getElementById('intro').hidden);
-  console.log({hikeStarted:true,bookOpen,restScene,forkChosen,revealed,backToStart});
+  console.log({hikeStarted:true,bookOpen,mapOpen,restScene,forkChosen,revealed,backToStart});
   console.log(errs.length?errs.join('\n'):'no errors');
   await b.close(); process.exit(errs.length?1:0);
 })();
