@@ -14,11 +14,15 @@ const code=[
  "const POSE_LINES={scoop:['a'],crouch:['a'],look:['a'],point:['a'],spin:['a'],wave:['a'],hop:['a']};",
  cut("const REST_S=","/* ---------- renderer"),
  cut("const WALK=0.8;","/* ---------- music"),
- `let minSep=9,maxLag=0,maxLead=0,maxOff=0,bad=0,stopAt=0; const dt=1/60; party.v=party.vT=WALK;
-  for(let i=0;i<60*60*30;i++){ time+=dt; busy-=dt; updateParty(dt); if(fork.stage===2){ stopAt=party.s; waited+=dt; if(waited>60){ takeTrail(PICK); party.s=GATE_A+1; party.v=WALK; fork.entered=true; placeGirls(); } } BRAINS.forEach(b=>updateBrain(b,dt));
+ `let minSep=9,maxLag=0,maxLead=0,maxOff=0,bad=0,stopAt=0,treeGap=9; const dt=1/60; party.v=party.vT=WALK;
+  // three test trees planted right on the trail (middle, Pip's side, June's side): the girls must walk round each one
+  const TREES=[[30,0],[250,0.5],[400,-0.5]], planted=[];
+  for(let i=0;i<60*60*30;i++){ time+=dt; busy-=dt; updateParty(dt);
+    TREES.forEach((t,k)=>{ if(!planted[k]&&party.s>t[0]-12){ planted[k]=true; solids.push({x:trailX(t[0])+t[1],z:t[0],r:0.7}); } });
+    solids.forEach(o=>BRAINS.forEach(b=>{ treeGap=Math.min(treeGap,Math.hypot(b.pos.x-o.x,b.pos.y-o.z)-o.r); })); if(fork.stage===2){ stopAt=party.s; waited+=dt; if(waited>60){ takeTrail(PICK); party.s=GATE_A+1; party.v=WALK; fork.entered=true; placeGirls(); } } BRAINS.forEach(b=>updateBrain(b,dt));
     const sep=Math.hypot(juneB.pos.x-pipB.pos.x,juneB.pos.y-pipB.pos.y); minSep=Math.min(minSep,sep);
     BRAINS.forEach(b=>{ const e=party.s+b.ds-b.pos.y; maxLag=Math.max(maxLag,e); maxLead=Math.max(maxLead,-e); maxOff=Math.max(maxOff,Math.abs(b.pos.x-trailX(b.pos.y))); if(!isFinite(b.pos.x+b.pos.y+b.y+b.face)) bad++; }); }
-  console.log({path:PICK<0?'thicket to aspen grove':'cave to autumn woods',stoppedAt:+stopAt.toFixed(2),waitedAtFork:+waited.toFixed(0),metres:+party.s.toFixed(0),minSep:+minSep.toFixed(2),maxLag:+maxLag.toFixed(2),maxLead:+maxLead.toFixed(2),maxSideways:+maxOff.toFixed(2),rests,reveals,stage:fork.stage,poseLines:said,notFinite:bad});
+  console.log({path:PICK<0?'thicket to aspen grove':'cave to autumn woods',stoppedAt:+stopAt.toFixed(2),waitedAtFork:+waited.toFixed(0),metres:+party.s.toFixed(0),minSep:+minSep.toFixed(2),maxLag:+maxLag.toFixed(2),maxLead:+maxLead.toFixed(2),maxSideways:+maxOff.toFixed(2),rests,reveals,stage:fork.stage,closestToATree:+treeGap.toFixed(2),poseLines:said,notFinite:bad});
   let worst=0; for(let s=0;s<5000;s+=0.5){ worst=Math.max(worst,Math.abs(groundY(trailX(s)+2,s)-trailY(s)),Math.abs(groundY(trailX(s)-2,s)-trailY(s))); paths(s); if(!(trailX(s)===pL||trailX(s)===pR)) bad++; } console.log('trail is level out to 2 m either side, max error',worst,'| rows where the girls are off both paths:',bad);`
 ].join('\n');
 new Function(code)();

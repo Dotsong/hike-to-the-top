@@ -343,8 +343,8 @@ h1{font-size:clamp(2.5rem, 8vw, 4.8rem)}
 </div>
 <div class="fork-dock" id="forkDock" hidden>
   <span class="fork-q">Which way?</span>
-  <button id="aspenBtn" type="button"><svg class="fork-ic" viewBox="0 0 64 56" aria-hidden="true"><ellipse cx="32" cy="50" rx="27" ry="5" fill="#2a1a33" opacity=".18"/><g fill="#3f7a4a"><circle cx="14" cy="34" r="13"/><circle cx="50" cy="34" r="13"/><circle cx="23" cy="20" r="13"/><circle cx="41" cy="20" r="13"/></g><g fill="#5d9b4f"><circle cx="18" cy="24" r="6"/><circle cx="44" cy="16" r="6"/><circle cx="50" cy="30" r="5"/></g><path d="M20 50V38a12 12 0 0 1 24 0v12z" fill="#16241b"/><g fill="#fffaf0"><circle cx="28" cy="38" r="3.4"/><circle cx="36" cy="38" r="3.4"/></g><g fill="#2a1a33"><circle cx="28.800" cy="38.600" r="1.500"/><circle cx="36.800" cy="38.600" r="1.500"/></g><path d="M47 9c5-4 10-3 12 1-4 4-9 4-12-1z" fill="#e6c84a"/></svg><span>Through the thicket</span></button>
   <button id="autumnBtn" type="button"><svg class="fork-ic" viewBox="0 0 64 56" aria-hidden="true"><ellipse cx="32" cy="50" rx="27" ry="5" fill="#2a1a33" opacity=".18"/><path d="M5 50C5 26 16 8 32 8s27 18 27 42z" fill="#9a9a94"/><path d="M12 30c3-10 9-17 16-19-6 7-8 14-9 22z" fill="#b9b8b0"/><path d="M40 12c6 0 10 4 12 9-5-3-10-3-15 0z" fill="#7fae4e"/><path d="M18 50V36a14 14 0 0 1 28 0v14z" fill="#1d2228"/><circle cx="32" cy="38" r="11" fill="#8ff5d6" opacity=".2"/><path d="M32 50v-8" stroke="#d8fff0" stroke-width="4" stroke-linecap="round"/><path d="M23 42a9 8 0 0 1 18 0z" fill="#8ff5d6"/><g fill="#1d2228"><circle cx="29" cy="39" r="1.200"/><circle cx="35" cy="39" r="1.200"/></g><path d="M30 40.500q2 1.600 4 0" fill="none" stroke="#1d2228" stroke-width="1" stroke-linecap="round"/><path d="M52 44c4-3 8-2 9 1-3 3-7 3-9-1z" fill="#d9532f"/></svg><span>Into the little cave</span></button>
+  <button id="aspenBtn" type="button"><svg class="fork-ic" viewBox="0 0 64 56" aria-hidden="true"><ellipse cx="32" cy="50" rx="27" ry="5" fill="#2a1a33" opacity=".18"/><g fill="#3f7a4a"><circle cx="14" cy="34" r="13"/><circle cx="50" cy="34" r="13"/><circle cx="23" cy="20" r="13"/><circle cx="41" cy="20" r="13"/></g><g fill="#5d9b4f"><circle cx="18" cy="24" r="6"/><circle cx="44" cy="16" r="6"/><circle cx="50" cy="30" r="5"/></g><path d="M20 50V38a12 12 0 0 1 24 0v12z" fill="#16241b"/><g fill="#fffaf0"><circle cx="28" cy="38" r="3.4"/><circle cx="36" cy="38" r="3.4"/></g><g fill="#2a1a33"><circle cx="28.800" cy="38.600" r="1.500"/><circle cx="36.800" cy="38.600" r="1.500"/></g><path d="M47 9c5-4 10-3 12 1-4 4-9 4-12-1z" fill="#e6c84a"/></svg><span>Through the thicket</span></button>
 </div>
 <div class="fade" id="fade"></div>
 
@@ -475,6 +475,11 @@ function dodge(s){ let sh=0; const k0=Math.floor((s-OB_FROM)/OB_STEP);   /* how 
   for(let k=k0-1;k<=k0+1;k++){ const o=obstacle(k); if(o&&!o.log) sh-=o.side*1.45*Math.exp(-Math.pow((s-o.s)/2.3,2)); }
   if(choice>0) sh+=1.35*Math.exp(-Math.pow((s-GATE_OB)/2.1,2));   /* squeezing past the big rock in the cave */
   return sh; }
+/* Trees and big rocks that turn out to stand on or right beside the trail. rebuildForest fills the list; the girls steer round whatever is in it. */
+const solids=[];
+function sidestep(s,d){ let sh=0;   /* how far to shift a girl walking at offset d, at s, so she passes clear of anything solid just ahead */
+  for(const o of solids){ const ds=o.z-s; if(ds<-1.2||ds>3.2) continue; const gap=d+sh-(o.x-trailX(o.z)), need=o.r+0.75;
+    if(Math.abs(gap)<need) sh+=(gap>=0?1:-1)*(need-Math.abs(gap))*smooth(3.2,1.3,ds)*smooth(-1.2,-0.3,ds); } return sh; }
 const duckAt=s=>choice<0?Math.max(0,1-Math.pow((s-GATE_OB)/1.3,2)):0;   /* how low to duck under the branch in the thicket */
 function logHop(s){ const k0=Math.floor((s-OB_FROM)/OB_STEP);   /* how far through a hop over a log a girl at s is: 0 on the ground, 1 at the top */
   for(let k=k0-1;k<=k0+1;k++){ const o=obstacle(k); if(o&&o.log){ const u=(s-o.s)/0.62; if(u>-1&&u<1) return 1-u*u; } } return 0; }
@@ -620,7 +625,8 @@ const SIGN_EVERY=80, SIGN_AT=40, SIGN_D=-2.9;
 const spots={tree:[],gold:[],pine:[],rock:[],mush:[],flower:[],aspen:[],quake:[],eye:[],bark:[],shoot:[],red:[],maple:[],pile:[],acorn:[]};   /* places the fact-book tags can point at */
 /* One tree. What kind it is depends on where it stands: home woods, gully, aspen grove or autumn woods. */
 function plantTree(r,id,x,z,first,s0,fact,ring){
-  if(wet(x,z)||!ring&&restDist(x,z)<12.4||homeDist(x,z)<8.5) return;   /* nothing grows in the river, and the rest site and the yard stay clear */
+  if(wet(x,z)||!ring&&restDist(x,z)<12.4||homeDist(x,z)<8.5) return;
+  if(Math.abs(x-trailX(z))<3) solids.push({x,z,r:0.7});   /* too close to the trail: the girls will go round it */   /* nothing grows in the river, and the rest site and the yard stay clear */
   const y=treeBase(x,z,1.2), h=hash(r,id,4), ry=hash(r,id,6)*6.28, near=Math.abs(z-s0)<38&&Math.abs(x-trailX(z))<24;
   const g=deep(z), bi=hash(r,id,12)<bioK(z)?biomeAt(x,z):0;
   const tp=near?P.trunkN:P.trunkF, bp=near?P.blobN:P.blobF;
@@ -664,6 +670,7 @@ function plantTree(r,id,x,z,first,s0,fact,ring){
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
   POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
+  solids.length=0;
   rowCache.clear();   /* the drawn ground may have moved on (or the paths changed), so measure it afresh */
   const r0=Math.floor((s0-BACK)/3), r1=Math.floor((s0+FWD)/3);
   for(let r=r0;r<=r1;r++){ const z0=r*3, inGate=z0+3>GATE_A-1&&z0<GATE_B+0.5;
@@ -702,7 +709,7 @@ function rebuildForest(s0){
         const sz=big?1+hash(r,id,4)*0.9:0.4+hash(r,id,4)*0.65, y=floorY(x,z);
         put(P.rock,x,y+sz*0.25,z,sz*1.2,sz*0.75,sz,hash(r,id,5)*6,ROCKS[Math.floor(hash(r,id,6)*3)]);
         put(P.bush,x,y+sz*0.72,z,sz*0.85,sz*0.3,sz*0.7,0,MOSS);
-        if(!big&&sz>0.6) spots.rock.push({x,y:y+sz+0.5,z}); }
+        if(!big&&sz>0.6) spots.rock.push({x,y:y+sz+0.5,z}); if(Math.abs(x-trailX(z))<2.2+sz) solids.push({x,z,r:sz*1.1}); }
       /* fallen logs, some with moss, lying any which way on the forest floor */
       if(!sign&&hash(r,q+34,1)<0.07+0.2*dp){ const id=q+34, d=side*(3.6+hash(r,id,2)*(side<0?12:7)), z=z0+hash(r,id,3)*3, x=edge(z)+d;
         const len=2+hash(r,id,4)*2.8;
@@ -1151,7 +1158,7 @@ function updateBrain(b,dt){
   if(!st){ /* keep her place in line, a little quicker if she has fallen behind */
     const es=party.s+b.ds-b.pos.y, sp=clamp(party.v+es*1.3,0,1.9);
     const hopping=logHop(b.pos.y)>0;   /* once she has taken off she always lands on the far side */
-    if(sp>0.06||hopping){ const a=pt(b.pos.y+1.6,b.d+dodge(b.pos.y+0.8)); moveToward(b,a[0],a[1],hopping?Math.max(sp,1.9):sp,dt); walking=true; }   /* stepping round any boulder or log on the path */ else b.faceT=heading(b.pos.y);
+    if(sp>0.06||hopping){ const lane=b.d+dodge(b.pos.y+0.8), a=pt(b.pos.y+1.6,lane+sidestep(b.pos.y,lane)); moveToward(b,a[0],a[1],hopping?Math.max(sp,1.9):sp,dt); walking=true; }   /* stepping round any boulder or log on the path */ else b.faceT=heading(b.pos.y);
     if(b.skip>0) b.skip-=dt;
     if(state.started&&party.rest<=0&&fork.stage!==1){ b.actIn-=dt;
       if(b.actIn<=0&&!b.other.cur&&!b.other.queue.length){
@@ -1170,6 +1177,8 @@ function updateBrain(b,dt){
 }
 /* the part every brain shares: keep clear of your sister, turn, pose the rig, blink */
 function finishBrain(b,pose,walking,dt){
+  /* never walk through a tree or a boulder */
+  if(landY===groundY) for(const o of solids){ const ox=b.pos.x-o.x, oz=b.pos.y-o.z, od=Math.hypot(ox,oz), need=o.r+0.3; if(od<need&&od>1e-4){ b.pos.x+=ox/od*(need-od); b.pos.y+=oz/od*(need-od)*0.3; } }
   /* never stand on top of your sister */
   { const o=b.other, ox=b.pos.x-o.pos.x, oz=b.pos.y-o.pos.y, od=Math.hypot(ox,oz); if(od<0.62&&od>1e-4){ const k=(0.62-od)*0.5/od; b.pos.x+=ox*k; b.pos.y+=oz*k; } }
   b.y=landY(b.pos.x,b.pos.y);
@@ -1581,7 +1590,7 @@ function updateRestBrain(b,dt){
 function enterRest(){
   const tok=++restToken; $('fade').classList.add('on');
   setTimeout(()=>{ if(tok!==restToken||!state.started) return;
-    rest=buildRest(); Object.assign(rest,{t:0,phase:0,t2:0,ready:false,canAct:false,leaving:null,th:0.6,cam0:camTheta,focus:0,fx:0});
+    rest=buildRest(); Object.assign(rest,{t:0,phase:0,t2:0,ready:false,canAct:false,leaving:null,th:0.6,cam0:camTheta,focus:0,fx:0,fk:0});
     scene.remove(june.g,pip.g); rest.scene.add(june.g,pip.g); june.pack.visible=pip.pack.visible=false;
     mode='rest'; landY=()=>0; zoom=1; userPhi=0;
     BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(REST_SEATS[i][0],1.3+i*0.4); b.face=b.faceT=Math.PI; b.actIn=7+i*5+Math.random()*4; });   /* standing in front of the log, about to sit down */
@@ -1606,10 +1615,13 @@ function updateRest(dt,rawDt){
   if(rest.phase<3) rest.th+=dt*0.035*motion; else { let dd=Math.PI-0.5-rest.th; dd=Math.atan2(Math.sin(dd),Math.cos(dd)); rest.th+=dd*(1-Math.exp(-0.55*dt)); }
   let th=rest.th+(camTheta-rest.cam0)+Math.sin(time*0.07)*0.12*motion;
   /* pointing at one of the path buttons swings the camera round behind the girls to look at that gateway */
-  rest.fx=damp(rest.fx,rest.ready||rest.leaving?rest.focus:0,2.4,rawDt); const fk=Math.abs(rest.fx);
+  /* fk is how much the camera has turned to look at a gateway at all; fx is which one (-1 thicket ... 1 cave). Moving from one button to the
+     other only slides fx, so the view pans straight across from one gateway to the other. */
+  const want=(rest.ready||rest.leaving)&&rest.focus!==0;
+  rest.fk=damp(rest.fk,want?1:0,1.7,rawDt); if(rest.focus) rest.fx=rest.fk<0.02?rest.focus:damp(rest.fx,rest.focus,1.9,rawDt); const fk=smooth(0,1,rest.fk);
   if(fk>0.001){ let dd=Math.PI+rest.fx*0.6-th; dd=Math.atan2(Math.sin(dd),Math.cos(dd)); th+=dd*fk; }
   const aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
-  const r=7.2*zoom*aspectBoost*(1+0.2*fk), ph=clamp(0.24+userPhi,-0.02,1.1);
+  const r=7.2*zoom*aspectBoost, ph=clamp(0.24+userPhi,-0.02,1.1);
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
   target.set(0.05,1.05,0.4); camera.position.copy(target).add(off); if(camera.position.y<0.6) camera.position.y=0.6;
   if(fk>0.001){ look.set(Math.sin(rest.fx*0.6)*19,1.9,Math.cos(0.6)*19); target.lerp(look,0.5*fk); }
@@ -1650,7 +1662,7 @@ function onReveal(){
 }
 [['aspenBtn',-1],['autumnBtn',1]].forEach(([id,c])=>{ const b=$(id);
   ['pointerenter','focus'].forEach(ev=>b.addEventListener(ev,()=>{ if(rest&&rest.ready) rest.focus=c; }));
-  ['pointerleave','blur'].forEach(ev=>b.addEventListener(ev,()=>{ if(rest&&rest.ready&&rest.focus===c) rest.focus=0; })); });
+});   /* the view stays on the gateway last pointed at, rather than swinging back in between */
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
@@ -1659,6 +1671,7 @@ window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; 
 /* Drawn fresh each time it unrolls: the trail walked so far is inked in, June and Pip are two dots, and each forest past
    the fork stays a question mark until the girls have actually come out into it. */
 const MAP_A='M72 292 C100 270 140 250 175 232 C196 222 214 240 226 256 C238 272 258 278 272 262 C284 248 300 244 312 258 C324 272 344 274 372 258 L386 258';
+/* on the map the walkers head east, so their left is up the page: MAP_L is the cave path, MAP_R the thicket path */
 const MAP_L='M386 258 C400 246 414 234 430 224 C446 214 470 196 522 172', MAP_R='M386 258 C400 272 414 286 430 296 C448 306 482 316 524 318';
 let mapHidden=false;
 function drawMap(){
@@ -1678,13 +1691,13 @@ function drawMap(){
     <path d="${MAP_R}" fill="none" stroke="${ink}" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
     <path d="M540 150 C560 130 578 112 590 96 M546 304 C580 250 596 170 596 104" fill="none" stroke="${ink}" stroke-width="2" stroke-dasharray="1 9" stroke-linecap="round" opacity=".5"/>
     <path id="mapA" d="${MAP_A}" fill="none" stroke="#d0607a" stroke-width="4.5" stroke-linecap="round"/>
-    <path id="mapB" d="${choice<0?MAP_L:MAP_R}" fill="none" stroke="#d0607a" stroke-width="4.5" stroke-linecap="round"/>
+    <path id="mapB" d="${choice<0?MAP_R:MAP_L}" fill="none" stroke="#d0607a" stroke-width="4.5" stroke-linecap="round"/>
     <g><path d="M46 306v-16l14-12 14 12v16z" fill="#f6ead8" stroke="${ink}" stroke-width="2" stroke-linejoin="round"/><path d="M42 292l18-16 18 16" fill="none" stroke="#c96a55" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><rect x="56" y="294" width="8" height="12" fill="#8a5a3c"/></g>
     <circle cx="372" cy="258" r="13" fill="#ecd9a8" stroke="${ink}" stroke-width="2"/><rect x="363" y="255" width="18" height="6" rx="3" fill="#8a5a3c"/>
-    <g>${dots([[424,218],[436,212],[440,226],[428,230]],8,'#2f5a3e')}<path d="M424 232a8 9 0 0 1 16 0z" fill="#16241b"/></g>
-    <g><path d="M412 306c0-18 10-26 20-26s20 8 20 26z" fill="#9a9a94" stroke="${ink}" stroke-width="2" stroke-linejoin="round"/><path d="M424 306a8 11 0 0 1 16 0z" fill="#1d2228"/></g>
-    ${seenA?`<g>${dots([[524,150],[544,140],[562,152],[536,128]],11,'#e6c84a')}<path d="M524 158v22M544 150v30M562 160v20" stroke="#fffaf0" stroke-width="5"/><path d="M524 158v22M544 150v30M562 160v20" stroke="${ink}" stroke-width="1" stroke-dasharray="2 5"/></g><text x="544" y="204" font-size="20" text-anchor="middle">Aspen grove</text>`:mystery(546,160)}
-    ${seenR?`<g>${dots([[528,312],[548,300],[568,314]],12,'#d9532f')}${dots([[538,322],[558,324]],10,'#e8a53a')}</g><text x="548" y="356" font-size="20" text-anchor="middle">Autumn woods</text>`:mystery(550,318)}
+    <g><path d="M412 232c0-18 10-26 20-26s20 8 20 26z" fill="#9a9a94" stroke="${ink}" stroke-width="2" stroke-linejoin="round"/><path d="M424 232a8 11 0 0 1 16 0z" fill="#1d2228"/></g>
+    <g>${dots([[424,292],[436,286],[440,300],[428,304]],8,'#2f5a3e')}<path d="M424 306a8 9 0 0 1 16 0z" fill="#16241b"/></g>
+    ${seenR?`<g>${dots([[524,150],[544,138],[564,152]],12,'#d9532f')}${dots([[534,160],[554,162]],10,'#e8a53a')}</g><text x="546" y="198" font-size="20" text-anchor="middle">Autumn woods</text>`:mystery(546,160)}
+    ${seenA?`<g>${dots([[528,304],[548,294],[566,306],[540,284]],11,'#e6c84a')}<path d="M528 312v20M548 302v30M566 314v18" stroke="#fffaf0" stroke-width="5"/><path d="M528 312v20M548 302v30M566 314v18" stroke="${ink}" stroke-width="1" stroke-dasharray="2 5"/></g><text x="548" y="358" font-size="20" text-anchor="middle">Aspen grove</text>`:mystery(550,318)}
     <g><path d="M566 104l30-52 30 52z" fill="#a9c2ad" stroke="${ink}" stroke-width="2" stroke-linejoin="round"/><path d="M596 52v-18" stroke="${ink}" stroke-width="2"/><path d="M596 34l14 5-14 5z" fill="#d0607a"/></g>
     <text x="596" y="124" font-size="20" text-anchor="middle">The top</text>
     <text x="26" y="46" font-size="34">Dad&#8217;s map</text>
@@ -1692,8 +1705,8 @@ function drawMap(){
     <text x="96" y="134" font-size="20" transform="rotate(4 96 134)" fill="#3f7fa0" style="fill:#3f7fa0">River</text>
     <text x="300" y="186" font-size="20" text-anchor="middle">Deep woods</text>
     <text x="352" y="292" font-size="19" text-anchor="middle">Rest site</text>
-    <text x="466" y="244" font-size="19">Thicket</text>
-    <text x="468" y="292" font-size="19">Little cave</text>
+    <text x="466" y="244" font-size="19">Little cave</text>
+    <text x="468" y="292" font-size="19">Thicket</text>
     <g transform="translate(40 92)"><path d="M0 -20l5 15h-10z" fill="${ink}"/><path d="M0 20V-8M-14 0h28" stroke="${ink}" stroke-width="1.6"/><text x="0" y="-25" font-size="16" text-anchor="middle">N</text></g>
     <g id="mapYou"><circle cx="-5" cy="0" r="6.5" fill="#ff8a7a" stroke="#fffaf0" stroke-width="2"/><circle cx="6" cy="2" r="5.5" fill="#b79cff" stroke="#fffaf0" stroke-width="2"/></g>`;
   /* ink in the part already walked, and put the two dots where the girls are */
@@ -2075,7 +2088,7 @@ function updateMarks(){
 /* ---------- loop ---------- */
 const off=new THREE.Vector3(), target=new THREE.Vector3(), chase=new THREE.Vector3(), look=new THREE.Vector3();
 /* the mood of each place: haze color, and what drifts in the air */
-const FOG_THICKET=C('#587a62'), FOG_CAVE=C('#252b31');
+const FOG_THICKET=C('#18261d'), FOG_CAVE=C('#0c0f12');   /* inside the gateways: deep shade, nearly black */
 const FOG_HOME=C('#d3e6c2'), FOG_GULLY=C('#93b59d'), FOG_ASPEN=C('#e8f0c6'), FOG_AUTUMN=C('#f0dab2'), fogCol=new THREE.Color();
 const SUN_HOME=C('#fff0cf'), SUN_AUTUMN=C('#ffd9a0'), MOTE_HOME=C('#fff2b8'), MOTE_ASPEN=C('#ffe07a'), MOTE_AUTUMN=C('#f59a3c');
 const altValue=$('altValue');
@@ -2123,9 +2136,9 @@ function frame(now){
   const gk=deep(party.s), bk=choice?smooth(GATE_B-1,GATE_B+12,party.s):0, thK=choice<0?gK:0, caveK=choice>0?gK:0;
   bloom=damp(bloom,0,0.55,dt);   /* a burst of brightness as the new forest opens up */
   fogCol.copy(FOG_HOME).lerp(FOG_GULLY,gk); if(choice) fogCol.lerp(choice<0?FOG_ASPEN:FOG_AUTUMN,bk);
-  fogCol.lerp(FOG_THICKET,thK*0.7).lerp(FOG_CAVE,caveK*0.85);
-  scene.fog.color.copy(fogCol); skyU.mid.value.copy(fogCol); scene.fog.density=lerp(0.0125,0.027,gk)+thK*0.035+caveK*0.02;
-  hemi.intensity=lerp(0.72,0.44,gk)*(1-0.3*thK-0.62*caveK)+0.5*bloom; sun.intensity=lerp(0.9,0.6,gk)*(1-0.5*thK-0.7*caveK)+0.35*bloom;
+  fogCol.lerp(FOG_THICKET,thK*0.92).lerp(FOG_CAVE,caveK*0.96);
+  scene.fog.color.copy(fogCol); skyU.mid.value.copy(fogCol); scene.fog.density=lerp(0.0125,0.027,gk)+thK*0.085+caveK*0.095;   /* thick enough inside a gateway that its far end is lost in the dark */
+  hemi.intensity=lerp(0.72,0.44,gk)*(1-0.55*thK-0.66*caveK)+0.5*bloom; sun.intensity=lerp(0.9,0.6,gk)*(1-0.8*thK-0.85*caveK)+0.35*bloom;
   cave.glow.intensity=1.2*caveK; setTorches(caveK);   /* flashlights on in the cave */ sun.color.copy(SUN_HOME); if(choice>0) sun.color.lerp(SUN_AUTUMN,bk);
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
