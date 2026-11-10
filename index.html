@@ -807,7 +807,7 @@ const forkSign=makeForkSign();
 { const fx=REST_X+REST_KIT.sign[0], fz=REST_C+REST_KIT.sign[1]; forkSign.position.set(fx,groundY(fx,fz),fz); scene.add(forkSign); }
 
 /* Home: a very small house at the very far edge of the land. It is so far off that the haze would swallow it completely, so instead of
-   being fogged it is painted most of the way toward the color of the haze: just enough left to pick it out if you look for it. */
+   being fogged it is painted almost all the way to the color of the haze: a faint ghost you can only just pick out if you look for it. */
 const homeG=new THREE.Group();
 { const g=homeG, wall=L('#f6ead8'), roofM=L('#c96a55'), wood=L('#8a5a3c'), plank=L('#d9b98a'), glow=new THREE.MeshBasicMaterial({color:0xffe3a0});
   const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); g.add(m); return m; };
@@ -821,7 +821,8 @@ const homeG=new THREE.Group();
   { const pr=add(new THREE.BoxGeometry(3.5,0.14,1.8),roofM,0,2.45,3.3); pr.rotation.x=0.12; }
   g.scale.setScalar(0.62); g.position.set(HOME_X,trailY(HOME_Z),HOME_Z); g.rotation.y=HOME_A+Math.PI+0.5;   /* turned a little, so a wall and the roof both show */
   const haze=new THREE.Color(0xd3e6c2);
-  g.traverse(o=>{ if(o.isMesh){ const m=o.material; m.fog=false; m.color.lerp(haze,m.type==='MeshBasicMaterial'?0.55:0.8); } });
+  /* each part becomes a flat, unlit color nine-tenths of the way to the haze, so sun and shade cannot make it stand out: only a ghost of the house is left */
+  g.traverse(o=>{ if(o.isMesh){ const lit=o.material.type==='MeshBasicMaterial'; o.material=new THREE.MeshBasicMaterial({color:o.material.color.clone().lerp(haze,lit?0.78:0.9),fog:false}); } });
   scene.add(g); }
 
 /* a big log to sit on, as it looks from the trail when the girls walk into the rest site */
