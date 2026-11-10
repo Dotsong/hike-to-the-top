@@ -258,19 +258,12 @@ h1{font-size:clamp(2.5rem, 8vw, 4.8rem)}
   .caption{transform:none;transition:opacity .6s}
 }
 
-/* the wall of leaves on the title screen: two doors that slide apart from the middle */
-.leafwall{position:fixed;inset:0;z-index:5;overflow:hidden;pointer-events:auto}
+/* the wall of leaves on the title screen: one canvas, every leaf drawn on its own so it can rustle and, when the hike begins, fall */
+.leafwall{position:fixed;inset:0;z-index:5;overflow:hidden;pointer-events:auto;opacity:1;transition:opacity .7s ease}
 .leafwall.open{pointer-events:none}
+.leafwall.hide{opacity:0}
 .leafwall.away{visibility:hidden}
-.leaf-door{position:absolute;top:0;height:100%;width:calc(50% + 72px);display:block;transition:transform 2.6s cubic-bezier(.62,.02,.24,1);will-change:transform}
-.leaf-door.left{left:0}
-.leaf-door.right{right:0}
-.leafwall.open .leaf-door.left{transform:translateX(-103%)}
-.leafwall.open .leaf-door.right{transform:translateX(103%)}
-@media (prefers-reduced-motion:reduce){
-  .leaf-door{transition:opacity .8s ease}
-  .leafwall.open .leaf-door.left,.leafwall.open .leaf-door.right{transform:none;opacity:0}
-}
+.leaf-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 /* the title card sits in the middle of the leaves */
 .intro{inset:0;z-index:7;display:grid;place-items:center;overflow:auto;background:none;transition:opacity .9s ease;
   padding-top:calc(24px + env(safe-area-inset-top, 0px));padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px))}
@@ -324,8 +317,7 @@ h1{font-size:clamp(2.5rem, 8vw, 4.8rem)}
 </div>
 
 <div class="leafwall" id="leafwall" aria-hidden="true">
-  <canvas class="leaf-door left" id="doorL"></canvas>
-  <canvas class="leaf-door right" id="doorR"></canvas>
+  <canvas class="leaf-canvas" id="leafCanvas"></canvas>
 </div>
 
 <section class="intro" id="intro">
@@ -412,7 +404,7 @@ let choice=0;   /* 0 = not chosen yet, -1 = the thicket path (aspen grove), 1 = 
 /* the middle of the trail: two lazy waves, the curve to the right at the river, and the tight bends that wind through the deep woods */
 const x0=s=>7*Math.sin(s*0.021)+3.5*Math.sin(s*0.047+1.3)-12*smooth(40,64,s)+3.2*Math.sin((s-64)*0.224)*smooth(62,72,s)*(1-smooth(88,97,s));
 const REST_X=x0(REST_C);
-const HOME_S=-19, HOME_X=x0(HOME_S)-6.5;   /* June and Pip's house stands beside the very start of the trail, a little way behind them */
+const HOME_S=-64, HOME_X=x0(HOME_S)-1.5;   /* June and Pip's house: far back down the trail, small on the horizon behind them */
 const homeDist=(x,z)=>Math.hypot(x-HOME_X,z-HOME_S);
 const spread=t=>t>0?18*(1-Math.exp(-t/35)):0;      /* how far each path has drifted from the middle, t metres past the fork */
 const keep=t=>1-smooth(55,85,t);                   /* the path not taken fades out between 55 and 85 m past the fork */
@@ -760,7 +752,7 @@ function makeForkSign(){
 const forkSign=makeForkSign();
 { const fx=x0(FORK+3); forkSign.position.set(fx,groundY(fx,FORK+3),FORK+3); forkSign.rotation.y=heading(FORK+3); scene.add(forkSign); }
 
-/* home: cream walls, a red roof, a porch and warm windows, with stepping stones leading to the trail */
+/* home: cream walls, a red roof, a porch and warm windows, where the trail begins. From the trailhead it is a small shape on the horizon. */
 { const g=new THREE.Group(), wall=L('#f6ead8'), roofM=L('#c96a55'), wood=L('#8a5a3c'), plank=L('#d9b98a'), glow=new THREE.MeshBasicMaterial({color:0xffe3a0});
   const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); g.add(m); return m; };
   add(new THREE.BoxGeometry(6,3.2,5),wall,0,1.6,0);
@@ -773,7 +765,7 @@ const forkSign=makeForkSign();
   [-1.4,1.4].forEach(x=>add(new THREE.CylinderGeometry(0.07,0.07,2.2,7),wall,x,1.3,3.85));
   { const pr=add(new THREE.BoxGeometry(3.5,0.14,1.8),roofM,0,2.45,3.3); pr.rotation.x=0.12; }
   for(let i=0;i<6;i++){ const st=add(new THREE.CylinderGeometry(0.34,0.36,0.06,9),L('#b9b3a4'),(i%2?0.22:-0.18),0.03,4.7+i*1.05); st.scale.z=0.8; }
-  g.position.set(HOME_X,trailY(HOME_S),HOME_S); g.rotation.y=0.75;
+  g.position.set(HOME_X,trailY(HOME_S),HOME_S); g.rotation.y=heading(HOME_S)+0.15; g.scale.setScalar(1.35);
   g.traverse(o=>{ if(o.isMesh){ o.castShadow=o.material.type!=='MeshBasicMaterial'; o.receiveShadow=true; } }); scene.add(g); }
 
 /* a big log to sit on, as it looks from the trail when the girls walk into the rest site */
@@ -1201,41 +1193,83 @@ $('soundBtn').addEventListener('click',e=>{ const on=Music.toggle(); e.currentTa
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ Music.resume(); if(state.started) keepAwake(); } });
 
 /* ---------- the wall of leaves ---------- */
-/* Each door is a canvas painted once with a few hundred overlapping leaves. Leaves along the
-   middle edge poke past it, so the two doors mesh together and the seam is hidden. */
-const leafwall=$('leafwall');
-function drawDoor(cv,flip,sd){
-  const dpr=Math.min(window.devicePixelRatio||1,2), W=cv.clientWidth, H=cv.clientHeight; if(!W||!H) return;
-  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
-  const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); if(flip){ g.translate(W,0); g.scale(-1,1); }
-  let s=sd; const r=()=>{ s=(s*16807)%2147483647; return (s-1)/2147483646; };
-  const edge=W-72, k=clamp(Math.sqrt(W*H)/630,0.8,1.6);
-  const bg=g.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#1d4a2b'); bg.addColorStop(1,'#14331d'); g.fillStyle=bg; g.fillRect(0,0,edge-30,H);
-  const BACKS=['#1f5a30','#236636','#2a713a'], MIDS=['#2f7d40','#3c8f48','#4a9a4f','#357f52'], FRONTS=['#5aa857','#6db85f','#84c468','#4f9f58'], WARM=['#e3b23c','#d98a3a','#eccb5a'];
-  const leaves=[], n=Math.round(W*H/(520*k*k));
-  for(let i=0;i<n;i++) leaves.push({x:-30+r()*(edge+30),y:-30+r()*(H+60),a:r()*6.283,o:r()});
-  for(let y=-10;y<H+10;y+=13*k) leaves.push({x:edge-16+r()*40,y:y+r()*10,a:(r()-0.5)*1.5,o:r()});   /* the ragged middle edge */
-  leaves.sort((a,b)=>a.o-b.o);
-  leaves.forEach((lf,i)=>{ const depth=i/leaves.length, len=(54+r()*64)*k*(0.82+depth*0.3), wd=len*(0.2+r()*0.1);
-    const pal=depth<0.33?BACKS:depth<0.7?MIDS:(r()<0.07?WARM:FRONTS), col=pal[Math.floor(r()*pal.length)];
-    g.save(); g.translate(lf.x,lf.y); g.rotate(lf.a);
-    g.beginPath(); g.moveTo(-len/2,0); g.bezierCurveTo(-len*0.2,-wd,len*0.25,-wd*0.9,len/2,0); g.bezierCurveTo(len*0.25,wd*0.9,-len*0.2,wd,-len/2,0); g.closePath();
-    g.shadowColor='rgba(6,24,12,.5)'; g.shadowBlur=9*k; g.shadowOffsetY=3*k; g.fillStyle=col; g.fill();
-    g.shadowColor='transparent'; g.shadowBlur=0; g.shadowOffsetY=0;
-    g.beginPath(); g.moveTo(-len/2,0); g.bezierCurveTo(-len*0.2,-wd,len*0.25,-wd*0.9,len/2,0); g.closePath(); g.fillStyle='rgba(255,255,230,.08)'; g.fill();
-    g.strokeStyle='rgba(255,255,225,.24)'; g.lineWidth=1.3*k; g.lineCap='round';
-    g.beginPath(); g.moveTo(-len*0.46,0); g.lineTo(len*0.44,0);
-    for(let v=-1;v<=1;v++){ const vx=v*len*0.17; g.moveTo(vx,0); g.lineTo(vx+len*0.1,-wd*0.42); g.moveTo(vx,0); g.lineTo(vx+len*0.1,wd*0.42); }
-    g.stroke(); g.restore(); });
+/* A few hundred leaves, each one its own little picture. While the title card is up they rustle; when the hike begins they
+   let go, the ones in the middle first, and flutter down off the screen. Each color of leaf is painted once (with its shadow
+   and veins) and then stamped, turned and scaled, so redrawing the whole wall every frame stays cheap. */
+const leafwall=$('leafwall'), leafCv=$('leafCanvas'), lctx=leafCv.getContext('2d');
+const LEAF_PALS=[['#1f5a30','#236636','#2a713a'],['#2f7d40','#3c8f48','#4a9a4f','#357f52'],['#5aa857','#6db85f','#84c468','#4f9f58'],['#e3b23c','#d98a3a','#eccb5a']];   /* back, middle, front, autumn */
+const SPR_LEN=120, SPR_W=SPR_LEN+40, SPR_H=SPR_LEN*0.6+40;
+const wall={state:'closed',t:0,ft:0,raf:0,last:0,drawn:0,W:0,H:0,dpr:1,k:1,bg:1,sprites:null,leaves:[],bed:document.createElement('canvas')};
+function leafSprite(col,dpr){
+  const c=document.createElement('canvas'); c.width=Math.ceil(SPR_W*dpr); c.height=Math.ceil(SPR_H*dpr);
+  const g=c.getContext('2d'), len=SPR_LEN, wd=len*0.27; g.scale(dpr,dpr); g.translate(SPR_W/2,SPR_H/2);
+  g.beginPath(); g.moveTo(-len/2,0); g.bezierCurveTo(-len*0.2,-wd,len*0.25,-wd*0.9,len/2,0); g.bezierCurveTo(len*0.25,wd*0.9,-len*0.2,wd,-len/2,0); g.closePath();
+  g.shadowColor='rgba(6,24,12,.5)'; g.shadowBlur=11; g.shadowOffsetY=4*dpr; g.fillStyle=col; g.fill();
+  g.shadowColor='transparent'; g.shadowBlur=0; g.shadowOffsetY=0;
+  g.beginPath(); g.moveTo(-len/2,0); g.bezierCurveTo(-len*0.2,-wd,len*0.25,-wd*0.9,len/2,0); g.closePath(); g.fillStyle='rgba(255,255,230,.08)'; g.fill();
+  g.strokeStyle='rgba(255,255,225,.26)'; g.lineWidth=1.6; g.lineCap='round'; g.beginPath(); g.moveTo(-len*0.46,0); g.lineTo(len*0.44,0);
+  for(let v=-1;v<=1;v++){ const vx=v*len*0.17; g.moveTo(vx,0); g.lineTo(vx+len*0.1,-wd*0.42); g.moveTo(vx,0); g.lineTo(vx+len*0.1,wd*0.42); }
+  g.stroke(); return c;
 }
-function drawDoors(){ drawDoor($('doorL'),false,7321); drawDoor($('doorR'),true,90211); }
-drawDoors();
-let doorTimer=0, doorResize=0;
-addEventListener('resize',()=>{ clearTimeout(doorResize); doorResize=setTimeout(()=>{ if(!leafwall.classList.contains('away')) drawDoors(); else doorsStale=true; },160); });
-let doorsStale=false;
-function openDoors(){ clearTimeout(doorTimer); leafwall.classList.remove('away'); leafwall.classList.add('open'); doorTimer=setTimeout(()=>leafwall.classList.add('away'),2900); }
-function closeDoors(){ clearTimeout(doorTimer); leafwall.classList.remove('away'); if(doorsStale){ doorsStale=false; drawDoors(); }
-  void leafwall.offsetWidth; leafwall.classList.remove('open'); }
+function buildLeaves(){
+  const W=wall.W=leafCv.clientWidth||innerWidth, H=wall.H=leafCv.clientHeight||innerHeight, dpr=wall.dpr=Math.min(window.devicePixelRatio||1,2), k=wall.k=clamp(Math.sqrt(W*H)/700,0.75,1.7);
+  leafCv.width=Math.round(W*dpr); leafCv.height=Math.round(H*dpr);
+  if(!wall.sprites||wall.sprites.dpr!==dpr){ wall.sprites=LEAF_PALS.map(p=>p.map(c=>leafSprite(c,dpr))); wall.sprites.dpr=dpr; }
+  let sd=7321; const r=()=>{ sd=(sd*16807)%2147483647; return (sd-1)/2147483646; };
+  const n=Math.min(900,Math.round(W*H/(950*k*k))), list=[];
+  for(let i=0;i<n;i++) list.push({x:-30+r()*(W+60),y:-30+r()*(H+60),a:r()*6.283,o:r()});
+  list.sort((p,q)=>p.o-q.o);
+  wall.leaves=list.map((lf,i)=>{ const depth=i/n, tier=depth<0.33?0:depth<0.7?1:(r()<0.08?3:2), pal=wall.sprites[tier];
+    return {front:depth>0.62,x:lf.x,y:lf.y,a:lf.a,x0:lf.x,y0:lf.y,a0:lf.a,sx:(66+r()*74)*k*(0.82+depth*0.3)/SPR_LEN,thin:0.75+r()*0.45,img:pal[Math.floor(r()*pal.length)],
+      ph:r()*6.283,w:0.7+r()*1.1,amp:0.03+r()*0.06*(0.4+depth),delay:0,vx:0,vy:0,spin:0,term:0}; });
+  /* the leaves at the back never move while the wall is closed, so they are painted once onto a bed that is stamped under the front ones */
+  const bed=wall.bed, g=bed.getContext('2d'); bed.width=leafCv.width; bed.height=leafCv.height;
+  const bg=g.createLinearGradient(0,0,0,bed.height); bg.addColorStop(0,'#1d4a2b'); bg.addColorStop(1,'#14331d'); g.fillStyle=bg; g.fillRect(0,0,bed.width,bed.height);
+  for(const l of wall.leaves){ if(l.front) continue; const c=Math.cos(l.a0)*dpr*l.sx, s=Math.sin(l.a0)*dpr*l.sx; g.setTransform(c,s,-s*l.thin,c*l.thin,l.x*dpr,l.y*dpr); g.drawImage(l.img,-SPR_W/2,-SPR_H/2,SPR_W,SPR_H); }
+}
+function drawLeaves(t){
+  const g=lctx, d=wall.dpr, falling=wall.state==='falling';
+  g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,leafCv.width,leafCv.height);
+  if(!falling) g.drawImage(wall.bed,0,0);
+  else if(wall.bg>0.01){ g.globalAlpha=wall.bg; const bg=g.createLinearGradient(0,0,0,leafCv.height); bg.addColorStop(0,'#1d4a2b'); bg.addColorStop(1,'#14331d'); g.fillStyle=bg; g.fillRect(0,0,leafCv.width,leafCv.height); g.globalAlpha=1; }
+  const breeze=t*0.6;
+  for(const l of wall.leaves){ if(l.gone||!falling&&!l.front) continue;
+    /* resting: each leaf rocks on its own, and now and then a soft breeze runs across the whole wall */
+    const a=falling&&l.go?l.a:l.a0+Math.sin(t*l.w+l.ph)*l.amp+Math.sin(breeze-l.x0*0.006)*Math.max(0,Math.sin(breeze*0.37-l.y0*0.004))*l.amp*1.6;
+    const c=Math.cos(a)*d*l.sx, s=Math.sin(a)*d*l.sx;
+    g.setTransform(c,s,-s*l.thin,c*l.thin,l.x*d,l.y*d); g.drawImage(l.img,-SPR_W/2,-SPR_H/2,SPR_W,SPR_H); }
+}
+function leafTick(now){
+  wall.raf=0; if(wall.state==='away') return;
+  const dt=Math.min(0.05,(now-wall.last)/1000||0); wall.last=now; wall.t+=dt;
+  if(wall.state==='falling'){ const k=wall.k; let left=0; wall.ft+=dt; wall.bg=Math.max(0,1-wall.ft/0.7);
+    for(const l of wall.leaves){ if(l.gone) continue; left++;
+      if(wall.ft<l.delay) continue; l.go=true;
+      l.vy=Math.min(l.term,l.vy+760*k*dt); l.y+=l.vy*dt; l.x+=(l.vx+Math.sin(wall.t*2.3+l.ph)*110*k)*dt; l.vx*=1-0.6*dt; l.a+=l.spin*dt*(0.5+0.5*Math.sin(wall.t*1.7+l.ph));
+      if(l.y>wall.H+90*k) l.gone=true; }
+    drawLeaves(wall.t);
+    if(!left||wall.ft>6){ wall.state='away'; leafwall.classList.add('away'); lctx.setTransform(1,0,0,1,0,0); lctx.clearRect(0,0,leafCv.width,leafCv.height); return; } }
+  else if(now-wall.drawn>30&&!reduced){ wall.drawn=now; drawLeaves(wall.t); }   /* rustling: about thirty redraws a second is plenty */
+  wall.raf=requestAnimationFrame(leafTick);
+}
+function startLeaves(){ if(!wall.raf){ wall.last=performance.now(); wall.raf=requestAnimationFrame(leafTick); } }
+buildLeaves(); drawLeaves(0); startLeaves();
+let doorResize=0, doorTimer=0;
+addEventListener('resize',()=>{ clearTimeout(doorResize); doorResize=setTimeout(()=>{ if(wall.state==='closed'){ buildLeaves(); drawLeaves(wall.t); } },160); });
+/* the hike begins: the leaves let go and fall */
+function openDoors(){
+  clearTimeout(doorTimer); leafwall.classList.add('open');
+  if(reduced){ leafwall.classList.add('hide'); wall.state='away'; doorTimer=setTimeout(()=>leafwall.classList.add('away'),750); return; }
+  const cx=wall.W/2, cy=wall.H/2, far=Math.hypot(cx,cy), k=wall.k;
+  wall.leaves.forEach(l=>{ const dx=l.x-cx, dy=l.y-cy; l.delay=Math.hypot(dx,dy)/far*0.95+Math.random()*0.55; l.go=false; l.gone=false;
+    l.vx=dx/far*260*k*(0.4+Math.random()); l.vy=-40*k*Math.random(); l.term=(380+Math.random()*320)*k; l.spin=(Math.random()<0.5?-1:1)*(1.2+Math.random()*3.2); });
+  wall.state='falling'; wall.ft=0; startLeaves();
+}
+/* back to the title page: a fresh wall of leaves fades in */
+function closeDoors(){
+  clearTimeout(doorTimer); buildLeaves(); wall.state='closed'; wall.bg=1; drawLeaves(wall.t);
+  leafwall.classList.add('hide'); leafwall.classList.remove('away'); void leafwall.offsetWidth; leafwall.classList.remove('hide','open'); startLeaves();
+}
 
 /* ---------- starting the hike, and going back to the title page ---------- */
 function startHike(){
@@ -1247,6 +1281,7 @@ function startHike(){
   ['alt','controls'].forEach(id=>$(id).classList.remove('hud-off'));
   hushBubbles(); speakIn=9; birdsIn=24; BRAINS.forEach(b=>{ b.actIn=12+Math.random()*10; });
   say(0,'Come on, Pip! The trail starts here.'); say(1,'Right behind you, Captain June!'); say(1,'Bye, house! Back by dinner!');
+  pipB.queue.push({k:'pose',pose:'idle',dur:5.2},{k:'pose',pose:'wave',dur:2.4,face:heading(4)+Math.PI});   /* Pip turns round to wave at it */
   setTimeout(()=>{ if(state.started) showCaption({t:'The edge of the woods',b:'Trees on one side, open meadow on the other. There is no hurry at all.'}); },2600);
 }
 function backToStart(){
@@ -1259,7 +1294,7 @@ function backToStart(){
   const intro=$('intro'); intro.hidden=false; requestAnimationFrame(()=>intro.classList.remove('gone'));
 }
 function resetHike(){
-  if(mode==='rest') leaveRest(0); restToken++; $('fade').classList.remove('on');
+  if(mode==='rest') leaveRest(0); restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
   choice=0; fork.stage=0; fork.t=0; fork.entered=false; fork.river=false; fork.deepSaid=false; gust.t=-1; gustMesh.count=0; bloom=0; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); birdT=-1; flock.visible=false; hideFork();
 }
@@ -1821,7 +1856,7 @@ const FOG_THICKET=C('#587a62'), FOG_CAVE=C('#252b31');
 const FOG_HOME=C('#d3e6c2'), FOG_GULLY=C('#93b59d'), FOG_ASPEN=C('#e8f0c6'), FOG_AUTUMN=C('#f0dab2'), fogCol=new THREE.Color();
 const SUN_HOME=C('#fff0cf'), SUN_AUTUMN=C('#ffd9a0'), MOTE_HOME=C('#fff2b8'), MOTE_ASPEN=C('#ffe07a'), MOTE_AUTUMN=C('#f59a3c');
 const altValue=$('altValue');
-let riverHeard=0, bloom=0, last=performance.now(), time=0, lastAltText='', camHd=heading(0), swayK=0, groundRow=null, forestRow=null;
+let lookBack=1, hikeT=0, frameNo=0, riverHeard=0, bloom=0, last=performance.now(), time=0, lastAltText='', camHd=heading(0), swayK=0, groundRow=null, forestRow=null;
 function frame(now){
   const rawDt=Math.min(0.05,(now-last)/1000); last=now; idle+=rawDt;
   const dt=paused?0:rawDt; time+=dt;
@@ -1840,7 +1875,9 @@ function frame(now){
   /* camera: it circles the point the girls are strolling along with */
   camHd=damp(camHd,heading(party.s),0.7,dt);
   swayK=damp(swayK,idle>6?1:0,0.6,rawDt);
-  let th=camHd+camTheta+Math.sin(time*0.06)*0.28*swayK*motion;
+  /* the opening shot looks back down the trail, toward home on the horizon; then the camera eases round to the side */
+  if(state.started){ hikeT+=dt; if(hikeT>6) lookBack=damp(lookBack,0,0.3,dt); }
+  let th=camHd+camTheta-0.85*lookBack+Math.sin(time*0.06)*0.28*swayK*motion;
   const aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
   let r=8.6*zoom*aspectBoost, ph=clamp(0.2+userPhi,-0.1,1.2);
   const gK=gateK(party.s), wK=woodsK(party.s);
@@ -1890,7 +1927,7 @@ function frame(now){
   }
   updateMarks();
   updateSpeech(dt);
-  renderer.render(mode==='rest'?rest.scene:scene,camera);
+  if(wall.state!=='closed'||(frameNo++%20)===0) renderer.render(mode==='rest'?rest.scene:scene,camera);   /* behind the closed wall of leaves, only now and then */
   requestAnimationFrame(frame);
 }
 /* iPad: no double-tap or pinch zooming of the page (pinching the scene still zooms the camera) */
