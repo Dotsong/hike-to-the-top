@@ -1,0 +1,1477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Trail to the Top</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Quicksand:wght@500;600;700&family=Patrick+Hand&display=swap">
+<style>
+/* Layout: full-bleed 3D forest; a storybook title card on a wall of leaves that slides open; captions low-left, distance top-left, controls low-right.
+   Palette, type and paper are the same tokens as Treehouse to the Moon, so the two games read as one series. */
+:root{
+  --ink:#fff6ec;
+  --ink-soft:rgba(255,246,236,.74);
+  --glass:rgba(22,18,52,.42);
+  --glass-edge:rgba(255,226,200,.26);
+  --accent:#ffc9a8;
+  --night:#0e0d2a;
+  --scrim:rgba(14,12,40,.78);
+  --bubble:#fff8ef;
+  --bubble-ink:#3a2540;
+  --june:#ff8a7a;
+  --pip:#b79cff;
+  --mom:#e58fa6;
+  --dad:#6f8fd0;
+  --paper:#fffaf0;
+  --paper-deep:#f3e6d3;
+  --paper-line:rgba(110,80,130,.10);
+  --book-ink:#3a2540;
+  --book-soft:#6b5670;
+  --hand:"Patrick Hand", "Comic Sans MS", "Marker Felt", cursive;
+  --display:"Young Serif", Georgia, "Times New Roman", serif;
+  --ui:"Quicksand", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body,button{touch-action:manipulation}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.book-scrim,.story{-webkit-user-select:text;user-select:text}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-family:var(--ui)}
+body{padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#scene:active{cursor:grabbing}
+button{font:600 .95rem/1 var(--ui);color:var(--ink);background:var(--glass);border:1px solid var(--glass-edge);border-radius:999px;padding:.7rem 1.1rem;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);letter-spacing:.02em;transition:background .3s,border-color .3s}
+button:hover{background:rgba(60,48,110,.55);border-color:rgba(255,226,200,.5)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+.intro,.ending{position:fixed;left:0;right:0;bottom:0;z-index:5;
+  padding-left:max(24px, calc(env(safe-area-inset-left, 0px) + 16px));
+  padding-right:max(24px, calc(env(safe-area-inset-right, 0px) + 16px));
+  padding-top:22vh;padding-bottom:calc(36px + env(safe-area-inset-bottom, 0px));
+  background:linear-gradient(to bottom, rgba(14,12,40,0), var(--scrim) 62%);
+  transition:opacity 1.4s ease}
+.intro.gone,.ending.gone{opacity:0;pointer-events:none}
+.panel{max-width:34rem;display:flex;flex-direction:column;gap:14px}
+.eyebrow{margin:0;font-size:.78rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+h1,h2{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance;line-height:1.02}
+h1{font-size:clamp(2.5rem, 8vw, 4.8rem)}
+.ending h2{font-size:clamp(2.2rem, 7vw, 4rem)}
+.lede{margin:0;font-size:1.05rem;line-height:1.55;color:var(--ink-soft);max-width:31rem}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:6px}
+.primary{background:var(--accent);color:#2a1a33;border-color:transparent;font-size:1.02rem;padding:.9rem 1.4rem}
+.primary:hover{background:#ffd9c0;border-color:transparent}
+.hint{margin:0;font-size:.85rem;color:var(--ink-soft)}
+
+.alt{position:fixed;z-index:3;top:calc(16px + env(safe-area-inset-top, 0px));left:max(16px, env(safe-area-inset-left, 0px));display:flex;flex-direction:column;gap:4px;transition:opacity 1s}
+.alt-label{font-size:.7rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft)}
+.alt-value{font-family:var(--display);font-size:clamp(1.4rem, 4vw, 1.9rem);font-variant-numeric:tabular-nums;text-shadow:0 1px 12px rgba(10,8,30,.5)}
+
+.rail{position:fixed;z-index:3;right:max(18px, calc(env(safe-area-inset-right, 0px) + 10px));top:50%;transform:translateY(-50%);height:min(44vh,320px);display:flex;flex-direction:column;align-items:center;gap:8px;transition:opacity 1s}
+.rail-label{font-size:.66rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);writing-mode:horizontal-tb}
+.rail-track{position:relative;flex:1;width:2px;border-radius:2px;background:linear-gradient(to top, rgba(255,201,168,.65), rgba(220,226,255,.35))}
+.rail-dot{position:absolute;left:50%;bottom:0;width:10px;height:10px;margin:0 0 -5px -5px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(255,201,168,.22),0 0 16px rgba(255,201,168,.8)}
+
+.caption{position:fixed;z-index:3;left:max(16px, env(safe-area-inset-left, 0px));bottom:calc(20px + env(safe-area-inset-bottom, 0px));
+  max-width:min(30rem, calc(100vw - 190px));display:flex;flex-direction:column;gap:6px;opacity:0;transform:translateY(8px);transition:opacity 1.6s ease, transform 1.6s ease;pointer-events:none}
+.caption.show{opacity:1;transform:none}
+.cap-title{font-size:clamp(1.5rem, 4.6vw, 2.3rem);text-shadow:0 2px 18px rgba(10,8,30,.6)}
+.cap-body{margin:0;font-size:.98rem;line-height:1.5;color:var(--ink-soft);text-shadow:0 1px 10px rgba(10,8,30,.7)}
+
+.controls{position:fixed;z-index:4;right:max(16px, env(safe-area-inset-right, 0px));bottom:calc(16px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.controls button{font-size:.85rem;padding:.6rem .95rem}
+.say{position:fixed;left:0;top:0;z-index:3;pointer-events:none;will-change:transform}
+.bub{position:absolute;bottom:34px;left:0;width:max-content;max-width:min(220px,46vw);padding:9px 13px 10px;border-radius:18px;
+  background:var(--bubble);color:var(--bubble-ink);font:700 .92rem/1.3 var(--ui);border:2.5px solid var(--june);
+  box-shadow:0 6px 20px rgba(10,8,30,.35);transform:translateX(-82%) scale(.6);transform-origin:82% 100%;opacity:0;
+  transition:opacity .35s ease, transform .45s cubic-bezier(.3,1.6,.5,1);text-wrap:balance}
+.say.pip .bub{border-color:var(--pip)}
+.bub::after{content:"";position:absolute;bottom:-9px;right:14%;width:14px;height:14px;background:var(--bubble);
+  border-right:2.5px solid var(--june);border-bottom:2.5px solid var(--june);transform:rotate(45deg);border-bottom-right-radius:3px}
+.say.pip .bub::after{border-color:var(--pip)}
+.say.right .bub{transform:translateX(-18%) scale(.6);transform-origin:18% 100%}
+.say.right .bub::after{right:auto;left:14%}
+.say.show .bub{opacity:1;transform:translateX(-82%) scale(1)}
+.say.right.show .bub{transform:translateX(-18%) scale(1)}
+.say .who{display:block;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--june);margin-bottom:1px}
+.say.pip .who{color:#8a6ce0}
+.say.mom .bub,.say.mom .bub::after{border-color:var(--mom)} .say.mom .who{color:#c9607e}
+.say.dad .bub,.say.dad .bub::after{border-color:var(--dad)} .say.dad .who{color:#4f6fb5}
+.say.lumi .bub,.say.lumi .bub::after{border-color:#a3acdf} .say.lumi .who{color:#6f78c0}
+@media (prefers-reduced-motion:reduce){.bub{transition:opacity .3s}}
+/* pause */
+.pause{position:fixed;z-index:6;top:calc(14px + env(safe-area-inset-top, 0px));right:max(16px, env(safe-area-inset-right, 0px));
+  width:60px;height:60px;padding:0;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#2a1a33;
+  border:3px solid var(--paper);box-shadow:0 8px 24px rgba(10,8,30,.45), inset 0 -5px 0 rgba(90,40,40,.12);
+  -webkit-backdrop-filter:none;backdrop-filter:none;transition:transform .2s cubic-bezier(.3,1.6,.5,1), background .3s}
+.pause:hover{background:#ffd9c0;border-color:var(--paper);transform:scale(1.06)}
+.pause:active{transform:scale(.94)}
+.pause svg{width:26px;height:26px;display:block}
+.pause .i-play{display:none} .pause.on .i-play{display:block} .pause.on .i-pause{display:none}
+.pause.on{animation:breathe 2.4s ease-in-out infinite}
+@keyframes breathe{50%{box-shadow:0 8px 24px rgba(10,8,30,.45),0 0 0 10px rgba(255,201,168,.18), inset 0 -5px 0 rgba(90,40,40,.12)}}
+.paused-banner{position:fixed;z-index:4;left:50%;top:calc(88px + env(safe-area-inset-top, 0px));max-width:calc(100vw - 32px);
+  transform:translate(-50%,-10px);opacity:0;pointer-events:none;transition:opacity .4s, transform .4s;
+  background:var(--paper);color:var(--book-ink);border:2.5px solid var(--accent);border-radius:999px;padding:9px 18px;
+  font:400 1.15rem/1.2 var(--hand);text-align:center;box-shadow:0 8px 22px rgba(10,8,30,.35)}
+.paused-banner.show{opacity:1;transform:translate(-50%,0)}
+.paused-banner b{font-family:var(--display);font-weight:400;font-size:1.05rem;margin-right:6px}
+
+/* layer chip under the altitude */
+.layer-chip{display:inline-flex;align-items:center;gap:6px;margin-top:4px;padding:.38rem .7rem .38rem .45rem;font:700 .78rem/1 var(--ui);
+  background:var(--paper);color:var(--book-ink);border:2px solid #9fb6e8;border-radius:999px;-webkit-backdrop-filter:none;backdrop-filter:none;
+  box-shadow:0 4px 14px rgba(10,8,30,.3);pointer-events:auto;--tint:#5a6fc4;width:max-content}
+.layer-chip:hover{background:#fff;border-color:#9fb6e8}
+.layer-chip .bi{width:18px;height:18px}
+.layer-chip.pulse{animation:chip 1.2s ease}
+@keyframes chip{30%{transform:scale(1.12)}}
+
+/* book tags over things in the scene */
+.marks{position:fixed;inset:0;z-index:2;pointer-events:none}
+.fm{position:absolute;left:0;top:0;will-change:transform}
+.fm-btn{position:absolute;left:0;top:0;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;
+  padding:5px 11px 5px 6px;border-radius:999px;background:var(--paper);color:var(--book-ink);border:2.5px solid var(--tint);
+  font:700 .8rem/1 var(--ui);letter-spacing:.01em;white-space:nowrap;pointer-events:auto;-webkit-backdrop-filter:none;backdrop-filter:none;
+  box-shadow:0 5px 16px rgba(10,8,30,.38);animation:bob 2.6s ease-in-out infinite}
+.fm-btn:hover{background:#fff;border-color:var(--tint)}
+.fm-btn .bi{width:20px;height:20px;flex:none}
+.marks.compact .fm-btn{padding:5px;gap:0;opacity:.88}
+.marks.compact .lbl{display:none}
+.fm-btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+@keyframes bob{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,calc(-50% - 4px))}}
+/* facts you haven't read yet: a pulsing ring and a little gold star */
+.fm-btn::before,.layer-chip::before{content:"";position:absolute;inset:-6px;border-radius:999px;border:2.5px solid var(--tint);opacity:0;pointer-events:none;animation:ping 1.7s ease-out infinite}
+.fm-btn::after{content:"";position:absolute;top:-5px;right:-5px;width:11px;height:11px;border-radius:50%;background:#ffd84a;border:2px solid var(--paper);box-shadow:0 0 10px 2px rgba(255,216,74,.85)}
+.layer-chip{position:relative}
+@keyframes ping{0%{opacity:.9;transform:scale(.92)}100%{opacity:0;transform:scale(1.35)}}
+/* facts already in the book: quieter */
+.marks .fm.seen .fm-btn{opacity:.5;filter:saturate(.3);animation:none;box-shadow:0 2px 8px rgba(10,8,30,.25)}
+.marks .fm.seen .fm-btn:hover,.marks .fm.seen .fm-btn:focus-visible{opacity:.9;filter:none}
+.fm.seen .fm-btn::before,.fm.seen .fm-btn::after,.layer-chip.seen::before{display:none}
+.layer-chip.seen{opacity:.7;filter:saturate(.4)}
+@media (prefers-reduced-motion:reduce){ .fm-btn::before,.layer-chip::before{animation:none;opacity:.7;transform:scale(1.08)} }
+
+/* the fact book */
+.book-scrim{position:fixed;inset:0;z-index:8;display:grid;place-items:center;
+  padding-block:calc(20px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-bottom, 0px));
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  background:rgba(14,12,40,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.book{--cover:#7fb3d8;position:relative;display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);width:min(700px,100%);
+  background:var(--cover);padding:11px;border-radius:14px 14px 18px 18px;
+  box-shadow:0 34px 70px rgba(5,4,20,.55), inset 0 0 0 2px rgba(255,255,255,.18), inset 0 -6px 0 rgba(0,0,0,.12);
+  animation:bookIn .6s cubic-bezier(.2,1.25,.4,1)}
+@keyframes bookIn{from{opacity:0;transform:translateY(24px) rotate(-2deg) scale(.9)}}
+.page{background-color:var(--paper);color:var(--book-ink);min-width:0}
+.page.left{border-radius:9px 3px 3px 9px;padding:22px 18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  background-image:linear-gradient(to left, rgba(80,50,60,.2), rgba(80,50,60,0) 16%), radial-gradient(circle at 30% 20%, rgba(255,226,180,.35), transparent 60%)}
+.page.right{border-radius:3px 9px 9px 3px;padding:22px 24px 18px 26px;display:flex;flex-direction:column;
+  background-image:linear-gradient(to right, rgba(80,50,60,.18), rgba(80,50,60,0) 12%), repeating-linear-gradient(to bottom, transparent 0 27px, var(--paper-line) 27px 28px)}
+.art{width:100%;display:grid;place-items:center}
+.art svg{width:min(176px,100%);height:auto;display:block;filter:drop-shadow(0 6px 10px rgba(58,37,64,.18))}
+.art-label{margin:0;font:400 1.25rem/1 var(--hand);color:var(--book-soft);transform:rotate(-2deg)}
+.sheet.flip{animation:flip .55s cubic-bezier(.3,.9,.4,1);transform-origin:left center}
+@keyframes flip{from{transform:perspective(1200px) rotateY(-75deg);opacity:.2}}
+.book .kicker{margin:0 0 4px;font:400 1.1rem/1 var(--hand);color:var(--cover);filter:brightness(.8) saturate(1.2)}
+.book h3{margin:0 0 10px;font:400 clamp(1.45rem, 4.4vw, 1.9rem)/1.08 var(--display);text-wrap:balance}
+.book .body{margin:0;font:600 1.02rem/1.6 var(--ui);max-width:34em}
+.wow{margin-top:14px;padding:10px 13px 12px;border:2.5px dashed var(--cover);border-radius:14px;background:rgba(255,236,170,.4);transform:rotate(-.6deg)}
+.wow span{display:block;font:400 1.2rem/1 var(--hand);color:var(--book-ink);margin-bottom:4px}
+.wow p{margin:0;font:600 .95rem/1.5 var(--ui)}
+.book-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:16px}
+.book-nav .toc-btn{width:auto;height:auto;padding:.5rem .9rem;font:400 1.1rem/1.1 var(--hand);color:var(--book-soft);font-variant-numeric:tabular-nums;border-radius:999px}
+.book-nav .toc-btn:disabled{opacity:1;background:transparent;border-color:transparent;cursor:default}
+/* contents page */
+.toc{display:flex;flex-direction:column;gap:10px;max-height:min(56vh,440px);overflow:auto;padding-right:4px;margin-top:2px}
+.toc-group h4{margin:0 0 6px;font:400 1.1rem/1 var(--hand);color:var(--book-soft)}
+.toc-list{display:flex;flex-wrap:wrap;gap:6px}
+.book .toc-item{display:inline-flex;align-items:center;gap:5px;padding:.38rem .72rem;border-radius:999px;font:700 .8rem/1 var(--ui);color:var(--book-ink);background:var(--paper-deep);border:2px solid var(--tint)}
+.book .toc-item.locked{color:var(--book-soft);background:transparent;border-style:dashed;border-color:rgba(58,37,64,.28)}
+.book .toc-item:hover{background:#fff;border-color:var(--tint)}
+.toc-star{color:#e8a920;font-size:.9rem}
+/* pages not found yet */
+.redact{display:block;height:.78em;margin:.5em 0;border-radius:6px;background:repeating-linear-gradient(90deg, rgba(58,37,64,.16) 0 18px, rgba(58,37,64,.1) 18px 26px)}
+.art.locked svg{filter:grayscale(1) brightness(.85) blur(1.2px);opacity:.55}
+.wow.locked{background:rgba(58,37,64,.05);border-color:rgba(58,37,64,.25)}
+.book button{color:var(--book-ink);background:var(--paper-deep);border:2px solid rgba(58,37,64,.18);-webkit-backdrop-filter:none;backdrop-filter:none}
+.book button:hover{background:#fff;border-color:var(--cover)}
+.book button:disabled{opacity:.35;cursor:default}
+.book-nav button{width:44px;height:44px;padding:0;display:grid;place-items:center;font:700 1.4rem/1 var(--ui)}
+.book .book-close{position:absolute;top:-16px;right:-12px;width:44px;height:44px;padding:0;display:grid;place-items:center;font:700 1.3rem/1 var(--ui);
+  background:var(--paper);border:3px solid var(--cover);box-shadow:0 6px 16px rgba(10,8,30,.35)}
+@media (max-width:580px){
+  .book{grid-template-columns:1fr}
+  .page.left{border-radius:9px 9px 3px 3px;padding:16px;flex-direction:row;gap:14px;
+    background-image:linear-gradient(to top, rgba(80,50,60,.16), rgba(80,50,60,0) 22%)}
+  .art{width:auto}.art svg{width:96px}
+  .toc{max-height:none}
+  .page.right{max-height:calc(100vh - 230px);overflow:auto;border-radius:3px 3px 9px 9px;padding:18px 18px 14px;background-image:linear-gradient(to bottom, rgba(80,50,60,.14), rgba(80,50,60,0) 10%), repeating-linear-gradient(to bottom, transparent 0 27px, var(--paper-line) 27px 28px)}
+  .book .book-close{right:6px;top:6px;width:40px;height:40px}
+  .paused-banner{font-size:1rem;top:auto;bottom:calc(150px + env(safe-area-inset-bottom, 0px))}
+}
+@media (prefers-reduced-motion:reduce){ .fm-btn,.pause.on{animation:none} .book,.sheet.flip{animation:none} }
+
+/* chapter-one storybook card */
+.story{position:relative;max-width:36rem;display:flex;flex-direction:column;gap:12px;padding:26px 28px 24px 34px;border-radius:8px 18px 18px 8px;
+  background:var(--paper);color:var(--book-ink);box-shadow:0 26px 60px rgba(5,4,20,.5), inset 10px 0 0 -2px #e7a3a0, inset 13px 0 16px -8px rgba(80,50,60,.3);
+  background-image:repeating-linear-gradient(to bottom, transparent 0 27px, var(--paper-line) 27px 28px);animation:storyIn .9s cubic-bezier(.2,1.1,.4,1)}
+@keyframes storyIn{from{opacity:0;transform:translateY(30px) rotate(-1.5deg)}}
+.story-kicker{margin:0;font:400 1.25rem/1 var(--hand);color:#d0607a}
+.story h1{font-size:clamp(2rem, 6.4vw, 3.3rem);color:var(--book-ink)}
+.story p{margin:0;font:600 1.02rem/1.6 var(--ui);max-width:32rem}
+.story em{font-family:var(--hand);font-style:normal;font-size:1.18em;color:#8a5aa0}
+.story .hint{color:var(--book-soft);font-weight:700;font-size:.85rem}
+.story .row{margin-top:4px}
+.intro{padding-top:12vh}
+/* countdown */
+.countdown{position:fixed;inset:0;z-index:7;display:grid;place-items:center;pointer-events:none;font:400 clamp(6rem, 26vw, 13rem)/1 var(--display);
+  color:var(--paper);text-shadow:0 6px 0 rgba(208,96,122,.6), 0 10px 40px rgba(10,8,30,.6);opacity:0}
+.countdown.word{font-size:clamp(3.4rem, 13vw, 7rem)}
+.countdown.pop{animation:pop .95s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes pop{0%{opacity:0;transform:scale(1.8)}25%{opacity:1;transform:scale(1)}75%{opacity:1}100%{opacity:0;transform:scale(.92)}}
+@media (prefers-reduced-motion:reduce){ .countdown.pop{animation:fadeq .95s forwards} @keyframes fadeq{30%,70%{opacity:1}} .story{animation:none} }
+
+.story h2{font-size:clamp(2.2rem, 7vw, 3.6rem);color:var(--book-ink)}
+.story .primary.big{font-size:1.15rem;padding:1rem 1.8rem;box-shadow:0 8px 22px rgba(208,96,122,.35), inset 0 -4px 0 rgba(90,40,40,.12);animation:nudge 2.6s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:none}50%{transform:translateY(-2px) scale(1.03)}}
+.story .soft{color:var(--book-ink);background:var(--paper-deep);border:2px solid rgba(58,37,64,.18);-webkit-backdrop-filter:none;backdrop-filter:none;font-size:.9rem}
+.story .soft:hover{background:#fff;border-color:rgba(58,37,64,.35)}
+.home-dock{position:fixed;z-index:4;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);
+  display:flex;align-items:center;gap:9px;padding:.95rem 1.5rem;background:var(--accent);color:#2a1a33;border:3px solid var(--paper);
+  font:700 1.02rem/1 var(--ui);white-space:nowrap;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:0 10px 28px rgba(10,8,30,.45)}
+.home-dock:hover{background:#ffd9c0;border-color:var(--paper)}
+.home-dock svg{width:20px;height:20px}
+@media (max-width:640px){ .home-dock{bottom:calc(176px + env(safe-area-inset-bottom, 0px))} }
+@media (prefers-reduced-motion:reduce){ .story .primary.big{animation:none} }
+
+.fade{position:fixed;inset:0;z-index:9;background:#05051a;opacity:0;pointer-events:none;transition:opacity .9s ease}
+.fade.on{opacity:1}
+.hud-off{opacity:0;pointer-events:none}
+
+@media (max-width:520px){
+  .rail{height:30vh}
+  .lede{font-size:1rem}
+}
+@media (prefers-reduced-motion:reduce){
+  .caption{transform:none;transition:opacity .6s}
+}
+
+/* the wall of leaves on the title screen: two doors that slide apart from the middle */
+.leafwall{position:fixed;inset:0;z-index:5;overflow:hidden;pointer-events:auto}
+.leafwall.open{pointer-events:none}
+.leafwall.away{visibility:hidden}
+.leaf-door{position:absolute;top:0;height:100%;width:calc(50% + 72px);display:block;transition:transform 2.6s cubic-bezier(.62,.02,.24,1);will-change:transform}
+.leaf-door.left{left:0}
+.leaf-door.right{right:0}
+.leafwall.open .leaf-door.left{transform:translateX(-103%)}
+.leafwall.open .leaf-door.right{transform:translateX(103%)}
+@media (prefers-reduced-motion:reduce){
+  .leaf-door{transition:opacity .8s ease}
+  .leafwall.open .leaf-door.left,.leafwall.open .leaf-door.right{transform:none;opacity:0}
+}
+/* the title card sits in the middle of the leaves */
+.intro{inset:0;z-index:7;display:grid;place-items:center;overflow:auto;background:none;transition:opacity .9s ease;
+  padding-top:calc(24px + env(safe-area-inset-top, 0px));padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px))}
+.intro .story{box-shadow:0 26px 60px rgba(4,18,8,.6), inset 10px 0 0 -2px #e7a3a0, inset 13px 0 16px -8px rgba(80,50,60,.3)}
+</style>
+</head>
+<body>
+<canvas id="scene" aria-label="June and Pip walking up a forest trail"></canvas>
+
+<div class="alt hud-off" id="alt">
+  <span class="alt-label">Up the trail</span>
+  <span class="alt-value" id="altValue">0 m</span>
+</div>
+
+<div class="marks compact" id="marks"></div>
+
+<div class="say june" id="bubJune" aria-live="polite"><div class="bub"><span class="who">June</span><span class="txt"></span></div></div>
+<div class="say pip" id="bubPip" aria-live="polite"><div class="bub"><span class="who">Pip</span><span class="txt"></span></div></div>
+
+<div class="caption" id="caption" aria-live="polite">
+  <h2 class="cap-title" id="capTitle"></h2>
+  <p class="cap-body" id="capBody"></p>
+</div>
+
+<div class="controls hud-off" id="controls">
+  <button id="goodnightBtn" type="button">Back to the start</button>
+  <button id="bookBtn" type="button">Fact book 0/10</button>
+  <button id="soundBtn" type="button" aria-pressed="true">Music on</button>
+</div>
+
+<div class="leafwall" id="leafwall" aria-hidden="true">
+  <canvas class="leaf-door left" id="doorL"></canvas>
+  <canvas class="leaf-door right" id="doorR"></canvas>
+</div>
+
+<section class="intro" id="intro">
+  <div class="story">
+    <p class="story-kicker">A June &amp; Pip adventure</p>
+    <h1>Trail to the Top</h1>
+    <p>There is a small mountain behind June and Pip&rsquo;s house. From the treehouse it looks about as tall as a thumb. Today, with backpacks packed and sneakers double-knotted, the sisters are going to walk all the way up it.</p>
+    <p>Mom packed sandwiches. Dad drew a map. Pip packed nine snacks, <em>&ldquo;just in case.&rdquo;</em></p>
+    <div class="row">
+      <button class="primary" id="beginBtn" type="button">Start the hike</button>
+      <p class="hint">Sound on &middot; drag to look around</p>
+    </div>
+  </div>
+</section>
+
+<section class="ending gone" id="fork" hidden>
+  <div class="story">
+    <p class="story-kicker">A fork in the trail</p>
+    <h2>Which way?</h2>
+    <p>Two trails leave the gully. One squeezes into a thicket of tangled branches. The other slips into a little cave in the rocks. Nobody can see what is on the other side. June and Pip will rest here as long as you like.</p>
+    <div class="row">
+      <button class="primary" id="aspenBtn" type="button">Through the thicket</button>
+      <button class="primary" id="autumnBtn" type="button">Into the little cave</button>
+    </div>
+  </div>
+</section>
+
+<button class="pause" id="pauseBtn" type="button" aria-label="Pause the hike" aria-pressed="false" hidden>
+  <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4" width="4.6" height="16" rx="2" fill="currentColor"/><rect x="13.9" y="4" width="4.6" height="16" rx="2" fill="currentColor"/></svg>
+  <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4.8v14.4a1.2 1.2 0 0 0 1.8 1l11-7.2a1.2 1.2 0 0 0 0-2l-11-7.2A1.2 1.2 0 0 0 8 4.8z" fill="currentColor"/></svg>
+</button>
+<div class="paused-banner" id="pausedBanner" role="status"><b>Paused</b>Tap a little book to learn something!</div>
+
+<div class="book-scrim" id="bookScrim" hidden>
+  <div class="book" id="book" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
+    <div class="page left">
+      <div class="art" id="bookArt"></div>
+      <p class="art-label" id="bookLabel"></p>
+    </div>
+    <div class="page right sheet" id="bookSheet">
+      <p class="kicker" id="bookKicker"></p>
+      <h3 id="bookTitle"></h3>
+      <p class="body" id="bookBody"></p>
+      <div class="wow" id="bookWow"><span id="bookWowLabel">Did you know?</span><p id="bookExtra"></p></div>
+      <div class="toc" id="bookToc" hidden></div>
+      <div class="book-nav">
+        <button id="bookPrev" type="button" aria-label="Previous page">‹</button>
+        <button class="toc-btn" id="bookPage" type="button"></button>
+        <button id="bookNext" type="button" aria-label="Next page">›</button>
+      </div>
+    </div>
+    <button class="book-close" id="bookClose" type="button" aria-label="Close the book">✕</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const motion = reduced ? 0.25 : 1;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
+let seed=11; const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646;};
+const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
+const $=id=>document.getElementById(id);
+const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+/* the same answer every time for the same spot, so the forest stays put as it scrolls by */
+const hash=(a,b,c)=>{ const v=Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453; return v-Math.floor(v); };
+
+/* ---------- the trail: where it goes and how the land lies ---------- */
+/* The trail runs along +z. s is the distance along it, d is the sideways offset
+   (d<0 is the uphill bank, d>0 is the open downhill verge where the camera sits).
+   At FORK the trail splits into two paths that drift apart. Until the player picks one, both
+   are there; afterwards the girls follow theirs and the other one melts back into the forest. */
+const FORK=76, REST_S=70;
+/* Each path leaves the gully through a gateway that hides what is beyond it: a thicket on the left path,
+   a little cave on the right one. The new forest only begins on the far side (see biomeAt). */
+const GATE_A=100, GATE_B=112;
+let choice=0;   /* 0 = not chosen yet, -1 = the aspen grove (left path), 1 = the autumn woods (right path) */
+const x0=s=>7*Math.sin(s*0.021)+3.5*Math.sin(s*0.047+1.3)-10*smooth(50,68,s);   /* the last part is the curve into the forest at 50 m */
+const spread=t=>t>0?18*(1-Math.exp(-t/35)):0;      /* how far each path has drifted from the middle, t metres past the fork */
+const keep=t=>1-smooth(55,85,t);                   /* the path not taken fades out between 55 and 85 m */
+let pL=0, pR=0;                                    /* paths(z) leaves the left and right path here; they are equal where there is one trail */
+function paths(z){ const c=x0(z), t=z-FORK, B=spread(t);
+  if(!choice){ pL=c-B; pR=c+B; return; }
+  const me=c+choice*B, other=me-choice*2*B*keep(t); pL=Math.min(me,other); pR=Math.max(me,other); }
+const trailX=s=>x0(s)+choice*spread(s-FORK);       /* the path the girls are on */
+const gully=z=>smooth(50,66,z)*(1-smooth(GATE_B-2,GATE_B+10,z));   /* 1 in the shady gully, from the curve to the gateways; 0 elsewhere */
+const dip=z=>smooth(50,66,z)*(1-smooth(FORK+35,FORK+70,z));         /* the hollow the gully sits in */
+const bioK=z=>smooth(GATE_B,GATE_B+7,z);                             /* how much of the new forest has taken over */
+const gateK=s=>choice?smooth(GATE_A-8,GATE_A-2,s)*(1-smooth(GATE_B,GATE_B+4,s)):0;   /* 1 while the girls are inside their gateway */
+/* height of the trail: a gentle climb at first; once inside the forest (past 50 m) it gets steeper and rolls up and down, with a dip into the gully */
+const trailY=s=>0.05*s+0.8*Math.sin(s*0.03)-2.6*dip(s)+0.05*Math.max(0,s-50)+smooth(50,75,s)*(2.2*Math.sin(s*0.045+0.6)+1.3*Math.sin(s*0.083+2));
+const heading=s=>Math.atan2((trailX(s+0.2)-trailX(s-0.2))/0.4,1);
+const pt=(s,d)=>[trailX(s)+d,s];
+const FLAT=2.2;   /* the ground is level this far either side of the middle of a path */
+/* which forest grows here: 0 the home woods, -1 aspen, 1 autumn */
+function biomeAt(x,z){ const t=z-FORK; if(z<=GATE_B) return 0; if(choice&&keep(t)<0.5) return choice; paths(z); return x<(pL+pR)/2?-1:1; }
+function groundY(x,z){
+  paths(z); const ty=trailY(z);
+  if(x>pL&&x<pR) return ty+0.3*clamp(Math.min(x-pL,pR-x)-FLAT,0,2);   /* the grassy wedge between the two paths: a low, flat-topped mound */
+  const d=x<=pL?x-pL:x-pR, a=Math.abs(d), e=Math.max(0,a-FLAT), g=gully(z);
+  const open=d<0?16*(1-Math.exp(-e*0.016)):-6*(1-Math.exp(-e*0.014));   /* a hillside: up on the left, down on the right */
+  const walls=(d<0?11:6)*(1-Math.exp(-e*0.03));                         /* the gully: banks on both sides */
+  const bumps=(Math.sin(x*0.13+z*0.11)*Math.sin(z*0.07-x*0.05)*1.3+Math.sin(x*0.31-z*0.23)*0.35)*smooth(FLAT,10,a);
+  return ty+lerp(open,walls,g)+bumps;
+}
+
+/* ---------- renderer & scene ---------- */
+const canvas=$('scene');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+const DPR=Math.min(window.devicePixelRatio||1,2);
+renderer.setPixelRatio(DPR);
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(55,1,0.3,4000);
+scene.fog=new THREE.FogExp2(0xd3e6c2,0.0125);
+
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+addEventListener('resize',resize); resize();
+
+/* sky dome: a soft morning sky that melts into the forest haze */
+const skyU={top:{value:new THREE.Color('#5f9fd6')},mid:{value:new THREE.Color('#d3e6c2')},bot:{value:new THREE.Color('#a9c98f')}};
+const sky=new THREE.Mesh(new THREE.SphereGeometry(3000,32,16),new THREE.ShaderMaterial({
+  uniforms:skyU,side:THREE.BackSide,depthWrite:false,depthTest:false,fog:false,
+  vertexShader:'varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform vec3 top;uniform vec3 mid;uniform vec3 bot;varying vec3 vD;void main(){float h=vD.y;vec3 c=h>0.?mix(mid,top,pow(h,.55)):mix(mid,bot,pow(-h,.45));gl_FragColor=vec4(c,1.);}'
+}));
+sky.renderOrder=-2; scene.add(sky);
+
+/* soft round textures are drawn pixel by pixel in pure white, so no canvas dithering can show up as colored specks (an iPad issue) */
+function alphaTex(size,alphaAt){
+  const d=new Uint8Array(size*size*4);
+  for(let y=0;y<size;y++) for(let x=0;x<size;x++){ const i=(y*size+x)*4, a=Math.max(0,Math.min(1,alphaAt((x+0.5)/size,(y+0.5)/size)));
+    d[i]=255; d[i+1]=255; d[i+2]=255; d[i+3]=Math.round(a*255); }
+  const t=new THREE.DataTexture(d,size,size,THREE.RGBAFormat); t.magFilter=THREE.LinearFilter; t.minFilter=THREE.LinearMipmapLinearFilter; t.generateMipmaps=true; t.needsUpdate=true; return t;
+}
+const ramp=(r,stops)=>{ if(r>=1) return 0; for(let i=1;i<stops.length;i++){ if(r<=stops[i][0]){ const [r0,a0]=stops[i-1],[r1,a1]=stops[i]; return a0+(a1-a0)*(r-r0)/(r1-r0); } } return 0; };
+const spriteTex=alphaTex(64,(u,v)=>ramp(Math.hypot(u-0.5,v-0.5)*2,[[0,1],[0.35,0.7],[1,0]]));
+
+/* lights: the sun is high and a little behind the uphill trees, so their shade dapples the trail */
+const hemi=new THREE.HemisphereLight(0xfff4d6,0x5d7a4e,0.72); scene.add(hemi);
+const SUN_DIR=new THREE.Vector3(-0.3,0.85,0.35).normalize();
+const sun=new THREE.DirectionalLight(0xfff0cf,0.9); scene.add(sun); scene.add(sun.target);
+sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); sun.shadow.bias=-0.0005; sun.shadow.normalBias=0.035;
+{ const sc=sun.shadow.camera; sc.left=-30; sc.right=30; sc.top=30; sc.bottom=-30; sc.near=1; sc.far=240; }
+const L=(c,o={})=>new THREE.MeshLambertMaterial(Object.assign({color:c},o));
+const C=h=>new THREE.Color(h);
+
+/* ---------- the ground: a strip of land that follows the trail ---------- */
+/* Rows run across the trail every ROW metres. Each row's columns hug the left path on one half and the
+   right path on the other, packed closely near each path so its edges stay crisp. Where there is only
+   one trail the two halves meet in the middle; at the fork they pull apart. Rebuilt as the girls walk. */
+const OUT=[110,80,58,42,30,22,16,11.5,8,5.5,3.8,2.6,1.7,1.1,0.5], INNER=[0.5,1.1,1.7,2.6,4.2];
+const ROW=1.5, BACK=120, FWD=168, NR=Math.round((BACK+FWD)/ROW)+1, NC=OUT.length*2+INNER.length*2+2;
+const gPos=new Float32Array(NR*NC*3), gCol=new Float32Array(NR*NC*3), rowX=new Float32Array(NC);
+const groundGeo=new THREE.BufferGeometry();
+groundGeo.setAttribute('position',new THREE.BufferAttribute(gPos,3));
+groundGeo.setAttribute('color',new THREE.BufferAttribute(gCol,3));
+{ const idx=[]; for(let i=0;i<NR-1;i++) for(let j=0;j<NC-1;j++){ const a=i*NC+j, b=a+1, c=a+NC, d=c+1; idx.push(a,c,b,b,c,d); } groundGeo.setIndex(idx); }
+const ground=new THREE.Mesh(groundGeo,new THREE.MeshLambertMaterial({vertexColors:true}));
+ground.frustumCulled=false; ground.receiveShadow=true; scene.add(ground);
+const DIRT=[0.76,0.6,0.42], FLOOR_A=[0.44,0.62,0.33], FLOOR_B=[0.34,0.52,0.29], FLOOR_GULLY=[0.27,0.44,0.29], FLOOR_ASPEN=[0.58,0.69,0.36], FLOOR_AUTUMN=[0.63,0.47,0.27];
+function rebuildGround(s0){
+  const r0=Math.floor((s0-BACK)/ROW);
+  for(let i=0;i<NR;i++){ const r=r0+i, z=r*ROW;
+    /* where a path runs at an angle, stretch the columns beside it so it stays the same width across */
+    paths(z+0.4); const la=pL, ra=pR; paths(z-0.4); const wl=Math.hypot(1,(la-pL)/0.8), wr=Math.hypot(1,(ra-pR)/0.8);
+    paths(z); const xl=pL, xr=pR, mid=(xl+xr)/2; let q=0;
+    for(const o of OUT) rowX[q++]=xl-(o<=3.8?o*wl:o); rowX[q++]=xl; for(const o of INNER) rowX[q++]=Math.min(xl+o*wl,mid);
+    for(let o=INNER.length-1;o>=0;o--) rowX[q++]=Math.max(xr-INNER[o]*wr,mid); rowX[q++]=xr; for(let o=OUT.length-1;o>=0;o--) rowX[q++]=xr+(OUT[o]<=3.8?OUT[o]*wr:OUT[o]);
+    const g=gully(z)*0.85, bp=bioK(z);
+    for(let j=0;j<NC;j++){ const x=rowX[j], k=(i*NC+j)*3, a=Math.min(Math.abs(x-xl)/wl,Math.abs(x-xr)/wr);
+      gPos[k]=x; gPos[k+1]=groundY(x,z); gPos[k+2]=z;
+      const t=smooth(1.0,2.4,a), n=hash(r,j,9), f=hash(r,j,4), bi=bp>0?biomeAt(x,z):0, tint=bi<0?FLOOR_ASPEN:FLOOR_AUTUMN;
+      for(let c=0;c<3;c++){ const dirt=DIRT[c]*(0.93+n*0.1)*(1-g*0.22);
+        let floor=lerp(lerp(FLOOR_A[c],FLOOR_B[c],f*0.7+smooth(8,40,a)*0.3),FLOOR_GULLY[c],g);
+        if(bi) floor=lerp(floor,tint[c]*(0.9+f*0.2),bp);
+        gCol[k+c]=lerp(dirt,floor,t); } } }
+  groundGeo.attributes.position.needsUpdate=true; groundGeo.attributes.color.needsUpdate=true; groundGeo.computeVertexNormals();
+}
+
+/* ---------- the forest: trees, bushes, rocks, mushrooms, flowers and fallen leaves ---------- */
+/* Everything is an instanced pool. Each 3-metre slice of trail always grows the same things
+   (see hash), so the pools are simply refilled around the girls every few steps. */
+const _m=new THREE.Matrix4(), _q=new THREE.Quaternion(), _e=new THREE.Euler(), _p=new THREE.Vector3(), _s=new THREE.Vector3();
+const white=()=>new THREE.MeshLambertMaterial({color:0xffffff});
+const POOLS=[];
+function pool(geo,mat,cap,shadow){ const m=new THREE.InstancedMesh(geo,mat,cap); m.frustumCulled=false; m.castShadow=!!shadow; m.receiveShadow=false;
+  m.setColorAt(0,new THREE.Color(0xffffff)); m.count=0;   /* make the color buffer up front, before the first frame is drawn */
+  const p={m,cap,n:0}; scene.add(m); POOLS.push(p); return p; }
+function put(p,x,y,z,sx,sy,sz,ry,col,rx){ if(p.n>=p.cap) return; _e.set(rx||0,ry||0,0); _q.setFromEuler(_e); _m.compose(_p.set(x,y,z),_q,_s.set(sx,sy,sz));
+  p.m.setMatrixAt(p.n,_m); p.m.setColorAt(p.n,col); p.n++; }
+const trunkGeo=new THREE.CylinderGeometry(0.7,1,1,7); trunkGeo.translate(0,0.5,0);
+const blobGeo=new THREE.SphereGeometry(1,8,6);
+const coneGeo=new THREE.ConeGeometry(1,1,9); coneGeo.translate(0,0.5,0);
+const rockGeo=new THREE.DodecahedronGeometry(1,0);
+const stemGeo=new THREE.CylinderGeometry(0.045,0.065,0.22,6); stemGeo.translate(0,0.11,0);
+const capGeo=new THREE.SphereGeometry(0.17,10,5,0,Math.PI*2,0,Math.PI/2); capGeo.translate(0,0.19,0);
+const petalGeo=new THREE.SphereGeometry(0.075,6,5);
+const leafGeo=new THREE.CircleGeometry(0.12,5); leafGeo.rotateX(-Math.PI/2);
+/* trees close to the girls cast shadows; the far ones do not need to */
+const P={trunkN:pool(trunkGeo,white(),220,true), blobN:pool(blobGeo,white(),520,true), coneN:pool(coneGeo,white(),240,true),
+  trunkF:pool(trunkGeo,white(),1500), blobF:pool(blobGeo,white(),4000), coneF:pool(coneGeo,white(),1000),
+  bush:pool(blobGeo,white(),1200,true), rock:pool(rockGeo,white(),140,true), stem:pool(stemGeo,white(),160), cap:pool(capGeo,white(),160,true),
+  petal:pool(petalGeo,white(),1400), leaf:pool(leafGeo,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}),2800)};
+const GREENS=['#5d9b4f','#6aa857','#4f8a4b','#79b05a','#8fbf5f'].map(C), GOLDS=['#e0a13a','#d9783c','#e8c24a'].map(C);
+const DARKS=['#3f7a4a','#35703f','#4a8552'].map(C);                                   /* the shady gully */
+const ASPENS=['#e6c84a','#d9d05a','#c4d66a','#f0d860'].map(C), ASPEN_BARK=C('#f1eee4');   /* the aspen grove */
+const AUTUMNS=['#d9532f','#e07a2f','#e8a53a','#c9402f','#e8c24a'].map(C);                /* the autumn woods */
+const PINES=['#3f7a52','#356b4a','#4a8558'].map(C), BARKS=['#8a5a3c','#7a5238','#9a7350','#b8ab9a'].map(C);
+const BUSHES=['#5f9a52','#6fa65a','#4f8a4b','#86b866'].map(C), BUSH_ASPEN=['#a8c45e','#8fbf5f','#c9c95a'].map(C), BUSH_AUTUMN=['#c96a3c','#b8873a','#a8502f'].map(C);
+const ROCKS=['#9a9a94','#8b8f8a','#a6a39a'].map(C), MOSS=C('#7fae4e');
+const STEM=C('#fff6e6'), CAPS=['#d9534a','#d9534a','#e8a060'].map(C);
+const PETALS=['#fff3a3','#ff9eb5','#c6a8ff','#ffffff','#ffb38a'].map(C), FALLEN=['#e0a13a','#d9783c','#e8c24a','#c9603c','#b98a4a'].map(C);
+const FALL_ASPEN=['#f0d860','#e6c84a','#f4e58a','#d9c04a'].map(C), FALL_AUTUMN=['#d9532f','#e07a2f','#c9402f','#e8a53a','#a8402a'].map(C);
+/* tree bands: [nearest, farthest, how likely]. The downhill side stays open near the trail so the view of the girls is clear. */
+const BANDS_UP=[[3.6,6,0.42],[6,10,0.6],[10,16,0.7],[16,26,0.8],[26,44,0.85],[44,75,0.85]];
+const BANDS_DOWN=[[16,21,0.5],[21,30,0.7],[30,46,0.8],[46,75,0.85]];
+const SIGN_EVERY=80, SIGN_AT=40, SIGN_D=-2.9;
+const spots={tree:[],gold:[],pine:[],rock:[],mush:[],flower:[],aspen:[],red:[]};   /* places the fact-book tags can point at */
+/* One tree. What kind it is depends on where it stands: home woods, gully, aspen grove or autumn woods. */
+function plantTree(r,id,x,z,first,s0,fact){
+  const y=groundY(x,z)-0.2, h=hash(r,id,4), ry=hash(r,id,6)*6.28, near=Math.abs(z-s0)<38&&Math.abs(x-trailX(z))<24;
+  const g=gully(z), bi=hash(r,id,12)<bioK(z)?biomeAt(x,z):0;
+  const tp=near?P.trunkN:P.trunkF, bp=near?P.blobN:P.blobF;
+  if(bi<0){ /* an aspen: a slim white trunk and a small golden crown */
+    const sc=0.85+hash(r,id,5)*0.4, th=(6.2+2.6*h)*sc, cr=(1.25+0.5*hash(r,id,8))*sc, col=ASPENS[Math.floor(hash(r,id,10)*4)], top=y+th;
+    put(tp,x,y,z,0.2*sc,th+0.8,0.2*sc,ry,ASPEN_BARK);
+    put(bp,x,top+cr*0.9,z,cr,cr*1.15,cr,ry,col);
+    put(bp,x+Math.cos(ry)*cr*0.6,top+cr*0.1,z+Math.sin(ry)*cr*0.6,cr*0.75,cr*0.8,cr*0.75,ry,col);
+    put(bp,x-Math.cos(ry)*cr*0.55,top+cr*0.45,z-Math.sin(ry)*cr*0.55,cr*0.7,cr*0.75,cr*0.7,ry,col);
+    if(fact) spots.aspen.push({x,y:y+2.6,z}); return; }
+  const sc=(first?0.92:0.8)+hash(r,id,5)*0.5;
+  if(bi>0||first||hash(r,id,7)<lerp(0.62,0.42,g)){ /* a leafy tree: tall trunk, three soft blobs of leaves */
+    const th=(first?5.6+2*h:4.4+2.6*h)*sc, cr=(2+0.9*hash(r,id,8))*sc, gold=!bi&&hash(r,id,9)<0.14*(1-g);
+    const col=bi>0?AUTUMNS[Math.floor(hash(r,id,10)*5)]:gold?GOLDS[Math.floor(hash(r,id,10)*3)]:hash(r,id,13)<g?DARKS[Math.floor(hash(r,id,10)*3)]:GREENS[Math.floor(hash(r,id,10)*5)];
+    put(tp,x,y,z,0.34*sc,th+0.6,0.34*sc,ry,BARKS[Math.floor(hash(r,id,11)*(bi>0?3:4))]);
+    const top=y+th;
+    put(bp,x,top+cr*0.55,z,cr,cr*0.85,cr,ry,col);
+    put(bp,x+Math.cos(ry)*cr*0.75,top+cr*0.2,z+Math.sin(ry)*cr*0.75,cr*0.72,cr*0.62,cr*0.72,ry,col);
+    put(bp,x-Math.cos(ry+0.6)*cr*0.7,top+cr*0.3,z-Math.sin(ry+0.6)*cr*0.7,cr*0.64,cr*0.56,cr*0.64,ry,col);
+    if(fact){ if(bi>0){ if(hash(r,id,10)<0.2||hash(r,id,10)>=0.6&&hash(r,id,10)<0.8) spots.red.push({x,y:top+cr*0.2,z}); } else (gold?spots.gold:spots.tree).push({x,y:gold?top+cr*0.2:y+2.4,z}); }
+  } else { /* an evergreen: three stacked cones */
+    const th=1.5*sc, H=(7+3*h)*sc, rr=(2.1+0.6*hash(r,id,8))*sc, col=PINES[Math.floor(hash(r,id,10)*3)];
+    put(tp,x,y,z,0.3*sc,th+0.4,0.3*sc,ry,BARKS[0]);
+    const cp=near?P.coneN:P.coneF;
+    for(let k=0;k<3;k++) put(cp,x,y+th+k*H*0.27,z,rr*(1-0.27*k),H*0.5,rr*(1-0.27*k),ry+k,col);
+    if(fact) spots.pine.push({x,y:y+th+H*0.35,z});
+  }
+}
+function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
+function rebuildForest(s0){
+  POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
+  const r0=Math.floor((s0-BACK)/3), r1=Math.floor((s0+FWD)/3);
+  for(let r=r0;r<=r1;r++){ const z0=r*3, inGate=z0+3>GATE_A-1&&z0<GATE_B+0.5;
+    for(const side of [-1,1]){ const bands=side<0?BANDS_UP:BANDS_DOWN, q=side*10;
+      const edge=z=>{ paths(z); return side<0?pL:pR; };   /* things on the left grow beside the left path, things on the right beside the right one */
+      /* trees */
+      for(let j=0;j<bands.length;j++){ const B=bands[j], id=q+j; if(hash(r,id,1)>B[2]) continue;
+        const d=side*(B[0]+(B[1]-B[0])*hash(r,id,2)), z=z0+hash(r,id,3)*3, x=edge(z)+d;
+        plantTree(r,id,x,z,j===0,s0,side<0&&j<3); }
+      /* aspens grow close together, so the grove gets a few extra */
+      for(let k=0;k<2;k++){ const id=q+70+k, z=z0+hash(r,id,3)*3, x=edge(z)+side*((side<0?5:16)+hash(r,id,2)*16);
+        if(z>GATE_B+2&&hash(r,id,1)<0.75&&biomeAt(x,z)<0) plantTree(r,id,x,z,false,s0,side<0); }
+      /* is there a signpost in this slice? keep its patch of ground clear */
+      const sm=((z0+1.5-SIGN_AT)%SIGN_EVERY+SIGN_EVERY)%SIGN_EVERY, sign=side<0&&(sm<3||sm>SIGN_EVERY-3)||side>0&&inGate;   /* nothing small grows where the cave rocks are */
+      /* bushes */
+      for(let j=0;j<2;j++){ const id=q+20+j; if(sign||hash(r,id,1)>0.5) continue;
+        const d=side*(3.1+hash(r,id,2)*6.5), z=z0+hash(r,id,3)*3, x=edge(z)+d, rad=0.45+hash(r,id,4)*0.5;
+        put(P.bush,x,groundY(x,z)+rad*0.3,z,rad,rad*0.7,rad,hash(r,id,5)*6,bushColor(x,z,hash(r,id,6))); }
+      /* a rock with a cap of moss */
+      if(!sign&&hash(r,q+30,1)<0.12+0.14*gully(z0)){ const id=q+30, d=side*(2.9+hash(r,id,2)*5.5), z=z0+hash(r,id,3)*3, x=edge(z)+d, sz=0.4+hash(r,id,4)*0.65, y=groundY(x,z);
+        put(P.rock,x,y+sz*0.25,z,sz*1.2,sz*0.75,sz,hash(r,id,5)*6,ROCKS[Math.floor(hash(r,id,6)*3)]);
+        put(P.bush,x,y+sz*0.72,z,sz*0.85,sz*0.3,sz*0.7,0,MOSS);
+        if(sz>0.6) spots.rock.push({x,y:y+sz+0.5,z}); }
+      /* a little family of mushrooms (they like the damp gully best) */
+      if(!sign&&hash(r,q+40,1)<0.09+0.16*gully(z0)){ const id=q+40, d=side*(2.4+hash(r,id,2)*1.3), z=z0+hash(r,id,3)*3, x=edge(z)+d, col=CAPS[Math.floor(hash(r,id,4)*3)];
+        for(let k=0;k<3;k++){ const mx=x+(hash(r,id,5+k)-0.5)*0.6, mz=z+(hash(r,id,9+k)-0.5)*0.6, ms=0.75+hash(r,id,13+k)*0.75, my=groundY(mx,mz);
+          put(P.stem,mx,my,mz,ms,ms,ms,0,STEM); put(P.cap,mx,my,mz,ms,ms,ms,0,col); }
+        spots.mush.push({x,y:groundY(x,z)+0.75,z}); }
+      /* wildflowers */
+      if(!(side>0&&inGate)&&hash(r,q+50,1)<(side>0?0.5:0.3)){ const id=q+50, d=side*(1.9+hash(r,id,2)*(side>0?6:2.6)), z=z0+hash(r,id,3)*3, x=edge(z)+d, col=PETALS[Math.floor(hash(r,id,4)*5)];
+        for(let k=0;k<5;k++){ const fx=x+(hash(r,id,5+k)-0.5)*1.1, fz=z+(hash(r,id,11+k)-0.5)*1.1; put(P.petal,fx,groundY(fx,fz)+0.11,fz,1,1,1,0,col); }
+        if(side>0&&Math.abs(d)<5) spots.flower.push({x,y:groundY(x,z)+0.7,z}); }
+    }
+    /* the wedge of ground between the two paths: a clearing near the fork, trees further along.
+       Trees keep 16 m back from the left path so the camera has room whichever way the girls go. */
+    paths(z0+1.5); const gap=pR-pL, wl=pL, wr=pR;
+    if(gap>19.6) for(let k=0;k<2;k++){ const id=80+k; if(hash(r,id,1)>0.75) continue;
+      const z=z0+hash(r,id,3)*3; paths(z); plantTree(r,id,lerp(pL+16,pR-3.6,hash(r,id,2)),z,false,s0,false); }
+    if(gap>7&&!inGate){ for(let k=0;k<2;k++){ const id=84+k; if(hash(r,id,1)>0.45) continue;
+        const z=z0+hash(r,id,3)*3, x=lerp(wl+3.1,wr-3.1,hash(r,id,2)), rad=0.4+hash(r,id,4)*0.4;
+        put(P.bush,x,groundY(x,z)+rad*0.3,z,rad,rad*0.7,rad,hash(r,id,5)*6,bushColor(x,z,hash(r,id,6))); }
+      if(hash(r,88,1)<0.7){ const z=z0+hash(r,88,3)*3, x=lerp(wl+2.4,wr-2.4,hash(r,88,2)), col=PETALS[Math.floor(hash(r,88,4)*5)];
+        for(let k=0;k<5;k++){ const fx=x+(hash(r,88,5+k)-0.5)*1.3, fz=z+(hash(r,88,11+k)-0.5)*1.3; put(P.petal,fx,groundY(fx,fz)+0.11,fz,1,1,1,0,col); } } }
+    /* the thicket on the left path: a low tunnel of tangled branches, with a wall of trees either side of the opening.
+       A few gold leaves near the far end hint at what is coming. */
+    for(let k=0;k<3;k++){ const zz=z0+k; if(zz<GATE_A||zz>GATE_B) continue; paths(zz); const cl=pL, cr=pR, gy=trailY(zz), fresh=zz>GATE_B-4;
+      for(const sd of [-1,1]){ const id=90+k*2+(sd>0?1:0), x=cl+sd*(2.75+hash(r,id,1)*0.5);
+        put(P.trunkF,x,gy-0.2,zz,0.16,3.6,0.16,0,BARKS[1]);
+        put(P.blobF,x,gy+4,zz,2,1.2,1.5,0,fresh&&hash(r,id,2)<0.5?ASPENS[Math.floor(hash(r,id,3)*4)]:DARKS[Math.floor(hash(r,id,3)*3)]);
+        put(P.bush,cl+sd*(2.45+hash(r,id,4)*0.4),gy+0.3,zz+0.3,0.75,0.6,0.75,0,BUSHES[Math.floor(hash(r,id,5)*4)]);
+        put(P.bush,cl+sd*(3.5+hash(r,id,6)*0.6),gy+0.6,zz-0.2,1,0.95,1,0,DARKS[Math.floor(hash(r,id,7)*3)]); }
+      put(P.blobF,cl+(hash(r,96+k,1)-0.5)*1.2,gy+4.5,zz,2.3,0.9,1.4,0,DARKS[Math.floor(hash(r,96+k,2)*3)]);
+      if(zz<GATE_A+3||zz>GATE_B-3) for(let x=cl-19, n=0;x<cr-7;x+=1.9,n++){ const id=100+n+k*40, xx=x+hash(r,id,1)*0.9; if(Math.abs(xx-cl)<3.4) continue;
+        const y=groundY(xx,zz)-0.2;
+        put(P.trunkF,xx,y,zz,0.28,5.2,0.28,0,BARKS[0]);
+        put(P.blobF,xx,y+5.6,zz,2.5,2,2.2,0,DARKS[Math.floor(hash(r,id,2)*3)]);
+        put(P.blobF,xx,y+2.4,zz,1.9,1.9,1.7,0,DARKS[Math.floor(hash(r,id,3)*3)]); } }
+    /* fallen leaves scattered on each path: gold under the aspens, red in the autumn woods */
+    const tiltX=-Math.atan(trailY(z0+2)-trailY(z0+1));   /* fallen leaves lie flat on the slope */
+    for(let w=0;w<(gap>0.5?2:1);w++){ const cx=w?wr:wl, bi=bioK(z0+1.5)>0.5?biomeAt(cx,z0+1.5):0, pal=bi<0?FALL_ASPEN:bi>0?FALL_AUTUMN:FALLEN, n=bi?13:7, wide=bi?6.4:4.2;
+      for(let k=0;k<n;k++){ const id=k+w*20, z=z0+hash(r,id,62)*3; paths(z); const x=(w?pR:pL)+(hash(r,id,61)-0.5)*wide, sc=0.7+hash(r,id,63)*0.8;
+        put(P.leaf,x,groundY(x,z)+0.035,z,sc,1,sc*1.6,hash(r,id,64)*6.28,pal[Math.floor(hash(r,id,65)*pal.length)],tiltX); } }
+  }
+  POOLS.forEach(p=>{ p.m.count=p.n; p.m.instanceMatrix.needsUpdate=true; if(p.m.instanceColor) p.m.instanceColor.needsUpdate=true; });
+  /* three signposts leapfrog along the trail (none past the fork until a path is chosen) */
+  const k0=Math.round((s0-SIGN_AT)/SIGN_EVERY)-1;
+  signs.forEach((g,i)=>{ const s=(k0+i)*SIGN_EVERY+SIGN_AT, x=trailX(s)+SIGN_D; g.visible=!!choice||s<FORK; g.position.set(x,groundY(x,s),s); g.rotation.y=heading(s); });
+}
+
+/* signposts: a post, a plank that points up the trail, and a yellow blaze */
+function makeSign(){
+  const g=new THREE.Group();
+  const post=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.085,1.6,7),L('#8a5a3c')); post.position.y=0.8; g.add(post);
+  const plank=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.3,1.0),L('#d9b98a')); plank.position.set(0.02,1.3,0.12); g.add(plank);
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(0.2,0.3,4),L('#d9b98a')); tip.rotation.x=Math.PI/2; tip.scale.x=0.25; tip.position.set(0.02,1.3,0.74); g.add(tip);
+  const blaze=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.16,0.16),new THREE.MeshBasicMaterial({color:0xffd84a})); blaze.position.set(0.07,1.3,0.1); blaze.rotation.x=Math.PI/4; g.add(blaze);
+  g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } }); scene.add(g); return g;
+}
+const signs=[makeSign(),makeSign(),makeSign()];
+
+/* the signpost at the fork: one arm for each path, with a dab of that forest's color */
+const forkSign=new THREE.Group();
+{ const post=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.095,1.9,7),L('#8a5a3c')); post.position.y=0.95; forkSign.add(post);
+  [[-0.55,1.62,0xf0d860],[0.55,1.3,0xd9532f]].forEach(([turn,h,dab])=>{ const arm=new THREE.Group(); arm.position.y=h; arm.rotation.y=turn;
+    const plank=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.28,0.95),L('#d9b98a')); plank.position.z=0.5; arm.add(plank);
+    const tip=new THREE.Mesh(new THREE.ConeGeometry(0.19,0.3,4),L('#d9b98a')); tip.rotation.x=Math.PI/2; tip.scale.x=0.25; tip.position.z=1.1; arm.add(tip);
+    [-1,1].forEach(sd=>{ const dot=new THREE.Mesh(new THREE.SphereGeometry(0.08,10,8),new THREE.MeshBasicMaterial({color:dab})); dot.scale.x=0.3; dot.position.set(sd*0.04,0,0.5); arm.add(dot); });
+    forkSign.add(arm); });
+  const fx=x0(FORK+3); forkSign.position.set(fx,groundY(fx,FORK+3),FORK+3); forkSign.rotation.y=heading(FORK+3);
+  forkSign.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } }); scene.add(forkSign); }
+
+/* the little cave on the right-hand path: a rock arch buried under boulders, with a ridge of rock either side
+   so nobody can peek round it. Inside, a few mushrooms glow. */
+const cave={mid:new THREE.Vector3(),glow:new THREE.PointLight(0x8ff0d0,0,10,2)};
+{ const at=z=>{ paths(z); return new THREE.Vector3(pR,trailY(z),z); };
+  const a=at(GATE_A), b=at(GATE_B-1), dir=b.clone().sub(a), len=dir.length(); dir.normalize();
+  const upv=new THREE.Vector3(0,1,0).addScaledVector(dir,-dir.y).normalize(), rt=new THREE.Vector3().crossVectors(upv,dir);
+  cave.mid.copy(a).add(b).multiplyScalar(0.5);
+  const shell=new THREE.Mesh(new THREE.CylinderGeometry(3,3,len,14,1,true,0,Math.PI),L('#77736d',{side:THREE.DoubleSide}));
+  shell.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(upv,dir,rt)); shell.position.copy(cave.mid).addScaledVector(upv,-0.5);
+  shell.castShadow=true; shell.receiveShadow=true; scene.add(shell);
+  const tones=['#8b8f8a','#9a9a94','#7d807c','#a6a39a'], mossM=L('#6f9a52');
+  const stone=(p,sc,moss)=>{ const m=new THREE.Mesh(rockGeo,L(tones[Math.floor(rnd()*4)])); m.position.copy(p);
+    m.scale.set(sc*(0.9+rnd()*0.25),sc*(0.8+rnd()*0.25),sc*(0.9+rnd()*0.25)); m.rotation.set(rnd()*6,rnd()*6,rnd()*6); m.castShadow=true; m.receiveShadow=true; scene.add(m);
+    if(moss){ const c=new THREE.Mesh(blobGeo,mossM); c.position.copy(p); c.position.y+=sc*0.72; c.scale.set(sc*0.8,sc*0.28,sc*0.75); c.receiveShadow=true; scene.add(c); } };
+  for(let i=0;i<6;i++){ const c=a.clone().lerp(b,i/5);
+    [-1,1].forEach(sd=>{ const sc=2.2+rnd()*0.8; stone(c.clone().addScaledVector(rt,sd*(3+sc*0.95)).addScaledVector(upv,0.6+rnd()*1.2),sc,false); });   /* walls */
+    { const sc=1.9+rnd()*0.5; stone(c.clone().addScaledVector(rt,(rnd()-0.5)*2).addScaledVector(upv,2.5+sc*0.95),sc,rnd()<0.7); }                          /* roof */
+    [-1,1].forEach(sd=>{ const sc=1.5+rnd()*0.3; stone(c.clone().addScaledVector(rt,sd*3.4).addScaledVector(upv,3.6+rnd()*0.4),sc,rnd()<0.4); }); }        /* shoulders */
+  [0.15,0.75].forEach(t=>[-1,1].forEach(sd=>[8.5,12,15.5].forEach(lat=>{ const p=a.clone().lerp(b,t).addScaledVector(rt,sd*(lat+rnd()));                    /* the ridge */
+    const sc=3.1+rnd()*1.1; p.y=groundY(p.x,p.z)+sc*0.35; stone(p,sc,rnd()<0.6); })));
+  const stemM=new THREE.MeshBasicMaterial({color:0xd8fff0}), capM=new THREE.MeshBasicMaterial({color:0x8ff5d6});
+  for(let i=0;i<8;i++){ const p=a.clone().lerp(b,0.12+rnd()*0.76).addScaledVector(rt,(i%2?1:-1)*(2.1+rnd()*0.45)), sc=1+rnd()*0.8;
+    [[stemGeo,stemM],[capGeo,capM]].forEach(([g,m])=>{ const o=new THREE.Mesh(g,m); o.position.copy(p); o.scale.setScalar(sc); scene.add(o); }); }
+  cave.glow.position.copy(cave.mid).addScaledVector(upv,1.3); scene.add(cave.glow); }
+
+/* sunbeams in the gully: slanted shafts of light that line up with the sun, each with a bright pool where it lands */
+const beamMat=new THREE.MeshBasicMaterial({color:0xfff0b8,vertexColors:true,transparent:true,opacity:0.16,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false});
+const poolMat=new THREE.MeshBasicMaterial({color:0xfff0b8,transparent:true,opacity:0.2,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
+const BEAM_H=17, beamGeo=new THREE.CylinderGeometry(0.5,1.2,BEAM_H,14,1,true), poolGeo=new THREE.CircleGeometry(1.35,20); poolGeo.rotateX(-Math.PI/2);
+{ const p=beamGeo.attributes.position, col=new Float32Array(p.count*3);   /* bright at the top, fading out toward the ground */
+  for(let i=0;i<p.count;i++){ const v=p.getY(i)>0?1:0.22; col[i*3]=col[i*3+1]=col[i*3+2]=v; }
+  beamGeo.setAttribute('color',new THREE.BufferAttribute(col,3)); }
+const beams=[[62,-3.2,1],[66.5,2.6,0.8],[71,-1.6,1.15],[75,4.2,0.9],[80,-4.6,1.1],[84,0.2,1.3],[89,3.4,0.9],[94,-2.4,1]].map(([z,d,w])=>{
+  const x=x0(z)+d, y=groundY(x,z), m=new THREE.Mesh(beamGeo,beamMat);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),SUN_DIR); m.scale.set(w,1,w); m.position.set(x,y,z).addScaledVector(SUN_DIR,BEAM_H/2-0.3); m.renderOrder=3; scene.add(m);
+  const pl=new THREE.Mesh(poolGeo,poolMat); pl.scale.set(w*1.15,1,w); pl.position.set(x,y+0.05,z); pl.renderOrder=2; scene.add(pl);
+  return {x,y,z,m,pl}; });
+
+/* mist: soft, slow puffs lying low in the gully */
+const mist=[];
+for(let i=0;i<18;i++){ const z=54+rnd()*42, x=x0(z)+(rnd()-0.5)*26, o=0.1+rnd()*0.09;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xe6f3ea,transparent:true,opacity:o,depthWrite:false}));
+  sp.scale.set(9+rnd()*7,2.6+rnd()*2,1); sp.position.set(x,groundY(x,z)+0.9+rnd()*0.8,z); sp.renderOrder=1; scene.add(sp); mist.push({sp,x,o,ph:rnd()*6}); }
+
+/* the top of the mountain, hazy and far ahead */
+const peak=new THREE.Group(); scene.add(peak);
+{ const far=c=>new THREE.MeshLambertMaterial({color:c,fog:false});
+  const top=new THREE.Mesh(new THREE.ConeGeometry(300,230,28),far('#a9c2ad')); top.position.set(0,95,0); peak.add(top);
+  const hillA=new THREE.Mesh(new THREE.SphereGeometry(260,24,12),far('#b6cdb4')); hillA.scale.y=0.42; hillA.position.set(330,-40,60); peak.add(hillA);
+  const hillB=new THREE.Mesh(new THREE.SphereGeometry(300,24,12),far('#b6cdb4')); hillB.scale.y=0.36; hillB.position.set(-380,-40,-40); peak.add(hillB); }
+
+/* specks of pollen drifting in the sunbeams */
+const MOTES=70, moteBase=[], motePos=new Float32Array(MOTES*3);
+for(let i=0;i<MOTES;i++) moteBase.push([rnd()*28,rnd()*6.5,rnd()*28,rnd()*10]);
+const moteGeo=new THREE.BufferGeometry(); moteGeo.setAttribute('position',new THREE.BufferAttribute(motePos,3));
+const motes=new THREE.Points(moteGeo,new THREE.PointsMaterial({size:0.14,map:spriteTex,color:0xfff2b8,transparent:true,opacity:0.75,depthWrite:false,blending:THREE.AdditiveBlending}));
+motes.frustumCulled=false; scene.add(motes);
+const wrap=(v,c)=>c+(((v-c)%28)+28)%28-14;
+
+/* a little flock of birds that swoops along the trail now and then */
+const flock=new THREE.Group(); flock.visible=false; flock.scale.setScalar(1.25); scene.add(flock);
+const birdMat=new THREE.MeshBasicMaterial({color:0x3a3340,side:THREE.DoubleSide});
+const wingGeo=new THREE.BufferGeometry(); wingGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array([0,0,-0.13, 0,0,0.13, 0.62,0,0.02]),3));
+const birds=[[0,0,0],[-0.9,0.2,-1.1],[0.9,0.1,-1.2],[-1.8,0.4,-2.3],[1.9,0.3,-2.5]].map(p=>{
+  const g=new THREE.Group(); g.position.set(p[0],p[1],p[2]);
+  const wl=new THREE.Mesh(wingGeo,birdMat), wr=new THREE.Mesh(wingGeo,birdMat); wr.scale.x=-1;
+  const body=new THREE.Mesh(new THREE.SphereGeometry(0.1,8,6),birdMat); body.scale.set(0.8,0.7,2);
+  g.add(wl,wr,body); flock.add(g); return {wl,wr,ph:rnd()*6}; });
+
+/* a sudden gust that blows a cloud of leaves across the trail when a new forest opens up */
+const GUST_N=170, gustMesh=new THREE.InstancedMesh(leafGeo,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}),GUST_N);
+gustMesh.frustumCulled=false; gustMesh.setColorAt(0,new THREE.Color(0xffffff)); gustMesh.count=0; scene.add(gustMesh);
+const gust={t:-1,list:[]}, GUST_LEN=6.5;
+function startGust(c,s){
+  const pal=c<0?FALL_ASPEN:FALL_AUTUMN, hd=heading(s), fx=Math.sin(hd), fz=Math.cos(hd), rx=Math.cos(hd), rz=-Math.sin(hd), cx=trailX(s);
+  gust.list.length=0;
+  for(let i=0;i<GUST_N;i++){ const side=-17+Math.random()*16, fwd=-6+Math.random()*26, x=cx+rx*side+fx*fwd, z=s+rz*side+fz*fwd, sp=4+Math.random()*4.5;   /* they start on the uphill side and sweep across */
+    gust.list.push({x,y:groundY(x,z)+0.3+Math.random()*4,z,vx:rx*sp-fx*1.2,vz:rz*sp-fz*1.2,vy:0.5+Math.random()*1.3,ph:Math.random()*6,sc:0.9+Math.random()*1.1,delay:Math.random()*1.5});
+    gustMesh.setColorAt(i,pal[Math.floor(Math.random()*pal.length)]); }
+  gustMesh.instanceColor.needsUpdate=true; gustMesh.count=GUST_N; gust.t=0;
+}
+function updateGust(dt){
+  if(gust.t<0) return; gust.t+=dt;
+  gust.list.forEach((l,i)=>{ const t=gust.t-l.delay; let k=0;
+    if(t>0){ const push=Math.exp(-t*0.35); l.x+=l.vx*push*dt; l.z+=l.vz*push*dt; l.y+=(l.vy*push-0.6*(1-push)+Math.sin(time*3+l.ph)*0.6)*dt;
+      const gy=groundY(l.x,l.z)+0.05; if(l.y<gy) l.y=gy; k=Math.min(1,t*3)*(1-smooth(GUST_LEN-1.5,GUST_LEN,gust.t)); }
+    _e.set(time*4+l.ph,time*3+l.ph*2,0); _q.setFromEuler(_e); _m.compose(_p.set(l.x,l.y,l.z),_q,_s.set(l.sc*k,l.sc*k,l.sc*1.6*k)); gustMesh.setMatrixAt(i,_m); });
+  gustMesh.instanceMatrix.needsUpdate=true;
+  if(gust.t>GUST_LEN){ gust.t=-1; gustMesh.count=0; }
+}
+
+/* ---------- the sisters ---------- */
+/* rig: root > legs (hip pivots) + upper (waist pivot) > head (neck pivot) + arms (shoulder pivots) */
+function makeGirl(o){
+  const g=new THREE.Group(), skin=L(o.skin), hair=L(o.hair);
+  const legs=[-0.08,0.08].map(x=>{const piv=new THREE.Group();piv.position.set(x,0.3,0);
+    const l=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,0.3,6),L(o.legs));l.position.y=-0.15;piv.add(l);
+    const s=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,6),L('#3b2a3a'));s.scale.set(1,0.6,1.5);s.position.set(0,-0.27,0.03);piv.add(s);g.add(piv);return piv;});
+  const upper=new THREE.Group(); upper.position.y=0.3; g.add(upper);
+  const dress=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.3,0.52,18),L(o.dress)); dress.position.y=0.2; upper.add(dress);
+  const collar=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,0.05,14),L('#fff7ee')); collar.position.y=0.47; upper.add(collar);
+  const head=new THREE.Group(); head.position.y=0.5; upper.add(head);
+  const hd=new THREE.Mesh(new THREE.SphereGeometry(0.2,20,16),skin); hd.position.y=0.17; head.add(hd);
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(0.215,20,14,0,Math.PI*2,0,Math.PI*0.55),hair); cap.position.set(0,0.18,-0.015); cap.rotation.x=-0.35; head.add(cap);
+  const back=new THREE.Mesh(new THREE.SphereGeometry(0.2,16,12),hair); back.scale.set(1.02,1.1,0.7); back.position.set(0,0.12,-0.07); head.add(back);
+  const tails=[];
+  if(o.style==='pigtails'){ [-1,1].forEach(s=>{const tp=new THREE.Group();tp.position.set(s*0.21,0.17,-0.03);head.add(tp);
+    const p=new THREE.Mesh(new THREE.SphereGeometry(0.085,10,8),hair);p.scale.set(0.9,1.3,0.9);p.position.set(s*0.02,-0.09,-0.01);tp.add(p);
+    const t=new THREE.Mesh(new THREE.SphereGeometry(0.035,8,6),L(o.ribbon));tp.add(t);tails.push(tp);}); }
+  else if(o.style==='mom'){ const lh=new THREE.Mesh(new THREE.SphereGeometry(0.21,16,12),hair); lh.scale.set(1.1,1.8,0.78); lh.position.set(0,0.0,-0.1); head.add(lh);
+    const clip=new THREE.Mesh(new THREE.SphereGeometry(0.05,8,6),L(o.ribbon)); clip.position.set(0.17,0.3,0.02); head.add(clip); }
+  else if(o.style==='dad'){ const gm=new THREE.MeshBasicMaterial({color:0x2e2433});
+    [-1,1].forEach(s=>{ const ring=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.012,6,16),gm); ring.position.set(s*0.075,0.18,0.2); head.add(ring); });
+    const br=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.012,0.012),gm); br.position.set(0,0.19,0.21); head.add(br); }
+  else { const bun=new THREE.Mesh(new THREE.SphereGeometry(0.11,12,10),hair); bun.position.set(0,0.35,-0.12); head.add(bun);
+    const t=new THREE.Mesh(new THREE.TorusGeometry(0.07,0.025,6,14),L(o.ribbon)); t.position.set(0,0.3,-0.1); t.rotation.x=1.2; head.add(t); }
+  const eyeM=new THREE.MeshBasicMaterial({color:0x2a1c26}), cheekM=new THREE.MeshBasicMaterial({color:0xff9ea0});
+  const eyes=[-1,1].map(s=>{const e=new THREE.Mesh(new THREE.SphereGeometry(0.022,8,6),eyeM);e.position.set(s*0.07,0.18,0.185);head.add(e);
+    const c=new THREE.Mesh(new THREE.SphereGeometry(0.032,8,6),cheekM);c.scale.z=0.35;c.position.set(s*0.115,0.125,0.165);head.add(c);return e;});
+  const arms=[-1,1].map(s=>{const piv=new THREE.Group();piv.position.set(s*0.13,0.42,0);
+    const a=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.3,6),L(o.dress));a.position.y=-0.15;piv.add(a);
+    const h=new THREE.Mesh(new THREE.SphereGeometry(0.045,8,6),skin);h.position.y=-0.32;piv.add(h);upper.add(piv);return piv;});
+  g.scale.setScalar(o.scale);
+  return {g,legs,upper,head,eyes,tails,dress,armL:arms[0],armR:arms[1],scale:o.scale};
+}
+const june=makeGirl({dress:'#ff8a7a',hair:'#4a2e22',skin:'#f2c7a5',legs:'#fff3e8',ribbon:'#fff3a3',style:'pigtails',scale:1.3});
+const pip=makeGirl({dress:'#b79cff',hair:'#d9783c',skin:'#c99372',legs:'#ffe1ea',ribbon:'#9fd8ff',style:'bun',scale:1.08});
+/* The rest of the family uses the same rig. They are not on the trail yet, so they are not built:
+   Lumi: makeGirl({dress:'#c9d2f0',hair:'#f6f3ff',skin:'#e6e2f5',legs:'#f3efff',ribbon:'#fff3a3',style:'bun',scale:1.16})
+   Mom:  makeAdult({dress:'#e58fa6',hair:'#4a2e22',skin:'#f2c7a5',legs:'#f6e7dc',ribbon:'#fff3a3',style:'mom',scale:1.72})
+   Dad:  makeAdult({dress:'#6f8fd0',hair:'#d9783c',skin:'#c99372',legs:'#3b3550',ribbon:'#ffffff',style:'dad',scale:1.8,slim:0.8}) */
+function makeAdult(o){ const a=makeGirl(o); a.legs.forEach(l=>{l.scale.y=1.9;l.position.y=0.57;}); a.upper.position.y=0.57;
+  a.dress.scale.set(o.slim||1,1.2,o.slim||1); a.dress.position.y=0.17; return a; }
+/* hiking backpacks */
+function addPack(girl,col,flap){
+  const bag=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.28,0.13),L(col)); bag.position.set(0,0.3,-0.17); girl.upper.add(bag);
+  const top=new THREE.Mesh(new THREE.BoxGeometry(0.25,0.09,0.14),L(flap)); top.position.set(0,0.43,-0.17); girl.upper.add(top);
+  const roll=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.26,8),L('#fff3a3')); roll.rotation.z=Math.PI/2; roll.position.set(0,0.52,-0.17); girl.upper.add(roll);
+}
+addPack(june,'#4fa3a0','#3d8683'); addPack(pip,'#ffd27a','#eab44f');
+scene.add(june.g,pip.g);
+[june.g,pip.g].forEach(root=>root.traverse(o=>{ if(o.isMesh){ o.castShadow=o.material.type!=='MeshBasicMaterial'; o.receiveShadow=true; } }));
+
+/* ---------- what the sisters get up to ---------- */
+/* The "party" is a point that strolls up the trail. Each sister has a place beside it (ds ahead, d to the side)
+   and keeps up on her own. Now and then one scampers off to look at something, then catches up. */
+const WALK=0.8;
+const party={s:0,v:0,vT:0,rest:0,restIn:200};   /* standing at the trailhead until the hike starts */
+/* the fork: 0 walking up to it, 1 arriving and talking it over, 2 resting until the player picks a path,
+   3 on the chosen path and heading for its gateway, 4 out the other side in the new forest */
+const fork={stage:0,t:0,entered:false};
+const R={};
+function makeBrain(girl,o){ return Object.assign({girl,pos:new THREE.Vector2(),y:0,face:0,faceT:0,queue:[],cur:null,t:0,walkPhase:0,skip:0,
+  actIn:9+Math.random()*10,blinkIn:2+Math.random()*3,blink:0,
+  rig:{tilt:0,lsp:0,lean:0,side:0,drop:0,rootY:0,hx:0,hy:0,hz:0,lax:0,laz:-0.15,rax:0,raz:0.15,llx:0,lrx:0}},o); }
+const juneB=makeBrain(june,{hand:1,seed:0.3,ds:0.6,d:-0.5}), pipB=makeBrain(pip,{hand:-1,seed:2.1,ds:-0.6,d:0.5});
+juneB.other=pipB; pipB.other=juneB;
+const BRAINS=[juneB,pipB];
+function placeGirls(){ BRAINS.forEach(b=>{ const p=pt(party.s+b.ds,b.d); b.pos.set(p[0],p[1]); b.y=groundY(p[0],p[1]); b.face=b.faceT=heading(party.s); b.queue.length=0; b.cur=null; }); }
+placeGirls();
+/* Steps a brain can queue: {k:'walk',to:[x,z],speed}, {k:'pose',pose,dur,face,talk}, {k:'say',text}.
+   With nothing queued she simply keeps her place in line. */
+function planAct(b){
+  const r=Math.random(), side=b.d<0?-1:1, hd=heading(party.s);
+  if(r<0.5){ /* run ahead to the edge of the trail and look at something */
+    const s=party.s+4.2+Math.random()*2, d=side*(1.7+Math.random()*0.35), pose=pick(['scoop','crouch','look','point']);
+    b.queue.push({k:'walk',to:pt(s,d),speed:1.75},{k:'pose',pose,dur:3+Math.random()*1.5,face:heading(s)+side*(pose==='look'?0.5:1.35),talk:true}); }
+  else if(r<0.72) b.skip=5+Math.random()*3;
+  else if(r<0.86) b.queue.push({k:'pose',pose:'spin',dur:1.5,talk:true});
+  else if(b===juneB) b.queue.push({k:'pose',pose:'wave',dur:2.2,face:hd+Math.PI,talk:true});
+  else b.queue.push({k:'pose',pose:'hop',dur:1.8,face:hd,talk:true});
+}
+/* while they wait at the fork they potter about the clearing */
+function idleAct(b){
+  const side=b.d<0?-1:1, hd=heading(party.s);
+  if(Math.random()<0.45){ const s=REST_S-2.6+Math.random()*4, d=side*(0.4+Math.random()*1.5);
+    b.queue.push({k:'walk',to:pt(s,d),speed:0.85},{k:'pose',pose:pick(['scoop','crouch','look','point']),dur:3.5+Math.random()*2.5,face:hd+side*(0.5+Math.random()),talk:true}); }
+  else b.queue.push({k:'pose',pose:pick(['look','point','hop','spin','idle','idle']),dur:2+Math.random()*3,face:hd+(Math.random()-0.5)*1.6,talk:true});
+}
+/* the player has picked a path: -1 the aspen grove, 1 the autumn woods */
+function takeTrail(c){ choice=c; fork.stage=3; fork.entered=false; party.vT=WALK; party.rest=0; party.restIn=200;
+  BRAINS.forEach(b=>{ b.queue.length=0; b.cur=null; b.actIn=16+Math.random()*10; }); }
+/* a short stop: everyone catches their breath and has a little chat */
+const RESTS=[
+  {lines:[[0,'Water break!'],[1,'I\'m not even tired.'],[1,'Okay. A little tired.'],[0,'Small sips, Pip.']],j:'idle',jf:Math.PI,p:'idle',pf:0},
+  {lines:[[1,'June, look how far we\'ve come!'],[0,'I can almost see our street from here.'],[1,'Hi, Michelle! We\'re on a MOUNTAIN!'],[0,'She can\'t hear you, Pip.'],[1,'She can feel it.']],j:'look',jf:2.3,p:'wave',pf:2.3},
+  {lines:[[0,'Shh. Listen.'],[1,'I hear knocking!'],[0,'That\'s a woodpecker.'],[0,'Dad says they can peck twenty times a second.'],[1,'That\'s faster than I can eat cookies.']],j:'idle',jf:-1.2,p:'look',pf:-1.0},
+  {lines:[[1,'Do you think Lumi can see us from the Moon?'],[0,'Wave, just in case.'],[1,'Hi, Lumi! These are called TREES!']],j:'wave',jf:2.0,p:'wave',pf:2.0},
+  {lines:[[1,'Time for snack number one of nine.'],[0,'We left the house ten minutes ago.'],[1,'Hiking makes me hungry.'],[0,'Mom said you would say that.']],j:'idle',jf:Math.PI,p:'idle',pf:0}
+];
+function startRest(){
+  const sc=nextLine('rest',RESTS), hd=heading(party.s);
+  party.vT=0; party.rest=sc.lines.reduce((t,l)=>t+lineTime(l[1])+0.45,2.2);
+  playScript(sc.lines); speakIn=party.rest+5;
+  juneB.skip=pipB.skip=0;
+  juneB.queue.push({k:'pose',pose:'idle',dur:1.2},{k:'pose',pose:sc.j,dur:party.rest-2.2,face:hd+sc.jf});
+  pipB.queue.push({k:'pose',pose:'idle',dur:1.4},{k:'pose',pose:sc.p,dur:party.rest-2.4,face:hd+sc.pf});
+}
+function updateParty(dt){
+  if(state.started){
+    if(fork.stage===0&&party.s>=REST_S-0.36){ /* slow to a stop at the fork */
+      fork.stage=1; fork.t=0; party.vT=0; party.rest=0; const hd=heading(party.s);
+      BRAINS.forEach(b=>{ b.queue.length=0; b.skip=0; });
+      juneB.queue.push({k:'pose',pose:'idle',dur:1.2},{k:'pose',pose:'look',dur:7,face:hd-0.5});
+      pipB.queue.push({k:'pose',pose:'idle',dur:1.5},{k:'pose',pose:'point',dur:7,face:hd+0.35});
+      onForkArrive(); }
+    else if(fork.stage===1){ fork.t+=dt; if(fork.t>3&&quiet()){ fork.stage=2; BRAINS.forEach(b=>{ b.actIn=3+Math.random()*4; }); onForkReady(); } }
+    else if(fork.stage===2){ /* no hurry: they stay until the player chooses */ }
+    else if(fork.stage===3&&party.s>=GATE_B+1.2){ /* out of the thicket or the cave: stop and stare while the new forest opens up */
+      fork.stage=4; party.vT=0; const hd=heading(party.s);
+      BRAINS.forEach(b=>{ b.queue.length=0; b.skip=0; });
+      party.rest=onReveal();
+      juneB.queue.push({k:'pose',pose:'idle',dur:0.9},{k:'pose',pose:'look',dur:party.rest-1.6,face:hd-0.4});
+      pipB.queue.push({k:'pose',pose:'idle',dur:0.7},{k:'pose',pose:'hop',dur:2.6,face:hd},{k:'pose',pose:'point',dur:party.rest-4.2,face:hd+0.5}); }
+    else if(party.rest>0){ party.rest-=dt; if(party.rest<=0){ party.vT=WALK; party.restIn=60+Math.random()*40; } }
+    else { party.restIn-=dt; if(party.restIn<=0&&!(fork.stage===0&&party.s>REST_S-30)&&!juneB.cur&&!pipB.cur&&!juneB.queue.length&&!pipB.queue.length&&quiet()) startRest(); }
+  }
+  if(state.started&&fork.stage===3&&!fork.entered&&party.s>=GATE_A-2){ fork.entered=true; onGateEnter(); }
+  party.v=damp(party.v,party.vT,2.2,dt); party.s+=party.v*dt;
+}
+function rigTarget(b,pose,tt,walking){
+  const s=b.seed;
+  R.lean=0;R.side=0;R.drop=0;R.rootY=0;R.hx=0;R.hy=Math.sin(tt*0.5+s)*0.35;R.hz=0;R.tilt=0;R.lsp=0;
+  R.lax=Math.sin(tt*1.1+s)*0.06;R.laz=-0.15;R.rax=-R.lax;R.raz=0.15;R.llx=0;R.lrx=0;
+  if(walking){ const w=Math.sin(b.walkPhase);
+    R.llx=w*0.6;R.lrx=-w*0.6;R.lax=-w*0.55;R.rax=w*0.55;R.rootY=Math.abs(Math.cos(b.walkPhase))*0.035;R.hy=Math.sin(tt*0.35+s)*0.3;R.lean=0.08;
+    if(b.skip>0){ R.rootY=Math.abs(Math.sin(b.walkPhase*0.5))*0.2;R.laz=-0.9;R.raz=0.9;R.hx=-0.12; }
+    return; }
+  switch(pose){
+    case 'wave': R.hz=0.15*b.hand;
+      if(b.hand>0){R.raz=2.6+Math.sin(tt*7)*0.4;} else {R.laz=-2.6-Math.sin(tt*7)*0.4;}
+      R.rootY=Math.abs(Math.sin(tt*3.2))*0.04; break;
+    case 'look': R.hx=-0.3;R.lean=-0.08;R.hy=Math.sin(tt*0.3+s)*0.3;
+      if(b.hand>0){R.rax=-2.7;R.raz=0.25;} else {R.lax=-2.7;R.laz=-0.25;} break;
+    case 'point': R.hx=-0.1;R.hy=Math.sin(tt*0.6+s)*0.15;
+      if(b.hand>0){R.rax=-1.55+Math.sin(tt*3)*0.06;R.raz=0.05;} else {R.lax=-1.55+Math.sin(tt*3)*0.06;R.laz=-0.05;} break;
+    case 'hop': { const h=Math.abs(Math.sin(tt*5.2)); R.rootY=h*0.24;R.llx=R.lrx=0.35*h;R.laz=-2.5;R.raz=2.5;R.hx=-0.2; break; }
+    case 'scoop': R.drop=0.18;R.lean=0.55;R.hx=0.45;R.lax=-0.9;R.rax=-0.9+Math.sin(tt*3)*0.25;R.laz=-0.1;R.raz=0.1; break;
+    case 'crouch': R.drop=0.2;R.lean=0.5;R.hx=0.4;R.hy=Math.sin(tt*0.9+s)*0.3;R.lax=-0.6;R.rax=-0.6;R.laz=-0.2;R.raz=0.2; break;
+    case 'hug': R.hx=-0.45;R.lax=-1.5;R.rax=-1.5;R.laz=-0.4;R.raz=0.4;R.rootY=Math.abs(Math.sin(tt*2.5))*0.03; break;
+    case 'shy': R.lax=0.4;R.rax=0.4;R.laz=0.25;R.raz=-0.25;R.hx=-0.2;R.hz=Math.sin(tt*1.3+s)*0.18;R.rootY=Math.abs(Math.sin(tt*2+s))*0.03; break;
+    case 'spin': R.laz=-1.4;R.raz=1.4;R.hx=-0.15;R.rootY=0.03; break;
+  }
+}
+function moveToward(b,tx,tz,speed,dt){
+  const dx=tx-b.pos.x, dz=tz-b.pos.y, d=Math.hypot(dx,dz); if(d<1e-4) return 0;
+  const step=Math.min(d,speed*dt); b.pos.x+=dx/d*step; b.pos.y+=dz/d*step; b.walkPhase+=step*10; b.faceT=Math.atan2(dx,dz); return d-step;
+}
+function updateBrain(b,dt){
+  if(!b.cur&&b.queue.length){ b.cur=b.queue.shift(); b.t=0; }
+  const st=b.cur; b.t+=dt; let walking=false, pose='idle';
+  if(!st){ /* keep her place in line, a little quicker if she has fallen behind */
+    const es=party.s+b.ds-b.pos.y, sp=clamp(party.v+es*1.3,0,1.9);
+    if(sp>0.06){ const a=pt(b.pos.y+1.6,b.d); moveToward(b,a[0],a[1],sp,dt); walking=true; } else b.faceT=heading(b.pos.y);
+    if(b.skip>0) b.skip-=dt;
+    if(state.started&&party.rest<=0&&fork.stage!==1){ b.actIn-=dt;
+      if(b.actIn<=0&&!b.other.cur&&!b.other.queue.length){
+        if(fork.stage===2){ idleAct(b); b.actIn=5+Math.random()*5; }
+        else if(Math.abs(es)<0.5&&party.restIn>8&&!(fork.stage===0&&party.s>REST_S-9)&&!(fork.stage===3&&party.s>GATE_A-12)){ planAct(b); b.actIn=14+Math.random()*16; } } }
+  } else if(st.k==='walk'){ walking=true; if(moveToward(b,st.to[0],st.to[1],st.speed||1.6,dt)<0.04) b.cur=null;
+  } else if(st.k==='say'){ sayIf(b,st.text); b.cur=null;
+  } else {
+    pose=st.pose;
+    if(pose==='spin'){ b.face+=dt*4.2; b.faceT=b.face; } else if(st.face!==undefined) b.faceT=st.face;
+    if(st.talk&&!st.said&&b.t>0.5){ st.said=true; if(POSE_LINES[pose]&&Math.random()<0.6) sayIf(b,nextLine('pose-'+pose,POSE_LINES[pose])); }
+    if(b.t>=st.dur) b.cur=null;
+  }
+  /* never stand on top of your sister */
+  { const o=b.other, ox=b.pos.x-o.pos.x, oz=b.pos.y-o.pos.y, od=Math.hypot(ox,oz); if(od<0.62&&od>1e-4){ const k=(0.62-od)*0.5/od; b.pos.x+=ox*k; b.pos.y+=oz*k; } }
+  b.y=groundY(b.pos.x,b.pos.y);
+  let df=b.faceT-b.face; df=Math.atan2(Math.sin(df),Math.cos(df)); b.face+=df*Math.min(1,dt*6);
+  rigTarget(b,pose,time,walking);
+  const rg=b.rig, k=walking?14:6;
+  for(const key in R) rg[key]=damp(rg[key],R[key],k,dt);
+  const g=b.girl, drop=rg.drop;
+  g.g.position.set(b.pos.x,b.y+rg.rootY,b.pos.y); g.g.rotation.order='YXZ'; g.g.rotation.y=b.face; g.g.rotation.x=rg.tilt;
+  g.upper.position.y=0.3-drop; g.upper.rotation.set(rg.lean,0,rg.side);
+  g.legs.forEach((l,i)=>{ l.position.y=0.3-drop; l.scale.y=Math.max(0.05,(0.3-drop)/0.3); l.rotation.x=i?rg.lrx:rg.llx; l.rotation.z=(i?1:-1)*rg.lsp; });
+  g.head.rotation.set(rg.hx,rg.hy,rg.hz);
+  g.armL.rotation.set(rg.lax,0,rg.laz); g.armR.rotation.set(rg.rax,0,rg.raz);
+  g.tails.forEach((t,i)=>{ t.rotation.z=(i?1:-1)*(0.1+Math.sin(time*2.2+i)*0.08)+(walking?Math.sin(b.walkPhase*2)*0.15:0); });
+  b.blinkIn-=dt; if(b.blinkIn<0){ b.blink=0.13; b.blinkIn=2.5+Math.random()*3.5; }
+  b.blink=Math.max(0,b.blink-dt); g.eyes.forEach(e=>e.scale.y=b.blink>0?0.15:1);
+}
+
+/* ---------- music: generated live ---------- */
+const Music=(()=>{
+  let ctx,master,padBus,bellBus,reverb,windGain,on=true,nextT=0,beat=0,chordIdx=0,melIdx=5,cur;
+  const BEAT=0.55, PER=16;
+  const CHORDS=[{bass:41,notes:[57,60,64,67],pcs:[5,9,0,4,7,2]},{bass:40,notes:[55,59,62,67],pcs:[4,7,11,2,9]},{bass:38,notes:[57,60,64,65],pcs:[2,5,9,0,4]},{bass:36,notes:[55,59,62,64],pcs:[0,4,7,11,2,9]}];
+  const SCALE=[67,69,72,74,76,79,81,84,86,88,91];
+  const mtof=m=>440*Math.pow(2,(m-69)/12);
+  function impulse(sec,decay){const r=ctx.sampleRate,len=Math.floor(r*sec),b=ctx.createBuffer(2,len,r);
+    for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}return b;}
+  function start(){
+    if(ctx) return;
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    ctx=new AC(); cur=CHORDS[0];
+    master=ctx.createGain(); master.gain.value=0;
+    const comp=ctx.createDynamicsCompressor(); comp.threshold.value=-20; comp.ratio.value=3;
+    master.connect(comp); comp.connect(ctx.destination);
+    reverb=ctx.createConvolver(); reverb.buffer=impulse(6,2.4);
+    const rv=ctx.createGain(); rv.gain.value=0.8; reverb.connect(rv); rv.connect(master);
+    const pf=ctx.createBiquadFilter(); pf.type='lowpass'; pf.frequency.value=1100; pf.Q.value=0.4;
+    padBus=ctx.createGain(); padBus.gain.value=0.9; padBus.connect(pf);
+    const pd=ctx.createGain(); pd.gain.value=0.45; pf.connect(pd); pd.connect(master);
+    const ps=ctx.createGain(); ps.gain.value=0.95; pf.connect(ps); ps.connect(reverb);
+    const lfo=ctx.createOscillator(), lg=ctx.createGain(); lfo.frequency.value=0.05; lg.gain.value=450; lfo.connect(lg); lg.connect(pf.frequency); lfo.start();
+    bellBus=ctx.createGain(); bellBus.gain.value=0.55; bellBus.connect(master);
+    const dl=ctx.createDelay(2), fb=ctx.createGain(), df=ctx.createBiquadFilter();
+    dl.delayTime.value=BEAT*1.5; fb.gain.value=0.38; df.type='lowpass'; df.frequency.value=2600;
+    bellBus.connect(dl); dl.connect(df); df.connect(fb); fb.connect(dl); df.connect(master); df.connect(reverb);
+    const bs=ctx.createGain(); bs.gain.value=0.7; bellBus.connect(bs); bs.connect(reverb);
+    const nb=ctx.createBuffer(1,ctx.sampleRate*4,ctx.sampleRate), nd=nb.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
+    const ns=ctx.createBufferSource(); ns.buffer=nb; ns.loop=true;
+    const wf=ctx.createBiquadFilter(); wf.type='bandpass'; wf.frequency.value=420; wf.Q.value=0.7;
+    windGain=ctx.createGain(); windGain.gain.value=0;
+    ns.connect(wf); wf.connect(windGain); windGain.connect(master); ns.start();
+    const wl=ctx.createOscillator(), wlg=ctx.createGain(); wl.frequency.value=0.08; wlg.gain.value=220; wl.connect(wlg); wlg.connect(wf.frequency); wl.start();
+    master.gain.linearRampToValueAtTime(0.85,ctx.currentTime+4);
+    nextT=ctx.currentTime+0.2; setInterval(tick,90);
+  }
+  function pad(m,t,dur,amp){const f=mtof(m),g=ctx.createGain();
+    g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(amp,t+2.8); g.gain.setValueAtTime(amp,t+dur); g.gain.linearRampToValueAtTime(0.0001,t+dur+3.5); g.connect(padBus);
+    [[-7,'sawtooth',0.45],[7,'sawtooth',0.45],[0,'sine',0.9]].forEach(([det,type,lvl])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type=type;o.frequency.value=f;o.detune.value=det;og.gain.value=lvl;o.connect(og);og.connect(g);o.start(t);o.stop(t+dur+3.7);});}
+  function bass(m,t,dur){const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=mtof(m);
+    g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.11,t+1.6);g.gain.setValueAtTime(0.11,t+dur-0.5);g.gain.linearRampToValueAtTime(0.0001,t+dur+2.5);
+    o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+2.7);}
+  function bell(m,t,v){const f=mtof(m),g=ctx.createGain();
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v,t+0.008);g.gain.exponentialRampToValueAtTime(0.0001,t+3.4);
+    let out=g; if(ctx.createStereoPanner){const p=ctx.createStereoPanner();p.pan.value=(Math.random()*2-1)*0.6;g.connect(p);out=p;}
+    out.connect(bellBus);
+    [[1,1],[2,0.22],[3,0.07],[4.2,0.035]].forEach(([r,a])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type='sine';o.frequency.value=f*r;og.gain.value=a;o.connect(og);og.connect(g);o.start(t);o.stop(t+3.5);});}
+  function step(t){
+    if(beat%PER===0){ cur=CHORDS[chordIdx%4]; chordIdx++; cur.notes.forEach(n=>pad(n,t,PER*BEAT-0.4,0.042)); bass(cur.bass,t,PER*BEAT); }
+    const pos=beat%PER; let prob=state.started?0.46:0.32; if(pos%8===0) prob=0.92;
+    if(Math.random()<prob){ melIdx=clamp(melIdx+Math.round((Math.random()*2-1)*2),0,SCALE.length-1);
+      if(!cur.pcs.includes(SCALE[melIdx]%12)) melIdx=melIdx+1<SCALE.length?melIdx+1:melIdx-1;
+      bell(SCALE[melIdx],t+(Math.random()<0.25?BEAT*0.5:0),0.05+Math.random()*0.05); }
+  }
+  /* a soft breeze in the leaves once the hike is under way */
+  function tick(){ if(!ctx) return; while(nextT<ctx.currentTime+0.4){ step(nextT); nextT+=BEAT; beat++; }
+    const gusting=ctx.currentTime<gustUntil; windGain.gain.setTargetAtTime(gusting?0.11:state.started?0.016:0.006,ctx.currentTime,gusting?0.45:1.5); }
+  let gustUntil=0;
+  function gust(){ if(ctx) gustUntil=ctx.currentTime+2.4; }
+  function toggle(){ on=!on; if(ctx){ if(ctx.state==='suspended'&&!held) ctx.resume(); master.gain.setTargetAtTime(on?0.85:0,ctx.currentTime,0.4);} return on; }
+  let held=false;
+  function resume(){ if(ctx&&!held&&ctx.state==='suspended') ctx.resume(); }
+  function setPaused(p){ held=p; if(!ctx) return; if(p) ctx.suspend(); else ctx.resume(); }
+  function sfx(kind){ if(!ctx||!on) return; const t=ctx.currentTime;
+    if(kind==='ufo'){ const o=ctx.createOscillator(), g=ctx.createGain(), v=ctx.createOscillator(), vg=ctx.createGain();
+      o.type='sine'; o.frequency.setValueAtTime(520,t); o.frequency.linearRampToValueAtTime(880,t+1.4); o.frequency.linearRampToValueAtTime(640,t+3);
+      v.frequency.value=6; vg.gain.value=16; v.connect(vg); vg.connect(o.frequency);
+      g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.045,t+0.4); g.gain.linearRampToValueAtTime(0.0001,t+3.2);
+      o.connect(g); g.connect(master); g.connect(reverb); o.start(t); v.start(t); o.stop(t+3.3); v.stop(t+3.3); }
+    if(kind==='chirp'){ for(let i=0;i<4;i++){ const tt=t+i*0.17+Math.random()*0.08, o=ctx.createOscillator(), g=ctx.createGain(), f=2300+Math.random()*900;
+      o.type='sine'; o.frequency.setValueAtTime(f,tt); o.frequency.exponentialRampToValueAtTime(f*1.4,tt+0.07);
+      g.gain.setValueAtTime(0.0001,tt); g.gain.linearRampToValueAtTime(0.02,tt+0.01); g.gain.exponentialRampToValueAtTime(0.0001,tt+0.11);
+      o.connect(g); g.connect(master); g.connect(reverb); o.start(tt); o.stop(tt+0.13); } }
+  }
+  /* browsers only allow sound after a touch or click, so the first one anywhere wakes the music up */
+  let silentEl=null;
+  function unlock(){
+    if(!ctx) start();
+    if(ctx&&ctx.state!=='running'&&!held) ctx.resume().catch(()=>{});
+    try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
+    try{ if(!silentEl){ silentEl=new Audio('data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA=='); silentEl.loop=true; silentEl.volume=0.01; silentEl.setAttribute('playsinline',''); }
+      silentEl.play().catch(()=>{}); }catch(e){}
+  }
+  return {start,toggle,resume,sfx,setPaused,unlock,gust,running:()=>!!ctx&&ctx.state==='running'};
+})();
+
+
+/* ---------- state & UI ---------- */
+const state={started:false};
+let capTimer=0;
+const capEl=$('caption');
+function showCaption(c){ $('capTitle').textContent=c.t; $('capBody').textContent=c.b; capEl.classList.add('show'); clearTimeout(capTimer); capTimer=setTimeout(()=>capEl.classList.remove('show'),10000); }
+const fmtDist=m=>m<1000?Math.round(m)+' m':(m/1000).toFixed(1)+' km';
+let wakeLock=null;
+async function keepAwake(){ try{ if(navigator.wakeLock) wakeLock=await navigator.wakeLock.request('screen'); }catch(e){} }
+$('soundBtn').addEventListener('click',e=>{ const on=Music.toggle(); e.currentTarget.textContent=on?'Music on':'Music off'; e.currentTarget.setAttribute('aria-pressed',String(on)); });
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ Music.resume(); if(state.started) keepAwake(); } });
+
+/* ---------- the wall of leaves ---------- */
+/* Each door is a canvas painted once with a few hundred overlapping leaves. Leaves along the
+   middle edge poke past it, so the two doors mesh together and the seam is hidden. */
+const leafwall=$('leafwall');
+function drawDoor(cv,flip,sd){
+  const dpr=Math.min(window.devicePixelRatio||1,2), W=cv.clientWidth, H=cv.clientHeight; if(!W||!H) return;
+  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+  const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); if(flip){ g.translate(W,0); g.scale(-1,1); }
+  let s=sd; const r=()=>{ s=(s*16807)%2147483647; return (s-1)/2147483646; };
+  const edge=W-72, k=clamp(Math.sqrt(W*H)/630,0.8,1.6);
+  const bg=g.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#1d4a2b'); bg.addColorStop(1,'#14331d'); g.fillStyle=bg; g.fillRect(0,0,edge-30,H);
+  const BACKS=['#1f5a30','#236636','#2a713a'], MIDS=['#2f7d40','#3c8f48','#4a9a4f','#357f52'], FRONTS=['#5aa857','#6db85f','#84c468','#4f9f58'], WARM=['#e3b23c','#d98a3a','#eccb5a'];
+  const leaves=[], n=Math.round(W*H/(520*k*k));
+  for(let i=0;i<n;i++) leaves.push({x:-30+r()*(edge+30),y:-30+r()*(H+60),a:r()*6.283,o:r()});
+  for(let y=-10;y<H+10;y+=13*k) leaves.push({x:edge-16+r()*40,y:y+r()*10,a:(r()-0.5)*1.5,o:r()});   /* the ragged middle edge */
+  leaves.sort((a,b)=>a.o-b.o);
+  leaves.forEach((lf,i)=>{ const depth=i/leaves.length, len=(54+r()*64)*k*(0.82+depth*0.3), wd=len*(0.2+r()*0.1);
+    const pal=depth<0.33?BACKS:depth<0.7?MIDS:(r()<0.07?WARM:FRONTS), col=pal[Math.floor(r()*pal.length)];
+    g.save(); g.translate(lf.x,lf.y); g.rotate(lf.a);
+    g.beginPath(); g.moveTo(-len/2,0); g.bezierCurveTo(-len*0.2,-wd,len*0.25,-wd*0.9,len/2,0); g.bezierCurveTo(len*0.25,wd*0.9,-len*0.2,wd,-len/2,0); g.closePath();
+    g.shadowColor='rgba(6,24,12,.5)'; g.shadowBlur=9*k; g.shadowOffsetY=3*k; g.fillStyle=col; g.fill();
+    g.shadowColor='transparent'; g.shadowBlur=0; g.shadowOffsetY=0;
+    g.beginPath(); g.moveTo(-len/2,0); g.bezierCurveTo(-len*0.2,-wd,len*0.25,-wd*0.9,len/2,0); g.closePath(); g.fillStyle='rgba(255,255,230,.08)'; g.fill();
+    g.strokeStyle='rgba(255,255,225,.24)'; g.lineWidth=1.3*k; g.lineCap='round';
+    g.beginPath(); g.moveTo(-len*0.46,0); g.lineTo(len*0.44,0);
+    for(let v=-1;v<=1;v++){ const vx=v*len*0.17; g.moveTo(vx,0); g.lineTo(vx+len*0.1,-wd*0.42); g.moveTo(vx,0); g.lineTo(vx+len*0.1,wd*0.42); }
+    g.stroke(); g.restore(); });
+}
+function drawDoors(){ drawDoor($('doorL'),false,7321); drawDoor($('doorR'),true,90211); }
+drawDoors();
+let doorTimer=0, doorResize=0;
+addEventListener('resize',()=>{ clearTimeout(doorResize); doorResize=setTimeout(()=>{ if(!leafwall.classList.contains('away')) drawDoors(); else doorsStale=true; },160); });
+let doorsStale=false;
+function openDoors(){ clearTimeout(doorTimer); leafwall.classList.remove('away'); leafwall.classList.add('open'); doorTimer=setTimeout(()=>leafwall.classList.add('away'),2900); }
+function closeDoors(){ clearTimeout(doorTimer); leafwall.classList.remove('away'); if(doorsStale){ doorsStale=false; drawDoors(); }
+  void leafwall.offsetWidth; leafwall.classList.remove('open'); }
+
+/* ---------- starting the hike, and going back to the title page ---------- */
+function startHike(){
+  if(state.started) return;
+  resetHike();   /* the leaves are shut, so nobody sees the walk go back to the trailhead */
+  state.started=true; idle=0; $('pauseBtn').hidden=false; Music.start(); Music.unlock(); keepAwake();
+  const intro=$('intro'); intro.classList.add('gone'); setTimeout(()=>{ if(state.started) intro.hidden=true; },1000);
+  openDoors();
+  ['alt','controls'].forEach(id=>$(id).classList.remove('hud-off'));
+  hushBubbles(); speakIn=9; birdsIn=24; BRAINS.forEach(b=>{ b.actIn=12+Math.random()*10; });
+  say(0,'Come on, Pip! The trail starts here.'); say(1,'Right behind you, Captain June!');
+  setTimeout(()=>{ if(state.started) showCaption({t:'Into the woods',b:'The trail climbs gently under the trees. There is no hurry at all.'}); },2600);
+}
+function backToStart(){
+  if(bookOpen) closeBook(); autoPaused=false; setPaused(false);
+  state.started=false; hushBubbles(); capEl.classList.remove('show'); $('pauseBtn').hidden=true;
+  ['alt','controls'].forEach(id=>$(id).classList.add('hud-off'));
+  party.vT=0; party.rest=0; hideFork(); BRAINS.forEach(b=>{ b.queue.length=0; b.cur=null; b.skip=0; });
+  closeDoors();
+  const intro=$('intro'); intro.hidden=false; requestAnimationFrame(()=>intro.classList.remove('gone'));
+}
+function resetHike(){
+  choice=0; fork.stage=0; fork.t=0; fork.entered=false; gust.t=-1; gustMesh.count=0; bloom=0; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
+  placeGirls(); groundRow=forestRow=null; camHd=heading(0); birdT=-1; flock.visible=false; hideFork();
+}
+/* the fork: a rest, a chat, then the player picks a path */
+const FORK_SCRIPT=[[1,'Whoa. It got all shady.'],[0,'We\'re in a gully. The hills hug the trail here.'],[1,'Look at the sunbeams! You can see the air!'],[0,'Good spot for a break. And look, two trails!'],[1,'Which way do we go?']];
+function onForkArrive(){ hushBubbles(); playScript(FORK_SCRIPT); showCaption({t:'The quiet gully',b:'Cool, shady and a little misty. Sunbeams slip down between the leaves.'}); }
+let forkShown=false;
+function onForkReady(){ capEl.classList.remove('show'); forkShown=true; const el=$('fork'); el.hidden=false; requestAnimationFrame(()=>{ if(forkShown) el.classList.remove('gone'); }); speakIn=10; }
+function hideFork(){ forkShown=false; const el=$('fork'); if(el.hidden) return; el.classList.add('gone'); setTimeout(()=>{ if(!forkShown) el.hidden=true; },1500); }
+function chooseTrail(c){
+  if(fork.stage!==2) return;
+  takeTrail(c); hideFork(); groundRow=forestRow=null; hushBubbles(); speakIn=12;
+  if(c<0){ playScript([[0,'Through the thicket it is!'],[1,'I call going first! ...Okay, you go first.']]); showCaption({t:'Into the thicket',b:'A tunnel of tangled branches. What is on the other side?'}); }
+  else { playScript([[1,'The cave! The cave!'],[0,'Okay. Stay close, and use your indoor voice.']]); showCaption({t:'Into the little cave',b:'It is only a short one. There is daylight at the far end.'}); }
+}
+/* stepping into the gateway */
+function onGateEnter(){ if(choice<0) playScript([[1,'It\'s a tunnel made of branches!'],[0,'Duck your head, Pip.']]);
+  else playScript([[1,'Hello-o-o!'],[1,'It said hello back!'],[0,'Look. The mushrooms are glowing.']]); speakIn=14; }
+/* coming out the far side: wind, leaves, light, and a first look at the new forest. Returns how long the girls stand and stare. */
+function onReveal(){
+  hushBubbles(); startGust(choice,party.s); Music.gust(); bloom=1; speakIn=16;
+  const lines=choice<0?[[1,'WHOA.'],[0,'An aspen grove! Look at all the white trunks.'],[1,'The leaves are clapping for us!']]
+    :[[1,'June. JUNE. Everything is orange!'],[0,'The autumn woods. It\'s like walking into a sunset.'],[1,'It\'s raining leaves!']];
+  playScript(lines);
+  showCaption(choice<0?{t:'The aspen grove',b:'Slim white trunks, and gold leaves that shiver in the smallest breeze.'}:{t:'The autumn woods',b:'Red, orange and gold, with leaves drifting down like slow confetti.'});
+  return lines.reduce((t,l)=>t+lineTime(l[1])+0.45,1.5);
+}
+$('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
+$('autumnBtn').addEventListener('click',()=>chooseTrail(1));
+/* for tools/smoke-test.js: jump the walk to a spot on the trail */
+window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },stage:()=>fork.stage,choice:()=>choice};
+$('beginBtn').addEventListener('click',startHike);
+$('goodnightBtn').addEventListener('click',backToStart);
+
+/* ---------- camera controls ---------- */
+/* camTheta is measured from the way the trail is heading, so the view keeps its angle as the trail bends */
+let camTheta=1.15, userPhi=0, zoom=1, idle=0;
+const pointers=new Map(); let pinch=0;
+const pdist=()=>{const a=[...pointers.values()];return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);};
+canvas.addEventListener('pointerdown',e=>{ canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); idle=0; if(pointers.size===2) pinch=pdist(); });
+canvas.addEventListener('pointermove',e=>{ const pr=pointers.get(e.pointerId); if(!pr) return; idle=0;
+  if(pointers.size===1){ camTheta-=(e.clientX-pr.x)*0.006; userPhi=clamp(userPhi+(e.clientY-pr.y)*0.004,-0.3,1.0); pr.x=e.clientX; pr.y=e.clientY; }
+  else { pr.x=e.clientX; pr.y=e.clientY; const nd=pdist(); if(pinch>0) zoom=clamp(zoom*pinch/nd,0.5,2.2); pinch=nd; } });
+const endPtr=e=>{ pointers.delete(e.pointerId); pinch=0; };
+canvas.addEventListener('pointerup',endPtr); canvas.addEventListener('pointercancel',endPtr);
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); zoom=clamp(zoom*Math.exp(e.deltaY*0.001),0.5,2.2); idle=0; },{passive:false});
+
+/* ---------- speech bubbles ---------- */
+/* Speaker numbers match the first game: 0 June, 1 Pip, 2 Mom, 3 Dad, 4 Lumi. Only June and Pip are on the trail so far;
+   a line for anyone who is not in the scene is quietly skipped. */
+const TRAIL_LINES=[
+  ['How far is the top?','Dad says it\'s only a small mountain.'],
+  ['My backpack is heavy.','That\'s because somebody packed nine snacks.'],
+  'It smells like pine needles.',
+  ['Do you hear that bird?','It\'s saying hello!'],
+  ['I\'m telling Michelle we climbed a whole mountain.','A small whole mountain.'],
+  ['Lumi would love this.','There aren\'t any trees on the Moon!'],
+  ['Mom said to stay on the trail.','I am ON the trail. Mostly.'],
+  'The leaves are so crunchy!',
+  ['Are we there yet?','Not even a little bit.'],
+  ['Left foot, right foot.','That\'s how you climb a mountain.'],
+  'I love how the sun comes through the trees.',
+  ['That tree is HUGE.','It\'s probably a hundred years old.'],
+  ['Do you think bears live here?','Only very polite ones.'],
+  'Every step is a little bit higher.',
+  ['I found the best stick.','You say that about every stick.'],
+  ['Dad packed trail mix.','I already ate the chocolate ones.'],
+  ['Let\'s bring a pretty leaf home for Mom.','And a rock for Dad!'],
+  ['Michelle would call this a forever-walk.','A forever-walk with snacks.'],
+  'The moss looks like tiny green carpets.',
+  ['Race you to the next signpost!','No running with backpacks!']
+];
+const POSE_LINES={scoop:['A perfect acorn!','This leaf is as big as my face.','A pinecone for my collection!'],
+  crouch:['Hello, little beetle.','Look, a tiny mushroom!','It\'s an ant highway!'],
+  look:['I can see so far!','The treetops go on forever.'],point:['Look at that one!','A woodpecker hole!','Something moved up there!'],
+  spin:['Twirl!','Hiking twirl!'],wave:['Keep up, Pip!','This way!'],hop:['Boing!','I\'m not tired at all!']};
+const GULLY_LINES=['The mist tickles my nose.',['The thicket or the cave?','They both look like secrets.'],'The sunbeams look like slides.',['It\'s so quiet down here.','Even my shoes are whispering.'],
+  ['Dad\'s map doesn\'t show two trails.','Then we\'re explorers now.'],'I could stay in this spot all day.',['Do you think Michelle would pick the cave?','Michelle would pick both.']];
+const ASPEN_LINES=['The leaves are shivering.',['Why do the trunks have eyes?','That\'s where old branches fell off.'],['Everything is white and gold.','It\'s like walking inside a birthday cake.'],
+  'Listen. The leaves sound like rain.',['Michelle would love these trees.','She\'d try to hug every single one.'],['Lumi would think these are moon trees.','They\'re the right color!']];
+const AUTUMN_LINES=[['It\'s raining leaves!','Catch one and make a wish!'],'Crunch, crunch, crunch.',['Everything is orange.','Even the air looks orange.'],['Let\'s make a leaf pile.','On the way back down.'],
+  ['This is the reddest leaf in the whole world.','Mom gets that one.'],['It smells like pancakes.','That\'s just you being hungry.']];
+const BIRD_LINES=[['Birds!','They\'re racing us to the top!'],['Did you see that?','They flew right over our heads!'],'Hello, birds!',['Where are they going?','Up the mountain, same as us.']];
+const bubbles=[{el:$('bubJune'),b:juneB,head:june.head,root:june.g,t:0},{el:$('bubPip'),b:pipB,head:pip.head,root:pip.g,t:0}];
+let script=[];
+function playScript(lines){ script=lines.slice(); }
+const decks={}; let speakIn=4, curLine=null, lineGap=0;
+function nextLine(key,src){ const d=decks[key]||(decks[key]=[]); if(!d.length){ d.push(...src); for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];} } return d.pop(); }
+/* one bubble at a time: every line waits its turn and stays up long enough to read */
+const lineTime=tx=>1.6+tx.length*0.06;
+function showLine(w,tx){ bubbles.forEach((bb,i)=>{ if(i!==w){ bb.t=0; bb.el.classList.remove('show'); } });
+  const bb=bubbles[w]; bb.el.querySelector('.txt').textContent=tx; bb.t=lineTime(tx); bb.el.classList.add('show'); curLine={w,t:bb.t}; }
+function say(i,text){ script.push([i,text]); }
+function speak(line,i){ if(i===undefined) i=Math.random()<0.5?0:1;
+  if(Array.isArray(line)) script.push([i,line[0]],[1-i,line[1]]); else script.push([i,line]); }
+const quiet=()=>!curLine&&!script.length;
+function sayIf(b,text){ if(quiet()) say(BRAINS.indexOf(b),text); }
+function chatter(){
+  if(fork.stage===2){ speak(nextLine('gully',GULLY_LINES)); return; }
+  if(fork.stage===4&&Math.random()<0.5){ speak(choice<0?nextLine('aspen',ASPEN_LINES):nextLine('autumn',AUTUMN_LINES)); return; }
+  speak(nextLine('trail',TRAIL_LINES));
+}
+const hp=new THREE.Vector3();
+function updateSpeech(dt){
+  bubbles.forEach(bb=>{ if(bb.t>0){ bb.t-=dt; if(bb.t<=0) bb.el.classList.remove('show'); } });
+  if(curLine){ curLine.t-=dt; if(curLine.t<=0){ curLine=null; lineGap=0.45; } }
+  else if(lineGap>0) lineGap-=dt;
+  else if(script.length){ const [w,tx]=script.shift(); if(bubbles[w]&&bubbles[w].root.visible) showLine(w,tx); }
+  else if(state.started&&party.rest<=0&&fork.stage!==1){ speakIn-=dt; if(speakIn<=0){ chatter(); speakIn=8+Math.random()*8; } }
+  const xs=[];
+  bubbles.forEach((bb,i)=>{ bb.head.getWorldPosition(hp); hp.project(camera);
+    const x=(hp.x*0.5+0.5)*innerWidth, y=(-hp.y*0.5+0.5)*innerHeight; xs[i]=x;
+    const vis=state.started&&bb.root.visible&&hp.z<1&&x>-80&&x<innerWidth+80&&y>-40&&y<innerHeight+120;
+    bb.el.style.transform=`translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`; bb.el.style.visibility=vis?'visible':'hidden'; });
+  bubbles.forEach((bb,i)=>bb.el.classList.toggle('right',xs[i]>innerWidth/2));
+}
+/* things that happen along the way wait for whoever is talking instead of cutting them off */
+function announce(line){ const s=Math.random()<0.5?0:1; if(script.length>2) script.length=2;
+  if(Array.isArray(line)) script.push([s,line[0]],[1-s,line[1]]); else script.push([s,line]); speakIn=9; }
+function hushBubbles(){ bubbles.forEach(bb=>{bb.t=0;bb.el.classList.remove('show');}); curLine=null; lineGap=0; script=[]; speakIn=4; }
+
+/* birds swoop up the trail just over the girls' heads */
+let birdsIn=24, birdT=-1, birdS0=0, birdCue=0;
+function updateBirds(dt){
+  if(birdT<0){ if(!state.started||party.rest>0||fork.stage===1) return; birdsIn-=dt;
+    if(birdsIn<=0){ birdT=0; birdS0=party.s-40; birdCue=0; flock.visible=true; } return; }
+  birdT+=dt; const s=birdS0+birdT*6.5;
+  flock.position.set(trailX(s)-1.2+Math.sin(birdT*0.7)*0.8,trailY(s)+3.5+Math.sin(birdT*1.1)*0.35,s); flock.rotation.y=heading(s);
+  birds.forEach(b=>{ const f=Math.sin(time*9+b.ph)*0.65; b.wl.rotation.z=f; b.wr.rotation.z=-f; });
+  if(birdCue===0&&s>party.s-9){ birdCue=1; Music.sfx('chirp'); }                                        /* they call as they come up from behind */
+  if(birdCue===1&&s>party.s+7){ birdCue=2; announce(nextLine('birds',BIRD_LINES)); }                   /* the girls speak only after the flock has gone over */
+  if(s>party.s+70){ birdT=-1; flock.visible=false; birdsIn=55+Math.random()*45; }
+}
+/* and now and then a bird sings somewhere in the trees */
+let chirpIn=10;
+function updateChirps(dt){ if(!state.started) return; chirpIn-=dt; if(chirpIn<=0){ Music.sfx('chirp'); chirpIn=9+Math.random()*14; } }
+
+/* ---------- the fact book: storybook pages about the forest ---------- */
+const LEAF=(x,y,l,rot,c)=>`<path transform="translate(${x} ${y}) rotate(${rot})" d="M${-l/2} 0C${-l*0.2} ${-l*0.3} ${l*0.25} ${-l*0.27} ${l/2} 0C${l*0.25} ${l*0.27} ${-l*0.2} ${l*0.3} ${-l/2} 0Z" fill="${c}"/>`;
+const ART={
+  stars:`<circle cx="60" cy="60" r="46" fill="#ffe9ee"/>${LEAF(44,50,46,-40,'#5aa857')}${LEAF(76,52,42,35,'#e3b23c')}${LEAF(60,80,46,95,'#3c8f48')}<circle cx="60" cy="60" r="4" fill="#d0607a"/>`,
+  tree:`<circle cx="60" cy="60" r="46" fill="#dcefff"/><rect x="14" y="92" width="92" height="24" fill="#7cb563"/><rect x="38" y="52" width="11" height="42" rx="4" fill="#8a5a3c"/><circle cx="43" cy="40" r="20" fill="#62a35a"/><circle cx="29" cy="52" r="12" fill="#4f8a4b"/><circle cx="57" cy="52" r="12" fill="#4f8a4b"/><ellipse cx="82" cy="92" rx="17" ry="7" fill="#d9b98a" stroke="#8a5a3c" stroke-width="2.5"/><ellipse cx="82" cy="92" rx="11" ry="4.4" fill="none" stroke="#b98a5a" stroke-width="1.4"/><ellipse cx="82" cy="92" rx="5.5" ry="2.2" fill="none" stroke="#b98a5a" stroke-width="1.4"/><rect x="65" y="92" width="34" height="12" fill="#8a5a3c"/><ellipse cx="82" cy="104" rx="17" ry="5" fill="#8a5a3c"/>`,
+  leaf:`<circle cx="60" cy="60" r="46" fill="#e8f6dc"/><circle cx="90" cy="30" r="13" fill="#ffd84a"/><path d="M90 50v9M74 44l-7 6M72 28h-9" stroke="#ffd84a" stroke-width="3" stroke-linecap="round"/>${LEAF(54,70,70,-38,'#5aa857')}<path d="M30 89 78 51M44 78l-2-14M54 70l-3-15M63 63l-2-12M48 75l14 3M58 67l14 2" stroke="#e8f6dc" stroke-width="2" stroke-linecap="round" fill="none"/>`,
+  pine:`<circle cx="60" cy="60" r="46" fill="#dcefff"/><rect x="14" y="96" width="92" height="20" fill="#7cb563"/><rect x="47" y="84" width="9" height="16" fill="#8a5a3c"/><path d="M51.500 20 34 48h35zM51.500 36 28 68h47zM51.500 54 22 88h59z" fill="#3f7a52"/><ellipse cx="88" cy="88" rx="8" ry="12" fill="#9a6a44"/><path d="M81 84h14M80.500 89h15M82 94h12" stroke="#6e4628" stroke-width="2"/>`,
+  mushroom:`<circle cx="60" cy="60" r="46" fill="#e8f6dc"/><rect x="14" y="76" width="92" height="40" fill="#9a7350"/><path d="M38 76V60M60 76V50M84 76V64" stroke="#fff6e6" stroke-width="8" stroke-linecap="round"/><path d="M40 56a20 17 0 0 1 40 0z" fill="#d9534a"/><path d="M26 64a12 10 0 0 1 24 0z" fill="#e8a060"/><path d="M74 68a10 9 0 0 1 20 0z" fill="#d9534a"/><circle cx="54" cy="47" r="2.6" fill="#fff"/><circle cx="66" cy="50" r="2.2" fill="#fff"/><circle cx="60" cy="42" r="1.8" fill="#fff"/><path d="M38 78c4 10 12 8 22 14M60 78c-2 12 10 16 4 28M84 78c-6 8-14 6-20 14M38 84c-8 6-12 4-18 10" stroke="#fff6e6" stroke-width="1.6" fill="none" opacity=".85"/>`,
+  moss:`<circle cx="60" cy="60" r="46" fill="#dcefff"/><rect x="14" y="88" width="92" height="28" fill="#7cb563"/><path d="M26 92c0-24 16-40 36-40s34 18 34 40z" fill="#9a9a94"/><path d="M30 78c4-18 16-27 32-27 13 0 24 8 30 21-10 4-16-2-24 2s-14-3-22 1-11 0-16 3z" fill="#7fae4e"/><circle cx="48" cy="60" r="3" fill="#9cc968"/><circle cx="70" cy="58" r="3.5" fill="#9cc968"/><circle cx="60" cy="66" r="2.4" fill="#9cc968"/>`,
+  flower:`<circle cx="60" cy="60" r="46" fill="#fff3d6"/><rect x="14" y="98" width="92" height="18" fill="#7cb563"/><path d="M52 100V62" stroke="#4f8a4b" stroke-width="4" stroke-linecap="round"/>${LEAF(62,84,22,-30,'#62a35a')}<g fill="#ff9eb5"><circle cx="52" cy="42" r="10"/><circle cx="38" cy="52" r="10"/><circle cx="66" cy="52" r="10"/><circle cx="43" cy="67" r="10"/><circle cx="61" cy="67" r="10"/></g><circle cx="52" cy="56" r="8" fill="#ffd84a"/><ellipse cx="88" cy="38" rx="9" ry="6.500" fill="#ffd84a"/><path d="M85 32v13M90 32v13" stroke="#3a2540" stroke-width="2.4"/><ellipse cx="86" cy="29" rx="6" ry="4" fill="#fff" opacity=".85"/>`,
+  sign:`<circle cx="60" cy="60" r="46" fill="#dcefff"/><rect x="14" y="94" width="92" height="22" fill="#7cb563"/><rect x="22" y="14" width="20" height="84" fill="#8a5a3c"/><rect x="28" y="44" width="8" height="18" rx="1.500" fill="#ffd84a"/><rect x="72" y="50" width="7" height="48" fill="#8a5a3c"/><path d="M56 40h34l10 9-10 9H56z" fill="#d9b98a" stroke="#8a5a3c" stroke-width="2.5" stroke-linejoin="round"/><path d="M63 49h22M80 44l6 5-6 5" stroke="#8a5a3c" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+  bird:`<circle cx="60" cy="60" r="46" fill="#ffe6c9"/><path d="M14 84h92" stroke="#8a5a3c" stroke-width="6" stroke-linecap="round"/><ellipse cx="54" cy="64" rx="22" ry="17" fill="#e58f6a"/><circle cx="72" cy="50" r="12" fill="#e58f6a"/><path d="M83 48l12 3-12 4z" fill="#ffd84a"/><circle cx="75" cy="47" r="2.4" fill="#3a2540"/><path d="M40 62c8-8 20-6 24 4-8 8-20 6-24-4z" fill="#b9603f"/><path d="M34 68 20 76l16 2z" fill="#b9603f"/><path d="M50 80v6M60 80v6" stroke="#3a2540" stroke-width="2.4" stroke-linecap="round"/><g fill="#3a2540"><circle cx="92" cy="30" r="3.4"/><rect x="94" y="16" width="2" height="14"/><circle cx="104" cy="38" r="2.8"/><rect x="105.500" y="26" width="1.800" height="12"/></g>`,
+  mountain:`<circle cx="60" cy="60" r="46" fill="#dcefff"/><circle cx="90" cy="32" r="10" fill="#ffd84a"/><path d="M4 100 34 62l26 38z" fill="#a9c2ad"/><path d="M26 104 66 34l44 70z" fill="#6f9a7a"/><path d="M66 34 56 52l8-3 5 6 6-5z" fill="#fffaf0"/><path d="M50 104c10-8 26-6 22-16s-14-8-10-18 8-10 6-18" stroke="#fff3d6" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-dasharray="1 6"/><rect x="14" y="102" width="92" height="14" fill="#7cb563"/>`,
+  beams:`<circle cx="60" cy="60" r="46" fill="#2f5a3e"/><g fill="#4f8a4b"><circle cx="24" cy="22" r="20"/><circle cx="60" cy="16" r="20"/><circle cx="96" cy="24" r="20"/></g><g fill="#fff3a3" opacity=".6"><path d="M38 30h10L34 104H14z"/><path d="M62 30h9L66 104H50z"/><path d="M84 32h9l12 72H88z"/></g><rect x="14" y="98" width="92" height="18" fill="#254a33"/><g fill="#eef6ee" opacity=".7"><ellipse cx="40" cy="92" rx="24" ry="5"/><ellipse cx="82" cy="86" rx="20" ry="4"/></g>`,
+  glow:`<circle cx="60" cy="60" r="46" fill="#1d2a33"/><path d="M14 116V70c10-30 30-44 46-44s36 14 46 44v46z" fill="#2c3d47"/><rect x="14" y="94" width="92" height="22" fill="#3a3340"/><g fill="#8ff5d6" opacity=".22"><circle cx="44" cy="76" r="22"/><circle cx="80" cy="82" r="17"/></g><path d="M44 96V80M80 96V86M60 96v-8" stroke="#d8fff0" stroke-width="5" stroke-linecap="round"/><path d="M30 80a14 12 0 0 1 28 0z" fill="#8ff5d6"/><path d="M70 86a10 9 0 0 1 20 0z" fill="#8ff5d6"/><path d="M53 88a7 6 0 0 1 14 0z" fill="#b8ffe8"/>`,
+  aspen:`<circle cx="60" cy="60" r="46" fill="#dcefff"/><rect x="14" y="96" width="92" height="20" fill="#a8c45e"/><g fill="#e6c84a"><circle cx="34" cy="30" r="15"/><circle cx="60" cy="22" r="16"/><circle cx="86" cy="32" r="15"/></g><g fill="#f0d860"><circle cx="46" cy="36" r="9"/><circle cx="74" cy="38" r="9"/></g><g fill="#f1eee4" stroke="#b9b3a4" stroke-width="1"><rect x="30" y="38" width="8" height="62"/><rect x="56" y="32" width="9" height="68"/><rect x="82" y="40" width="8" height="60"/></g><path d="M30 56h5M33 74h5M56 50h6M59 70h6M57 86h5M82 60h5M85 80h5" stroke="#3a2540" stroke-width="2.2" stroke-linecap="round"/>`,
+  redleaf:`<circle cx="60" cy="60" r="46" fill="#ffe6c9"/>${LEAF(60,40,44,-90,'#d9532f')}${LEAF(40,52,40,-150,'#c9402f')}${LEAF(80,52,40,-30,'#c9402f')}${LEAF(44,72,34,155,'#e07a2f')}${LEAF(76,72,34,25,'#e07a2f')}<path d="M60 62v40" stroke="#8a5a3c" stroke-width="4" stroke-linecap="round"/><circle cx="60" cy="60" r="6" fill="#d9532f"/>`,
+  canopy:`<circle cx="60" cy="60" r="46" fill="#bfe3ff"/><path d="M40 18 28 104M60 14v92M82 18l14 86" stroke="#fff3a3" stroke-width="9" opacity=".7"/><g fill="#4f8a4b"><circle cx="24" cy="28" r="20"/><circle cx="56" cy="20" r="19"/><circle cx="92" cy="26" r="21"/></g><g fill="#62a35a"><circle cx="40" cy="30" r="13"/><circle cx="74" cy="30" r="14"/></g><rect x="14" y="98" width="92" height="18" fill="#3f7a52"/><path d="M34 100c2-8 8-8 10 0M70 100c2-7 8-7 10 0" fill="#62a35a"/>`
+};
+const F=(label,kicker,tint,art,title,body,extra)=>({label,kicker,tint,art,title,body,extra});
+const TREES='Among the trees', FLOORK='On the forest floor', TRAILK='Along the trail', ABOVE='Up above', GULLYK='In the gully', BEYOND='Past the fork';
+const FACTS={
+  tree:F('Tall tree',TREES,'#6fa65a','tree','How old is that tree?','Every year a tree grows a new ring of wood just under its bark. If you count the rings on a stump, you know how many birthdays the tree had.','Some bristlecone pines are almost 5,000 years old. They were already growing when the pyramids were being built.'),
+  leaves:F('Golden leaves',TREES,'#e0a13a','leaf','Why leaves are green','Leaves are full of a green helper called chlorophyll. It catches sunlight and uses it to turn air and water into food for the tree. That is called photosynthesis.','The yellow and orange are in the leaf all summer, hiding under the green. In autumn the green fades away and the other colors get their turn.'),
+  pine:F('Evergreen',TREES,'#3f7a52','pine','Trees that stay green','Pines, firs and spruces keep their leaves all winter. Their leaves are thin, waxy needles that hold on to water and let snow slide right off.','A pine cone is a weather teller. It closes its scales tight when the air is wet and opens them when it is dry.'),
+  mushroom:F('Mushrooms',FLOORK,'#d9534a','mushroom','The hidden threads','A mushroom is only the tip of a fungus. Most of it lives underground as a web of threads much thinner than a hair, spreading through the soil.','Those threads join up with tree roots, and trees can pass food and messages along them. Scientists nicknamed it the wood wide web. And remember: never eat a wild mushroom.'),
+  moss:F('Mossy rock',FLOORK,'#7fae4e','moss','Moss, the tiny forest','Moss has no roots, no flowers and no seeds. It soaks up rain like a sponge and makes a soft, damp home for bugs too small to see.','Mosses were some of the very first plants to live on land, more than 400 million years ago. That is long before the dinosaurs.'),
+  flower:F('Wildflowers',FLOORK,'#e58fa6','flower','Why flowers are colorful','Flowers are signs that say "snacks here!" Their colors and smells invite bees and butterflies, who carry pollen from flower to flower so new seeds can grow.','Bees can see a kind of light that we cannot, called ultraviolet. Many flowers have secret stripes that point the way in, like lights on a runway.'),
+  sign:F('Trail marker',TRAILK,'#b98a5a','sign','How hikers find the way','Trails are marked with signposts and with painted shapes called blazes on trees and rocks. As long as you can spot the next one, you know you are still on the path.','The Appalachian Trail in the United States is about 3,500 km long. Around 165,000 white blazes mark the whole way.'),
+  birds:F('Songbirds',ABOVE,'#e58f6a','bird','Why birds sing','A bird\'s song says two things: "this tree is mine" and "come and find me." Each kind of bird has its own tune, so you can tell who is singing without ever seeing them.','Birds sing the most just as the sun comes up. It is called the dawn chorus.'),
+  canopy:F('Forest roof',ABOVE,'#5a9bd6','canopy','The roof of the forest','The leafy tops of the trees join up into a roof called the canopy. It catches most of the sunshine, which is why the forest floor is shady and cool.','In a thick rainforest only about 2 out of every 100 bits of sunlight reach the ground.'),
+  sunbeam:F('Sunbeams',GULLYK,'#e0a13a','beams','Why you can see sunbeams','Light is invisible until it bumps into something. In misty air it bounces off millions of tiny water drops and specks of dust, and suddenly you can see the whole beam.','All sunbeams are really side by side, like train tracks. They only look as if they fan out because the far end is farther away from you.'),
+  glow:F('Glowing mushrooms',GULLYK,'#3fb89a','glow','Mushrooms that glow','Some mushrooms really do glow in the dark. The glow is called foxfire. It is a cold light, made in much the same way a firefly makes its flash.','Long ago, sailors used glowing wood as a tiny lantern. It lit the dials inside one of the very first submarines.'),
+  aspen:F('Aspens',BEYOND,'#d9c04a','aspen','One tree, many trunks','A grove of aspens is often a single plant. The trunks all grow up from one shared set of roots, so every tree is a twin of its neighbors.','One aspen grove in Utah, called Pando, has about 47,000 trunks. It is one of the heaviest living things on Earth.'),
+  red:F('Red leaves',BEYOND,'#d9532f','redleaf','Why some leaves turn red','Yellow is hiding in a leaf all summer, but red is brand new. In autumn some trees make a red color out of the sugar left in their leaves. It is the same color that is in cherries and blueberries.','Sunny days and chilly nights make the brightest reds. A cloudy, warm autumn is a duller one.'),
+  mountain:F('The top',ABOVE,'#6f9a7a','mountain','How mountains are made','The ground under our feet is made of giant plates of rock that move very slowly. Where two plates push together, the land wrinkles upward into mountains over millions of years.','It gets cooler as you climb: about 6 degrees Celsius colder for every 1,000 meters. That is why tall mountains keep snow on top in summer.')
+};
+const FACT_ORDER=Object.keys(FACTS);
+const CHAPTERS_ORDER=[TRAILK,TREES,FLOORK,GULLYK,BEYOND,ABOVE];
+const BOOK_ICON='<svg class="bi" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5z" style="fill:var(--tint)"/><path d="M4 19.5A1.5 1.5 0 0 1 5.5 18H19v3H5.5A1.5 1.5 0 0 1 4 19.5z" fill="#fffaf0" style="stroke:var(--tint)" stroke-width="1.2"/><path d="M9 8h6M9 11h4" stroke="#fffaf0" stroke-width="1.6" stroke-linecap="round"/></svg>';
+
+let paused=false, autoPaused=false, bookOpen=false, bookKey=null;
+let found=[]; try{ found=JSON.parse(localStorage.getItem('trailtop-facts')||'[]').filter(k=>FACTS[k]); }catch(e){ found=[]; }
+function saveFound(){ try{ localStorage.setItem('trailtop-facts',JSON.stringify(found)); }catch(e){} }
+function updateBookBtn(){ $('bookBtn').textContent=`Fact book ${found.length}/${FACT_ORDER.length}`; }
+function setPaused(p){
+  paused=p; const b=$('pauseBtn'); b.classList.toggle('on',p); b.setAttribute('aria-label',p?'Resume the hike':'Pause the hike'); b.setAttribute('aria-pressed',String(p));
+  $('pausedBanner').classList.toggle('show',p&&!bookOpen); document.body.classList.toggle('is-paused',p);
+}
+const foundSorted=()=>FACT_ORDER.filter(k=>found.includes(k));
+let bookMode='page';
+function artSvg(f){ return `<svg viewBox="0 0 120 120" role="img" aria-label="${f.title}"><defs><clipPath id="artClip"><circle cx="60" cy="60" r="46"/></clipPath></defs><g clip-path="url(#artClip)">${ART[f.art]}</g><circle cx="60" cy="60" r="46" fill="none" stroke="${f.tint}" stroke-width="3"/></svg>`; }
+function blanks(text){ const n=Math.max(2,Math.ceil(text.length/40)); let h='';
+  for(let i=0;i<n;i++) h+=`<span class="redact" style="width:${i===n-1?35+((text.length*7+i*13)%40):82+((text.length+i*17)%18)}%"></span>`; return h; }
+function setPageParts(showToc){ $('bookBody').hidden=showToc; $('bookWow').hidden=showToc; $('bookToc').hidden=!showToc; }
+function renderBook(flip){
+  const pg=$('bookSheet');
+  if(bookMode==='toc'){
+    $('book').style.setProperty('--cover','#d0607a');
+    const art=$('bookArt'); art.classList.remove('locked'); art.innerHTML=artSvg({title:'My Fact Book',tint:'#d0607a',art:'stars'});
+    $('bookLabel').textContent='My Fact Book'; $('bookKicker').textContent='Contents'; $('bookTitle').textContent=`${found.length} of ${FACT_ORDER.length} facts found`;
+    setPageParts(true);
+    $('bookToc').innerHTML=CHAPTERS_ORDER.map(ch=>{ const ks=FACT_ORDER.filter(k=>FACTS[k].kicker===ch);
+      return `<div class="toc-group"><h4>${ch}</h4><div class="toc-list">${ks.map(k=>{ const f=FACTS[k], got=found.includes(k);
+        return `<button type="button" class="toc-item${got?'':' locked'}" data-k="${k}" style="--tint:${f.tint}">${got?'<span class="toc-star" aria-hidden="true">★</span>':''}${f.label}</button>`; }).join('')}</div></div>`; }).join('');
+    $('bookToc').querySelectorAll('.toc-item').forEach(b=>b.addEventListener('click',()=>{ bookMode='page'; bookKey=b.dataset.k; renderBook(true); }));
+    $('bookPage').textContent='Contents'; $('bookPage').disabled=true;
+    $('bookPrev').disabled=true; $('bookNext').disabled=false;
+  } else {
+    const f=FACTS[bookKey], got=found.includes(bookKey); $('book').style.setProperty('--cover',f.tint);
+    const art=$('bookArt'); art.classList.toggle('locked',!got); art.innerHTML=artSvg(f);
+    $('bookKicker').textContent=f.kicker; $('bookTitle').textContent=f.title; $('bookLabel').textContent=got?f.label:'Not found yet';
+    setPageParts(false);
+    if(got){ $('bookBody').textContent=f.body; $('bookWowLabel').textContent='Did you know?'; $('bookExtra').textContent=f.extra; }
+    else { $('bookBody').innerHTML=blanks(f.body); $('bookWowLabel').textContent='Not found yet'; $('bookExtra').textContent='Look for this little book tag along the trail to fill in this page!'; }
+    $('bookWow').classList.toggle('locked',!got);
+    $('bookPage').textContent=`Contents · ${found.length}/${FACT_ORDER.length}`; $('bookPage').disabled=false;
+    $('bookPrev').disabled=false; $('bookNext').disabled=FACT_ORDER.indexOf(bookKey)>=FACT_ORDER.length-1;
+  }
+  if(flip){ pg.classList.remove('flip'); void pg.offsetWidth; pg.classList.add('flip'); }
+}
+function showBook(){ if(!paused){ autoPaused=true; setPaused(true); } bookOpen=true; $('bookScrim').hidden=false; $('pausedBanner').classList.remove('show');
+  setTimeout(()=>{ try{ $('bookClose').focus({preventScroll:true}); }catch(e){} },60); }
+function openFact(k){
+  if(!FACTS[k]) return;
+  bookMode='page'; bookKey=k; if(!found.includes(k)){ found.push(k); saveFound(); updateBookBtn(); }
+  renderBook(true); showBook();
+}
+function openContents(){ bookMode='toc'; renderBook(true); showBook(); }
+function turnPage(d){
+  if(bookMode==='toc'){ if(d>0){ bookMode='page'; bookKey=FACT_ORDER[0]; renderBook(true); } return; }
+  const i=FACT_ORDER.indexOf(bookKey)+d;
+  if(i<0){ bookMode='toc'; renderBook(true); return; }
+  if(i>=FACT_ORDER.length) return; bookKey=FACT_ORDER[i]; renderBook(true); }
+function closeBook(){ $('bookScrim').hidden=true; bookOpen=false;
+  if(autoPaused){ autoPaused=false; setPaused(false); } else if(paused) $('pausedBanner').classList.add('show'); }
+$('pauseBtn').addEventListener('click',()=>{ if(bookOpen) closeBook(); autoPaused=false; setPaused(!paused); });
+$('bookClose').addEventListener('click',closeBook);
+$('bookPrev').addEventListener('click',()=>turnPage(-1));
+$('bookNext').addEventListener('click',()=>turnPage(1));
+$('bookScrim').addEventListener('click',e=>{ if(e.target===$('bookScrim')) closeBook(); });
+$('bookBtn').addEventListener('click',()=>openContents());
+$('bookPage').addEventListener('click',()=>{ bookMode='toc'; renderBook(true); });
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&bookOpen){ closeBook(); return; }
+  if(bookOpen&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){ turnPage(e.key==='ArrowRight'?1:-1); return; }
+  if(!state.started) return;
+  const onButton=e.target&&e.target.tagName==='BUTTON';
+  if(e.key==='p'||e.key==='P'||(e.key===' '&&!onButton)){ e.preventDefault(); if(bookOpen) closeBook(); autoPaused=false; setPaused(!paused); }
+});
+updateBookBtn();
+
+
+/* little book tags that float over things in the scene */
+const marksEl=$('marks'), MK={}, mv=new THREE.Vector3();
+/* the nearest one of something that the girls have not walked past yet */
+const ahead=(list,o)=>{ for(const p of list){ if(p.z>party.s-1&&p.z<party.s+24){ o.set(p.x,p.y,p.z); return 'w'; } } return false; };
+const MARKDEFS=[
+  {k:'sign',at:o=>{ if(Math.abs(party.s-REST_S)<14){ o.copy(forkSign.position); o.y+=2.4; return 'w'; }
+    for(const g of signs){ if(g.visible&&g.position.z>party.s-2&&g.position.z<party.s+26){ o.copy(g.position); o.y+=2.1; return 'w'; } } return false; }},
+  {k:'mushroom',at:o=>ahead(spots.mush,o)},
+  {k:'moss',at:o=>ahead(spots.rock,o)},
+  {k:'flower',at:o=>ahead(spots.flower,o)},
+  {k:'sunbeam',at:o=>Math.abs(party.s-REST_S)<22?(o.set(beams[2].x,beams[2].y,beams[2].z).addScaledVector(SUN_DIR,4.5),'w'):false},
+  {k:'glow',at:o=>(choice>0&&Math.abs(party.s-(GATE_A+GATE_B)/2)<9)?(o.copy(cave.mid),o.y+=1.2,'w'):false},
+  {k:'aspen',at:o=>ahead(spots.aspen,o)},
+  {k:'red',at:o=>ahead(spots.red,o)},
+  {k:'tree',at:o=>ahead(spots.tree,o)},
+  {k:'leaves',at:o=>ahead(spots.gold,o)},
+  {k:'pine',at:o=>ahead(spots.pine,o)},
+  {k:'canopy',at:o=>(o.set(0.5,0.74,0),'n')},
+  {k:'mountain',at:o=>(o.copy(peak.position),o.y+=215,'w')},
+  {k:'birds',at:o=>flock.visible?(o.copy(flock.position),o.y+=0.9,'w'):false}
+];
+MARKDEFS.forEach(m=>{ const f=FACTS[m.k], w=document.createElement('div'); w.className='fm'; w.hidden=true;
+  const b=document.createElement('button'); b.type='button'; b.className='fm-btn'; b.style.setProperty('--tint',f.tint);
+  b.innerHTML=BOOK_ICON+`<span class="lbl">${f.label}</span>`; b.setAttribute('aria-label','Read about: '+f.title);
+  b.addEventListener('pointerdown',e=>e.stopPropagation());
+  b.addEventListener('click',e=>{ e.stopPropagation(); openFact(m.k); });
+  w.appendChild(b); marksEl.appendChild(w); MK[m.k]=w; });
+const placed=[];
+function updateMarks(){
+  scene.updateMatrixWorld();
+  camera.updateMatrixWorld();
+  const show=state.started&&!bookOpen;
+  marksEl.classList.toggle('compact',!paused);
+  placed.length=0;
+  const minGap=paused?96:46;
+  for(const m of MARKDEFS){ const w=MK[m.k]; let ok=false;
+    if(show){ const r=m.at(mv);
+      if(r){ let x,y; if(r==='n'){ x=mv.x; y=mv.y; ok=true; } else { mv.project(camera); x=mv.x; y=mv.y; ok=mv.z<1; }
+        if(ok&&Math.abs(x)<0.9&&Math.abs(y)<0.86){ const px=(x*0.5+0.5)*innerWidth, py=(-y*0.5+0.5)*innerHeight;
+          if(placed.some(p=>Math.abs(p[0]-px)<minGap&&Math.abs(p[1]-py)<36)) ok=false;
+          else { placed.push([px,py]); w.style.transform=`translate3d(${px.toFixed(1)}px,${py.toFixed(1)}px,0)`; } }
+        else ok=false; } }
+    if(w.hidden===ok) w.hidden=!ok;
+    if(ok){ const seen=found.includes(m.k); if(w.classList.contains('seen')!==seen) w.classList.toggle('seen',seen); } }
+}
+
+/* ---------- loop ---------- */
+const off=new THREE.Vector3(), target=new THREE.Vector3();
+/* the mood of each place: haze color, and what drifts in the air */
+const FOG_THICKET=C('#587a62'), FOG_CAVE=C('#252b31');
+const FOG_HOME=C('#d3e6c2'), FOG_GULLY=C('#93b59d'), FOG_ASPEN=C('#e8f0c6'), FOG_AUTUMN=C('#f0dab2'), fogCol=new THREE.Color();
+const SUN_HOME=C('#fff0cf'), SUN_AUTUMN=C('#ffd9a0'), MOTE_HOME=C('#fff2b8'), MOTE_ASPEN=C('#ffe07a'), MOTE_AUTUMN=C('#f59a3c');
+const altValue=$('altValue');
+let bloom=0, last=performance.now(), time=0, lastAltText='', camHd=heading(0), swayK=0, groundRow=null, forestRow=null;
+function frame(now){
+  const rawDt=Math.min(0.05,(now-last)/1000); last=now; idle+=rawDt;
+  const dt=paused?0:rawDt; time+=dt;
+
+  /* the walk, and the strip of forest that travels with it */
+  updateParty(dt);
+  BRAINS.forEach(b=>updateBrain(b,dt));
+  const gr=Math.floor(party.s/ROW), fr=Math.floor(party.s/3);
+  if(gr!==groundRow){ groundRow=gr; rebuildGround(party.s); }
+  if(fr!==forestRow){ forestRow=fr; rebuildForest(party.s); }
+  updateBirds(dt); updateChirps(dt); updateGust(dt);
+  peak.position.set(-140,trailY(party.s)-10,party.s+640);
+
+  /* camera: it circles the point the girls are strolling along with */
+  camHd=damp(camHd,heading(party.s),0.7,dt);
+  swayK=damp(swayK,idle>6?1:0,0.6,rawDt);
+  let th=camHd+camTheta+Math.sin(time*0.06)*0.28*swayK*motion;
+  const aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
+  let r=8.6*zoom*aspectBoost, ph=clamp(0.2+userPhi,-0.1,1.2);
+  /* inside the thicket or the cave the camera tucks in close, just ahead of the girls on the path, and swings back out as they leave */
+  const gK=gateK(party.s);
+  if(gK>0){ let dd=camHd+0.1-th; dd=Math.atan2(Math.sin(dd),Math.cos(dd)); th+=dd*gK; r=lerp(r,Math.min(r,5),gK); ph=lerp(ph,0.1,gK); }
+  off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
+  target.set(trailX(party.s),trailY(party.s)+1.15,party.s);
+  camera.position.copy(target).add(off);
+  { const gy=groundY(camera.position.x,camera.position.z); if(camera.position.y<gy+0.7) camera.position.y=gy+0.7;
+    if(gK>0) camera.position.y=lerp(camera.position.y,clamp(camera.position.y,gy+0.9,gy+1.9),gK); }   /* stay under the roof */
+  camera.lookAt(target);
+  sky.position.copy(camera.position);
+  sun.position.copy(target).addScaledVector(SUN_DIR,110); sun.target.position.copy(target);
+
+  /* light and haze: dim and cool down in the gully, bright in the aspens, warm in the autumn woods */
+  const gk=gully(party.s), bk=choice?smooth(GATE_B-1,GATE_B+12,party.s):0, thK=choice<0?gK:0, caveK=choice>0?gK:0;
+  bloom=damp(bloom,0,0.55,dt);   /* a burst of brightness as the new forest opens up */
+  fogCol.copy(FOG_HOME).lerp(FOG_GULLY,gk); if(choice) fogCol.lerp(choice<0?FOG_ASPEN:FOG_AUTUMN,bk);
+  fogCol.lerp(FOG_THICKET,thK*0.7).lerp(FOG_CAVE,caveK*0.85);
+  scene.fog.color.copy(fogCol); skyU.mid.value.copy(fogCol); scene.fog.density=lerp(0.0125,0.027,gk)+thK*0.035+caveK*0.02;
+  hemi.intensity=lerp(0.72,0.47,gk)*(1-0.3*thK-0.62*caveK)+0.5*bloom; sun.intensity=lerp(0.9,0.6,gk)*(1-0.5*thK-0.7*caveK)+0.35*bloom;
+  cave.glow.intensity=1.2*caveK; sun.color.copy(SUN_HOME); if(choice>0) sun.color.lerp(SUN_AUTUMN,bk);
+  /* the sunbeams and mist are not there at all until the girls come round the curve at 50 m */
+  const reveal=smooth(50,58,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
+  beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
+  beams.forEach(b=>{ b.m.visible=lit; b.pl.visible=lit; });
+  mist.forEach(m=>{ m.sp.visible=lit; m.sp.position.x=m.x+Math.sin(time*0.11+m.ph)*1.6;
+    m.sp.material.opacity=m.o*reveal*smooth(3,10,m.sp.position.distanceTo(camera.position))*(0.8+0.2*Math.sin(time*0.3+m.ph)); });
+
+  /* pollen in the sunbeams; past the fork it turns into leaves drifting down */
+  for(let i=0;i<MOTES;i++){ const b=moteBase[i], x=wrap(b[0]+Math.sin(time*0.2+b[3])*0.9,target.x), z=wrap(b[2]+Math.cos(time*0.17+b[3])*0.9,target.z);
+    motePos[i*3]=x; motePos[i*3+1]=trailY(z)+0.5+((b[1]-time*0.45*bk)%6.5+6.5)%6.5+Math.sin(time*0.5+b[3]*2)*0.35; motePos[i*3+2]=z; }
+  moteGeo.attributes.position.needsUpdate=true;
+  motes.material.opacity=0.6+0.2*Math.sin(time*1.3); motes.material.size=0.14+0.1*bk;
+  motes.material.color.copy(MOTE_HOME); if(choice) motes.material.color.lerp(choice<0?MOTE_ASPEN:MOTE_AUTUMN,bk);
+
+  /* HUD */
+  const txt=fmtDist(Math.max(0,party.s)); if(txt!==lastAltText){ altValue.textContent=txt; lastAltText=txt; }
+
+  updateMarks();
+  updateSpeech(dt);
+  renderer.render(scene,camera);
+  requestAnimationFrame(frame);
+}
+/* iPad: no double-tap or pinch zooming of the page (pinching the scene still zooms the camera) */
+const isIPad=/iPad/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+if(isIPad) document.documentElement.classList.add('ipad');
+if(isIPad||isTouch){
+  ['gesturestart','gesturechange','gestureend'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+  document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
+  let lastTouchEnd=0;
+  document.addEventListener('touchend',e=>{ const now=Date.now(); if(now-lastTouchEnd<350) e.preventDefault(); lastTouchEnd=now; },{passive:false});
+}
+/* start the music as the page loads; if the browser holds it back, the first touch, click or key lets it play */
+try{ Music.start(); }catch(e){}
+const wakeMusic=()=>{ Music.unlock(); if(Music.running()) ['pointerdown','touchend','click','keydown'].forEach(ev=>removeEventListener(ev,wakeMusic,true)); };
+['pointerdown','touchend','click','keydown'].forEach(ev=>addEventListener(ev,wakeMusic,true));
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
