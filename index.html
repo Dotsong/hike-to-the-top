@@ -83,6 +83,15 @@ h1{font-size:clamp(2.5rem, 8vw, 4.8rem)}
 
 .controls{position:fixed;z-index:4;right:max(16px, env(safe-area-inset-right, 0px));bottom:calc(16px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .controls button{font-size:.85rem;padding:.6rem .95rem}
+/* the zone list: a tester's way of jumping straight to any place on the mountain */
+.zone-card{position:relative;width:min(600px,100%);max-height:100%;overflow:auto;background:#fff6ec;color:#3a2540;border-radius:18px;padding:20px 20px 18px;box-shadow:0 18px 50px rgba(14,12,40,.45)}
+.zone-card h2{font:400 1.5rem/1.1 var(--display);margin:0 48px 4px 0}
+.zone-card p{font:500 .85rem/1.45 var(--ui);margin:0 48px 6px 0;opacity:.75}
+.zone-card h3{font:700 .72rem/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;margin:16px 0 7px;opacity:.6}
+.zone-row{display:flex;flex-wrap:wrap;gap:7px}
+.zone-card button{font:600 .85rem/1 var(--ui);min-height:40px;padding:.6rem .85rem;color:#3a2540;background:#fff;border:1.5px solid rgba(58,37,64,.22);-webkit-backdrop-filter:none;backdrop-filter:none}
+.zone-card button:hover{background:#ffe1d0;border-color:rgba(58,37,64,.4)}
+.zone-card .zone-close{position:absolute;top:10px;right:10px;width:40px;padding:0;display:grid;place-items:center;font-size:1.1rem}
 .say{position:fixed;left:0;top:0;z-index:3;pointer-events:none;will-change:transform}
 .bub{position:absolute;bottom:34px;left:0;width:max-content;max-width:min(220px,46vw);padding:9px 13px 10px;border-radius:18px;
   background:var(--bubble);color:var(--bubble-ink);font:700 .92rem/1.3 var(--ui);border:2.5px solid var(--june);
@@ -324,6 +333,8 @@ body.is-paused .narrator{opacity:0}
 </div>
 
 <div class="controls hud-off" id="controls">
+  <button id="paceBtn" type="button" aria-label="Pace: normal speed. Tap to go faster.">Pace ×1</button>
+  <button id="zoneBtn" type="button">Jump to a place</button>
   <button id="goodnightBtn" type="button">Back to the start</button>
   <button id="bookBtn" type="button">Fact book 0/10</button>
   <button id="soundBtn" type="button" aria-pressed="true">Music on</button>
@@ -364,6 +375,14 @@ body.is-paused .narrator{opacity:0}
 </button>
 <div class="paused-banner" id="pausedBanner" role="status"><b>Paused</b><span id="pausedTip">Tap a little book to learn something!</span></div>
 
+<div class="book-scrim" id="zoneScrim" hidden>
+  <div class="zone-card" role="dialog" aria-modal="true" aria-labelledby="zoneTitle">
+    <h2 id="zoneTitle">Jump to a place</h2>
+    <p>For testing. Each jump lands a few steps before the place, so its arrival plays as it would on the walk.</p>
+    <div id="zoneList"></div>
+    <button class="zone-close" id="zoneClose" type="button" aria-label="Close the list">✕</button>
+  </div>
+</div>
 <div class="book-scrim" id="bookScrim" hidden>
   <div class="book" id="book" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
     <div class="page left">
@@ -1628,7 +1647,7 @@ function startHike(){
   setTimeout(()=>{ if(state.started) showCaption({t:'The edge of the woods',b:'Trees on one side, open meadow on the other. There is no hurry at all.'}); },2600);
 }
 function backToStart(){
-  if(bookOpen) closeBook(); autoPaused=false; setPaused(false);
+  if(bookOpen) closeBook(); $('zoneScrim').hidden=true; autoPaused=false; setPaused(false);
   restToken++; $('fade').classList.remove('on'); hushNarrator();
   state.started=false; hushBubbles(); capEl.classList.remove('show'); $('pauseBtn').hidden=true;
   ['alt','controls'].forEach(id=>$(id).classList.add('hud-off'));
@@ -1641,6 +1660,36 @@ function resetHike(){
   choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
 }
+/* ---------- zone select (for testing): jump straight to any place on the mountain ---------- */
+/* Each zone is [name, metres, choices made so far at the three rest sites (1 left, -1 right), how far through the last stretch]. A jump
+   puts the hike in exactly the state it would be in had the girls walked there, a few steps short of the place, so that its arrival
+   (the stop at a rest site, the dark of a gateway and the reveal beyond it, the summit) plays as it does on the walk. */
+function zoneList(){ const c=choice||1, p1=picks[1]||1, p2=picks[2]||1, A=GATE_A+1, B=SITES[1].a+1, D=SITES[2].a+1, R2=SITES[1].rest-7, R3=SITES[2].rest-7;
+  return [['The way there',[['Trailhead',0],['River bend',34],['Deep woods',58],['First rest site',REST_C-8]]],
+    ['After the first fork',[['Autumn woods',A,[1,0,0]],['Aspen grove',A,[-1,0,0]],['Second rest site, autumn track',R2,[1,0,0]],['Second rest site, aspen track',R2,[-1,0,0]]]],
+    ['After the second fork',[['Winter forest',B,[1,1,0]],['Grassland',B,[1,-1,0]],['Marsh boardwalk',B,[-1,1,0]],['Alpine rock garden',B,[-1,-1,0]],
+      ['Third rest site, after winter',R3,[1,1,0]],['Third rest site, after grassland',R3,[1,-1,0]],['Third rest site, after marsh',R3,[-1,1,0]],['Third rest site, after alpine',R3,[-1,-1,0]]]],
+    ['After the third fork',[['Moonlit glow-wood',D,[1,p1,1]],['Giant garden',D,[1,p1,-1]],['Upside-down pond',D,[-1,p1,1]],['Crystal hollow',D,[-1,p1,-1]]]],
+    ['The way to the top',[['Mountain trail',MTN-3,[c,p1,p2],0],['Into the mist',SKY_A-5,[c,p1,p2],1],['Sky garden',SKY_B-1,[c,p1,p2],2],['Last cave',TOP_A-5,[c,p1,p2],3],['Summit',TOP_B-3.5,[c,p1,p2],4]]]]; }
+function warp(name,s,p,tail){
+  resetHike(); p=p||[0,0,0];
+  picks[0]=p[0]; picks[1]=p[1]; picks[2]=p[2]; choice=p[0]; syncRoute();
+  const n=p[2]?3:p[1]?2:p[0]?1:0; fork.site=Math.max(0,n-1); fork.stage=n===0?0:s<SITES[fork.site].b+1.2?3:4; fork.tail=tail||0;
+  fork.river=s>=39; fork.deepSaid=s>=57; fork.hopSaid=s>60; fork.entered=true; fork.gateEvt=n>1||s>GATE_OB;
+  party.s=s; party.v=party.vT=WALK; party.restIn=60+Math.random()*30; lookBack=s<5?1:0; hikeT=s<5?0:99;
+  placeGirls(); groundRow=forestRow=null; camHd=heading(s); EVT.inT=20; speakIn=6;
+  if(fork.stage===3) onGateEnter();
+  showCaption({t:name,b:'Jumped here from the list of places.'});
+}
+function openZones(){ if(!state.started) return; if(bookOpen) closeBook(); if(!paused){ autoPaused=true; setPaused(true); }
+  $('zoneList').innerHTML=zoneList().map(([h,zs],gi)=>`<h3>${h}</h3><div class="zone-row">${zs.map((z,i)=>`<button type="button" data-z="${gi},${i}">${z[0]}</button>`).join('')}</div>`).join('');
+  $('zoneScrim').hidden=false; $('pausedBanner').classList.remove('show'); setTimeout(()=>{ try{ $('zoneClose').focus({preventScroll:true}); }catch(e){} },60); }
+function closeZones(){ if($('zoneScrim').hidden) return; $('zoneScrim').hidden=true; if(autoPaused){ autoPaused=false; setPaused(false); } else $('pausedBanner').classList.toggle('show',paused); }
+$('zoneBtn').addEventListener('click',openZones);
+$('zoneClose').addEventListener('click',closeZones);
+$('zoneScrim').addEventListener('click',e=>{ if(e.target===$('zoneScrim')){ closeZones(); return; }
+  const b=e.target.closest('button[data-z]'); if(!b) return; const [gi,i]=b.dataset.z.split(',').map(Number), z=zoneList()[gi][1][i];
+  $('zoneScrim').hidden=true; autoPaused=false; setPaused(false); warp(z[0],z[1],z[2],z[3]); });
 /* things the girls notice on the way to the rest site */
 function onRiver(){ narrate('But the trail could not go straight for long. A river had got there first.'); playScript([[1,'A river!'],[0,'We can\'t cross here. The trail goes round to the right.'],[1,'Into the trees!']]); speakIn=14;
   showCaption({t:'The river bend',b:'The water is too wide to cross, so the trail turns right, straight into the woods.'}); }
@@ -2014,7 +2063,7 @@ function onTail(what){
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -2403,6 +2452,7 @@ $('bookBtn').addEventListener('click',()=>openContents());
 $('bookPage').addEventListener('click',()=>{ bookMode='toc'; renderBook(true); });
 addEventListener('keydown',e=>{
   if(e.key==='Escape'&&bookOpen){ closeBook(); return; }
+  if(!$('zoneScrim').hidden){ if(e.key==='Escape') closeZones(); return; }
   if(bookOpen&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){ turnPage(e.key==='ArrowRight'?1:-1); return; }
   if(!state.started) return;
   const onButton=e.target&&e.target.tagName==='BUTTON';
@@ -2496,9 +2546,19 @@ for(const k in SKIES){ const B=BIO[k]; if(B&&B.mote){ SKIES[k].mote=C(B.mote); S
 const FOG_MIST=C('#f3f5f7'); let moteFall=0;
 const altValue=$('altValue');
 let revealT=-1, lookBack=1, hikeT=0, frameNo=0, riverHeard=0, bloom=0, last=performance.now(), time=0, lastAltText='', camHd=heading(0), swayK=0, groundRow=null, forestRow=null;
+/* Pace, for testing: 1 is the real thing; 2, 4 and 8 run everything that much faster. The extra time is taken in ordinary-sized steps,
+   so nothing behaves differently, it just happens sooner. (The fades between scenes still take their usual second.) */
+let pace=1;
+function simStep(dt){ time+=dt;
+  if(mode==='rest') updateRest(dt,dt); else if(mode==='summit') updateSummit(dt,dt);
+  else { updateParty(dt); BRAINS.forEach(b=>updateBrain(b,dt)); updateEvents(dt); updateGust(dt); }
+  updateSpeech(dt); updateNarrator(dt); }
+function setPace(p){ pace=p; const b=$('paceBtn'); b.textContent='Pace ×'+p; b.setAttribute('aria-label','Pace: '+(p===1?'normal speed':p+' times as fast')+'. Tap to change.'); }
+$('paceBtn').addEventListener('click',()=>setPace(pace>=8?1:pace*2));
 function frame(now){
   const rawDt=Math.min(0.05,(now-last)/1000); last=now; idle+=rawDt;
   const dt=paused?0:rawDt; time+=dt;
+  if(!paused) for(let k=1;k<pace;k++) simStep(rawDt);   /* a faster pace (for testing): the walk, the talk and the story take extra steps between pictures */
 
   if(mode==='rest') updateRest(dt,rawDt);   /* the rest site is its own scene; the trail is not touched while it runs */
   else if(mode==='summit') updateSummit(dt,rawDt);
