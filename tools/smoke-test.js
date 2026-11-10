@@ -1,9 +1,11 @@
 // Smoke test: loads index.html with a stand-in for three.js (works offline),
 // clicks "Start the hike", lets the leaf doors open, opens the fact book, walks to the
 // rest site, sits through the rest scene, picks a path, comes out the far side of its gateway, and presses "Back to the start". Prints any page errors.
-// Usage: node tools/smoke-test.js [path/to/index.html]
+// then on through the second and third rest sites, the sky garden and the last cave to the summit.
+// Usage: node tools/smoke-test.js [path/to/index.html] [route: L or R at each of the three rest sites, e.g. LRL]
 const {chromium}=require('playwright'); const fs=require('fs'); const path=require('path');
 const page=path.resolve(process.argv[2]||path.join(__dirname,'..','index.html'));
+const ROUTE=(process.argv[3]||'LLL').toUpperCase();
 const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
 (async()=>{
   const b=await chromium.launch(); const p=await b.newPage({viewport:{width:1000,height:700}});
@@ -30,21 +32,40 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   await p.waitForFunction(()=>window.hikeDebug.mode()==='rest'&&window.hikeDebug.ready()&&!document.getElementById('forkDock').hidden,null,{timeout:120000});
   const restScene=true;
   // pick the cave: the girls set off, the screen fades back to the trail
-  await p.evaluate(()=>document.getElementById('autumnBtn').click());
+  await p.evaluate(id=>document.getElementById(id).click(),ROUTE[0]==='L'?'autumnBtn':'aspenBtn');
   await p.waitForFunction(()=>window.hikeDebug.mode()==='trail'&&window.hikeDebug.stage()===3,null,{timeout:20000});
-  const forkChosen=await p.evaluate(()=>document.getElementById('forkDock').hidden&&window.hikeDebug.choice()===1);
-  if(!forkChosen) errs.push('the path buttons did not lead to the cave path');
+  const forkChosen=await p.evaluate(()=>document.getElementById('forkDock').hidden&&window.hikeDebug.choice()!==0);
+  if(!forkChosen) errs.push('the path buttons did not lead onto a path');
   // the far side of the cave: the autumn woods open up
   await p.evaluate(()=>window.hikeDebug.walkTo(140.5)); await p.waitForTimeout(2500);
   const revealed=await p.evaluate(()=>window.hikeDebug.stage()===4);
   if(!revealed) errs.push('the new forest did not open up after the gateway');
   // every kind of visitor gets a turn (all four bird flights included)
-  for(const k of ['birds','birds','birds','birds','butterfly','squirrel','rabbit','swirl','woodpecker','owl']){
+  for(const k of ROUTE==='LLL'?['birds','birds','birds','birds','butterfly','squirrel','rabbit','swirl','woodpecker','owl']:['birds','butterfly']){
     await p.evaluate(k=>window.hikeDebug.event(k),k); await p.waitForTimeout(900);
     if(await p.evaluate(()=>window.hikeDebug.eventNow())!==k) errs.push('the '+k+' event did not start'); }
+  // the second and third rest sites: each offers the two gateways that come next on this track; then the mountain trail, the mist,
+  // the sky garden, the last cave and the top
+  const places=[];
+  for(const [i,at] of [[1,247.8],[2,395.8]]){
+    await p.evaluate(m=>window.hikeDebug.walkTo(m),at);
+    await p.waitForFunction(()=>window.hikeDebug.mode()==='rest'&&window.hikeDebug.ready()&&!document.getElementById('forkDock').hidden,null,{timeout:120000});
+    if(await p.evaluate(()=>window.hikeDebug.site())!==i) errs.push('rest site '+(i+1)+' was not reached');
+    await p.screenshot({path:require('os').tmpdir()+'/hike-dock-'+ROUTE+'-'+i+'.png'});
+    await p.evaluate(id=>document.getElementById(id).click(),ROUTE[i]==='L'?'autumnBtn':'aspenBtn');
+    await p.waitForFunction(()=>window.hikeDebug.mode()==='trail'&&window.hikeDebug.stage()===3,null,{timeout:20000});
+    await p.waitForTimeout(1500);
+    await p.evaluate(m=>window.hikeDebug.walkTo(m),at+41.5); await p.waitForTimeout(2500);
+    if(await p.evaluate(()=>window.hikeDebug.stage())!==4) errs.push('the place after rest site '+(i+1)+' did not open up');
+    places.push(await p.evaluate(()=>window.hikeDebug.place())); await p.waitForTimeout(1500); }
+  for(const m of [470,503,535,542,550,600,639,646]){ await p.evaluate(m=>window.hikeDebug.walkTo(m),m); await p.waitForTimeout(1800); }
+  await p.evaluate(()=>window.hikeDebug.walkTo(650.4));
+  await p.waitForFunction(()=>window.hikeDebug.mode()==='summit',null,{timeout:20000}).catch(()=>errs.push('the summit scene did not start'));
+  await p.waitForTimeout(4000);
+  const summit=await p.evaluate(()=>window.hikeDebug.mode()==='summit'&&window.hikeDebug.tail()===5);
   await p.evaluate(()=>document.getElementById('goodnightBtn').click()); await p.waitForTimeout(1600);
   const backToStart=await p.evaluate(()=>!document.getElementById('intro').hidden);
-  console.log({hikeStarted:true,bookOpen,mapOpen,restScene,forkChosen,revealed,backToStart});
+  console.log({route:ROUTE,hikeStarted:true,bookOpen,mapOpen,restScene,forkChosen,revealed,places:places.join(' > '),summit,backToStart});
   console.log(errs.length?errs.join('\n'):'no errors');
   await b.close(); process.exit(errs.length?1:0);
 })();
