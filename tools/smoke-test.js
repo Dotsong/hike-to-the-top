@@ -1,6 +1,6 @@
 // Smoke test: loads index.html with a stand-in for three.js (works offline),
 // clicks "Start the hike", lets the leaf doors open, opens the fact book, walks to the
-// fork, picks a path, comes out the far side of its gateway, and presses "Back to the start". Prints any page errors.
+// rest site, sits through the rest scene, picks a path, comes out the far side of its gateway, and presses "Back to the start". Prints any page errors.
 // Usage: node tools/smoke-test.js [path/to/index.html]
 const {chromium}=require('playwright'); const fs=require('fs'); const path=require('path');
 const page=path.resolve(process.argv[2]||path.join(__dirname,'..','index.html'));
@@ -16,19 +16,23 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   await p.evaluate(()=>document.getElementById('bookBtn').click()); await p.waitForTimeout(500);
   const bookOpen=await p.evaluate(()=>!document.getElementById('bookScrim').hidden);
   await p.evaluate(()=>document.getElementById('bookClose').click());
-  // the fork: jump to just before 70 m, wait for the girls to stop and talk, then pick a path
-  await p.evaluate(()=>window.hikeDebug.walkTo(69.2));
-  await p.waitForFunction(()=>!document.getElementById('fork').hidden&&window.hikeDebug.stage()===2,null,{timeout:45000});
-  await p.evaluate(()=>document.getElementById('autumnBtn').click()); await p.waitForTimeout(1800);
-  const forkChosen=await p.evaluate(()=>document.getElementById('fork').hidden&&window.hikeDebug.stage()===3&&window.hikeDebug.choice()===1);
-  if(!forkChosen) errs.push('the fork card did not lead to the cave path');
+  // the rest site: jump to just before 98 m; the girls stop, the screen fades to the rest scene,
+  // they sit and talk, and the two path buttons appear
+  await p.evaluate(()=>window.hikeDebug.walkTo(97.2));
+  await p.waitForFunction(()=>window.hikeDebug.mode()==='rest'&&window.hikeDebug.ready()&&!document.getElementById('forkDock').hidden,null,{timeout:120000});
+  const restScene=true;
+  // pick the cave: the girls set off, the screen fades back to the trail
+  await p.evaluate(()=>document.getElementById('autumnBtn').click());
+  await p.waitForFunction(()=>window.hikeDebug.mode()==='trail'&&window.hikeDebug.stage()===3,null,{timeout:20000});
+  const forkChosen=await p.evaluate(()=>document.getElementById('forkDock').hidden&&window.hikeDebug.choice()===1);
+  if(!forkChosen) errs.push('the path buttons did not lead to the cave path');
   // the far side of the cave: the autumn woods open up
-  await p.evaluate(()=>window.hikeDebug.walkTo(112.5)); await p.waitForTimeout(2500);
+  await p.evaluate(()=>window.hikeDebug.walkTo(140.5)); await p.waitForTimeout(2500);
   const revealed=await p.evaluate(()=>window.hikeDebug.stage()===4);
   if(!revealed) errs.push('the new forest did not open up after the gateway');
   await p.evaluate(()=>document.getElementById('goodnightBtn').click()); await p.waitForTimeout(1600);
   const backToStart=await p.evaluate(()=>!document.getElementById('intro').hidden);
-  console.log({hikeStarted:true,bookOpen,forkChosen,revealed,backToStart});
+  console.log({hikeStarted:true,bookOpen,restScene,forkChosen,revealed,backToStart});
   console.log(errs.length?errs.join('\n'):'no errors');
   await b.close(); process.exit(errs.length?1:0);
 })();
