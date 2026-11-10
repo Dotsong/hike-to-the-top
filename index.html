@@ -426,7 +426,8 @@ const trailX=s=>x0(s)+choice*spread(s-FORK);       /* the path the girls are on 
 const deep=z=>smooth(45,56,z)*(1-smooth(GATE_B-2,GATE_B+10,z));   /* 1 in the deep woods, which start right at the river bend and run to the gateways */
 const woodsK=s=>smooth(49,61,s)*(1-smooth(GATE_B+2,GATE_B+10,s));   /* 1 while the camera follows the girls from behind, in among the trees */
 const bioK=z=>smooth(GATE_B,GATE_B+7,z);                           /* how much of the new forest has taken over */
-const gateK=s=>choice?smooth(GATE_A-8,GATE_A-2,s)*(1-smooth(GATE_B,GATE_B+4,s)):0;   /* 1 while the girls are inside their gateway */
+const gateK=s=>choice?smooth(GATE_A-8,GATE_A-2,s)*(1-smooth(GATE_B-1,GATE_B+13,s)):0;   /* the dark of the gateway: it lifts slowly, over a dozen metres, as the girls walk out */
+const insideK=s=>choice?smooth(GATE_A-8,GATE_A-2,s)*(1-smooth(GATE_B,GATE_B+3,s)):0;      /* 1 while the girls are actually inside it */
 const hill=s=>smooth(50,62,s)*(1-smooth(62,90,s));
 /* height of the trail: a gentle climb, up and over the hill, down into the deep forest, level at the rest site, then steeper and rolling past the gateways */
 const trailY=s=>0.05*Math.min(s,46)+0.8*Math.sin(s*0.03)*(1-smooth(36,50,s))+2.8*hill(s)-3.8*smooth(64,89,s)+0.4*Math.sin(s*0.3)*smooth(64,72,s)*(1-smooth(81,89,s))   /* the last part: little rises and dips in the forest floor */
@@ -452,7 +453,8 @@ const restDist=(x,z)=>Math.hypot(x-REST_X,z-REST_C);                       /* ho
 function ridge(x,z){ if(z<123||z>145) return 0; const dR=Math.abs(x-pR);
   return 4.4*smooth(123,129,z)*(1-smooth(139,145,z))*smooth(2.4,5.4,dR)*(1-(x<pR?smooth(9,16,dR):smooth(20,34,dR))); }
 /* which forest grows here: 0 the home woods, -1 aspen, 1 autumn */
-function biomeAt(x,z){ const t=z-FORK; if(z<=GATE_B) return 0; if(choice&&keep(t)<0.5) return choice; paths(z); return x<(pL+pR)/2?-1:1; }
+function biomeAt(x,z){ if(z<=GATE_B) return 0; if(choice) return choice;   /* once a path is chosen its forest is the only one there is: nothing of the other shows, even across the gap between the paths */
+  paths(z); return x<(pL+pR)/2?-1:1; }
 function groundY(x,z){
   paths(z); const ty=trailY(z);
   if(x>pL&&x<pR) return ty+0.3*clamp(Math.min(x-pL,pR-x)-FLAT,0,2)+ridge(x,z);   /* the wedge between the two paths: a low, flat-topped mound */
@@ -572,7 +574,8 @@ function rebuildGround(s0){
   for(let i=0;i<NR;i++){ const r=r0+i, z=r*ROW;
     const [xl,xr,wl,wr]=fillRow(z);
     const g=deep(z)*0.85, bp=bioK(z);
-    for(let j=0;j<NC;j++){ const x=rowX[j], k=(i*NC+j)*3, a=Math.min(Math.abs(x-xl)/wl,Math.abs(x-xr)/wr);
+    const only=choice&&z>GATE_B-3?(Math.abs(trailX(z)-xl)<Math.abs(trailX(z)-xr)?-1:1):0;   /* past the gateways only the chosen path is a path; the other is just forest floor */
+    for(let j=0;j<NC;j++){ const x=rowX[j], k=(i*NC+j)*3, a=only<0?Math.abs(x-xl)/wl:only>0?Math.abs(x-xr)/wr:Math.min(Math.abs(x-xl)/wl,Math.abs(x-xr)/wr);
       gPos[k]=x; gPos[k+1]=groundY(x,z); gPos[k+2]=z;
       const rc=restDist(x,z), rv=x>xr?riverAt(x,z):0, rg=(paths(z),ridge(x,z));
       const t=Math.min(smooth(1.0,2.4,a),smooth(2.6,4.4,rc)), n=hash(r,j,9), f=hash(r,j,4), bi=bp>0?biomeAt(x,z):0, tint=bi<0?FLOOR_ASPEN:FLOOR_AUTUMN;   /* trodden earth on the paths and across the rest site */
@@ -765,6 +768,10 @@ function rebuildForest(s0){
         const z=z0+hash(r,id,3)*3; paths(z); const sz=lerp(0.5,1.7,K)*(0.6+hash(r,id,4)*0.7), x=pR+sd*(2.7+1.25*sz+hash(r,id,2)*(sd<0?5:9)), y=floorY(x,z);
         put(P.rock,x,y+sz*0.3,z,sz*1.2,sz*0.8,sz,hash(r,id,5)*6,ROCKS[Math.floor(hash(r,id,6)*3)]);
         if(hash(r,id,7)<0.6) put(P.bush,x,y+sz*0.78,z,sz*0.85,sz*0.3,sz*0.7,0,MOSS); } }
+    /* Coming out of a gateway: the trees stand extra thick on both sides for the first dozen metres, so the view stays closed in and
+       the new forest only opens up as the girls walk on. (On the camera's side they keep their distance once the camera swings back out.) */
+    if(choice&&z0>GATE_B-4&&z0<GATE_B+16) for(const sd of [-1,1]) for(let k=0;k<4;k++){ const id=260+k+(sd>0?10:0); if(hash(r,id,1)>0.85) continue;
+      const z=z0+hash(r,id,3)*3, tight=sd<0||z<GATE_B+6, x=trailX(z)+sd*(tight?3.9+hash(r,id,2)*11:16.5+hash(r,id,2)*9); plantTree(r,id,x,z,false,s0,false); }
     /* The rest site, furnished from REST_KIT: a ring of big trees with gaps where the trail comes in and the two paths go out,
        and the same boulders, logs, mushrooms, ferns and flowers, in the same places, as the rest scene the girls will sit down in. */
     if(REST_C>=z0&&REST_C<z0+3){ const X=REST_X, Z=REST_C;
@@ -782,7 +789,8 @@ function rebuildForest(s0){
       else { const x=trailX(o.s)+o.side*0.8, sz=0.8+hash(k,1,94)*0.2; put(P.rock,x,y+sz*0.3,o.s,sz*1.1,sz*0.85,sz,hash(k,2,94)*6,ROCKS[Math.floor(hash(k,3,94)*3)]); put(P.bush,x,y+sz*0.86,o.s,sz*0.8,sz*0.28,sz*0.7,0,MOSS); } }
     /* fallen leaves scattered on each path: gold under the aspens, red in the autumn woods */
     const tiltX=-Math.atan(trailY(z0+2)-trailY(z0+1));   /* fallen leaves lie flat on the slope */
-    for(let w=0;w<(gap>0.5?2:1);w++){ const cx=w?wr:wl, bi=bioK(z0+1.5)>0.5?biomeAt(cx,z0+1.5):0, pal=bi<0?FALL_ASPEN:bi>0?FALL_AUTUMN:FALLEN, n=bi?13:7, wide=bi?6.4:4.2;
+    for(let w=0;w<(gap>0.5?2:1);w++){ if(choice&&z0>GATE_B-3&&gap>0.5&&(w?wr:wl)!==(Math.abs(trailX(z0+1.5)-wl)<Math.abs(trailX(z0+1.5)-wr)?wl:wr)) continue;   /* none on the path not taken */
+      const cx=w?wr:wl, bi=bioK(z0+1.5)>0.5?biomeAt(cx,z0+1.5):0, pal=bi<0?FALL_ASPEN:bi>0?FALL_AUTUMN:FALLEN, n=bi?13:7, wide=bi?6.4:4.2;
       for(let k=0;k<n;k++){ const id=k+w*20, z=z0+hash(r,id,62)*3; paths(z); const x=(w?pR:pL)+(hash(r,id,61)-0.5)*wide, sc=0.7+hash(r,id,63)*0.8;
         put(P.leaf,x,floorY(x,z)+0.035,z,sc,1,sc*1.6,hash(r,id,64)*6.28,pal[Math.floor(hash(r,id,65)*pal.length)],tiltX); } }
   }
@@ -1415,7 +1423,7 @@ function backToStart(){
 }
 function resetHike(){
   if(mode==='rest') leaveRest(0); restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
-  choice=0; fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; gust.t=-1; gustMesh.count=0; bloom=0; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
+  choice=0; fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
 }
 /* things the girls notice on the way to the rest site */
@@ -1657,7 +1665,7 @@ function onGateEnter(){ playScript(choice<0?[[1,'It\'s a tunnel made of branches
 function onGateObstacle(){ tell(choice<0?[[1,'Duck!'],[0,'I AM ducking.']]:[[0,'Squeeze past the big rock.'],[1,'Look! The mushrooms are glowing!']]); }
 /* coming out the far side: wind, leaves, light, and a first look at the new forest. The girls keep walking while they take it in. */
 function onReveal(){
-  hushBubbles(); startGust(choice,party.s); Music.gust(); bloom=1; speakIn=16;
+  hushBubbles(); startGust(choice,party.s); Music.gust(); revealT=0; speakIn=16;
   const lines=choice<0?[[1,'WHOA.'],[0,'An aspen grove! Look at all the white trunks.'],[1,'The leaves are clapping for us!']]
     :[[1,'June. JUNE. Everything is orange!'],[0,'The autumn woods. It\'s like walking into a sunset.'],[1,'It\'s raining leaves!']];
   playScript(lines);
@@ -2093,10 +2101,17 @@ function updateMarks(){
 const off=new THREE.Vector3(), target=new THREE.Vector3(), chase=new THREE.Vector3(), look=new THREE.Vector3();
 /* the mood of each place: haze color, and what drifts in the air */
 const FOG_THICKET=C('#18261d'), FOG_CAVE=C('#0c0f12');   /* inside the gateways: deep shade, nearly black */
-const FOG_HOME=C('#d3e6c2'), FOG_GULLY=C('#93b59d'), FOG_ASPEN=C('#e8f0c6'), FOG_AUTUMN=C('#f0dab2'), fogCol=new THREE.Color();
-const SUN_HOME=C('#fff0cf'), SUN_AUTUMN=C('#ffd9a0'), MOTE_HOME=C('#fff2b8'), MOTE_ASPEN=C('#ffe07a'), MOTE_AUTUMN=C('#f59a3c');
+/* top of the sky, the haze at the horizon (also the fog color), the glow below the horizon, the color of the sky light and of the sun,
+   how thick the air is, and how strong the sky light (glow) and the sun (shine) are */
+const SKIES={
+  home:  {top:C('#5f9fd6'),mid:C('#d3e6c2'),bot:C('#a9c98f'),hemi:C('#fff4d6'),sun:C('#fff0cf'),air:0.0125,glow:0.72,shine:0.9},    /* the open trail: a soft morning */
+  deep:  {top:C('#4a7fa6'),mid:C('#93b59d'),bot:C('#5a7a62'),hemi:C('#e6f1d8'),sun:C('#fff0cf'),air:0.027, glow:0.44,shine:0.6},    /* the deep woods: dim, green and misty */
+  aspen: {top:C('#1f7fe8'),mid:C('#d6ebf8'),bot:C('#b4d6cf'),hemi:C('#eaf4ff'),sun:C('#fffaf2'),air:0.0105,glow:0.8, shine:0.95},   /* the aspen grove: a deep, clear blue, bluer than where the hike began */
+  autumn:{top:C('#8f9fc6'),mid:C('#ffd3a0'),bot:C('#f3ae7e'),hemi:C('#ffe3bd'),sun:C('#ffc488'),air:0.0155,glow:0.68,shine:0.85}};  /* the autumn woods: a warm peach-gold, almost a sunset but not quite */
+const SKY_KEYS=['top','mid','bot','hemi','sun'], skyNow={top:new THREE.Color(),mid:new THREE.Color(),bot:new THREE.Color(),hemi:new THREE.Color(),sun:new THREE.Color()};
+const MOTE_HOME=C('#fff2b8'), MOTE_ASPEN=C('#ffe07a'), MOTE_AUTUMN=C('#f59a3c');
 const altValue=$('altValue');
-let lookBack=1, hikeT=0, frameNo=0, riverHeard=0, bloom=0, last=performance.now(), time=0, lastAltText='', camHd=heading(0), swayK=0, groundRow=null, forestRow=null;
+let revealT=-1, lookBack=1, hikeT=0, frameNo=0, riverHeard=0, bloom=0, last=performance.now(), time=0, lastAltText='', camHd=heading(0), swayK=0, groundRow=null, forestRow=null;
 function frame(now){
   const rawDt=Math.min(0.05,(now-last)/1000); last=now; idle+=rawDt;
   const dt=paused?0:rawDt; time+=dt;
@@ -2120,30 +2135,36 @@ function frame(now){
   let th=camHd+camTheta*(1-lookBack)+Math.sin(time*0.06)*0.28*swayK*motion*(1-lookBack);   /* straight ahead of the girls on the trail, looking back past them */
   const aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
   let r=8.6*zoom*aspectBoost, ph=clamp(0.2+userPhi,-0.1,1.2);
-  const gK=gateK(party.s), wK=woodsK(party.s);
+  const gK=gateK(party.s), inK=insideK(party.s), wK=woodsK(party.s);
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
   target.set(trailX(party.s),trailY(party.s)+1.15,party.s);
   camera.position.copy(target).add(off);
   /* In the deep woods there is no room to stand off to the side, so the camera walks the trail a few steps behind the girls and looks
      past them at whatever is round the next bend. It swings back out when the new forest opens up beyond the gateway. */
   if(wK>0){ const cs=party.s-clamp(5.8*zoom,3.6,9), cx=trailX(cs)+0.6;
-    chase.set(cx,groundY(cx,cs)+lerp(2.3,1.75,gK)+userPhi*2-0.72*duckAt(cs),cs);   /* the camera ducks under the branch too */ look.set(trailX(party.s+2.5),trailY(party.s+2.5)+1,party.s+2.5);
+    chase.set(cx,groundY(cx,cs)+lerp(2.3,1.75,inK)+userPhi*2-0.72*duckAt(cs),cs);   /* the camera ducks under the branch too */ look.set(trailX(party.s+2.5),trailY(party.s+2.5)+1,party.s+2.5);
     camera.position.lerp(chase,wK); target.lerp(look,wK); }
   { const gy=groundY(camera.position.x,camera.position.z); if(camera.position.y<gy+0.7) camera.position.y=gy+0.7;
-    if(gK>0) camera.position.y=lerp(camera.position.y,clamp(camera.position.y,gy+0.9,gy+1.9),gK); }   /* stay under the roof */
+    if(inK>0) camera.position.y=lerp(camera.position.y,clamp(camera.position.y,gy+0.9,gy+1.9),inK); }   /* stay under the roof */
   camera.lookAt(target);
   sky.position.copy(camera.position);
   homeG.visible=party.s<22;   /* home is left behind once they are well on their way */
   sun.position.copy(target).addScaledVector(SUN_DIR,110); sun.target.position.copy(target);
 
   /* light and haze: dim and cool down in the gully, bright in the aspens, warm in the autumn woods */
-  const gk=deep(party.s), bk=choice?smooth(GATE_B-1,GATE_B+12,party.s):0, thK=choice<0?gK:0, caveK=choice>0?gK:0;
-  bloom=damp(bloom,0,0.55,dt);   /* a burst of brightness as the new forest opens up */
-  fogCol.copy(FOG_HOME).lerp(FOG_GULLY,gk); if(choice) fogCol.lerp(choice<0?FOG_ASPEN:FOG_AUTUMN,bk);
-  fogCol.lerp(FOG_THICKET,thK*0.92).lerp(FOG_CAVE,caveK*0.96);
-  scene.fog.color.copy(fogCol); skyU.mid.value.copy(fogCol); scene.fog.density=lerp(0.0125,0.027,gk)+thK*0.085+caveK*0.095;   /* thick enough inside a gateway that its far end is lost in the dark */
-  hemi.intensity=lerp(0.72,0.44,gk)*(1-0.55*thK-0.66*caveK)+0.5*bloom; sun.intensity=lerp(0.9,0.6,gk)*(1-0.8*thK-0.85*caveK)+0.35*bloom;
-  cave.glow.intensity=1.2*caveK; setTorches(caveK);   /* flashlights on in the cave */ sun.color.copy(SUN_HOME); if(choice>0) sun.color.lerp(SUN_AUTUMN,bk);
+  const gk=deep(party.s), bk=choice?smooth(GATE_B,GATE_B+22,party.s):0, thK=choice<0?gK:0, caveK=choice>0?gK:0;
+  /* stepping out of a gateway, the light swells gently over a few seconds and settles again; nothing snaps */
+  if(revealT>=0){ revealT+=dt; bloom=smooth(0,4,revealT)*(1-smooth(5,14,revealT)); if(revealT>14){ revealT=-1; bloom=0; } }
+  /* every place has its own sky (top, horizon haze, ground glow), its own light and its own air; they blend as the girls walk from one to the next */
+  const there=choice<0?SKIES.aspen:SKIES.autumn;
+  for(const k of SKY_KEYS){ skyNow[k].copy(SKIES.home[k]).lerp(SKIES.deep[k],gk); if(choice) skyNow[k].lerp(there[k],bk); }
+  skyNow.mid.lerp(FOG_THICKET,thK*0.92).lerp(FOG_CAVE,caveK*0.96); skyNow.top.lerp(FOG_THICKET,thK*0.85).lerp(FOG_CAVE,caveK*0.92); skyNow.bot.lerp(FOG_THICKET,thK*0.85).lerp(FOG_CAVE,caveK*0.92);   /* inside a gateway: dark all round */
+  scene.fog.color.copy(skyNow.mid); skyU.top.value.copy(skyNow.top); skyU.mid.value.copy(skyNow.mid); skyU.bot.value.copy(skyNow.bot);
+  scene.fog.density=lerp(lerp(SKIES.home.air,SKIES.deep.air,gk),there.air,bk)+thK*0.085+caveK*0.095;   /* thick enough inside a gateway that its far end is lost in the dark */
+  hemi.color.copy(skyNow.hemi); sun.color.copy(skyNow.sun);
+  hemi.intensity=lerp(lerp(SKIES.home.glow,SKIES.deep.glow,gk),there.glow,bk)*(1-0.55*thK-0.66*caveK)+0.16*bloom;
+  sun.intensity=lerp(lerp(SKIES.home.shine,SKIES.deep.shine,gk),there.shine,bk)*(1-0.8*thK-0.85*caveK)+0.12*bloom;
+  cave.glow.intensity=1.2*caveK; setTorches(choice>0?insideK(party.s):0);   /* flashlights on in the cave */
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
