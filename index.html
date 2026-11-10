@@ -711,7 +711,7 @@ const BIO={
     narr:['The boardwalk went clonk under their feet, and the frogs went quiet to listen.','Mist sat on the water like a blanket nobody had folded.'],
     reveal:{t:'The marsh',b:'A boardwalk over still water, with reeds on every side.',narr:'Beyond the reeds the trail turned into planks, and the ground turned into water.',lines:[[1,'The trail is made of wood now!'],[0,'It\'s a boardwalk. The ground is too wet to walk on.'],[1,'Frogs! I hear a hundred frogs!']]},
     gate:{kind:'tunnel',cols:['#c9b27a','#9cb86a','#b8a060'],label:'Through the reeds',say:'into those tall reeds',sub:'Reeds taller than June, whispering to each other.',narr:'They chose the reeds, because something in there had just gone plop.',enter:[[1,'The reeds are tickling me!'],[0,'Keep to the path.']]}},
-  alpine:{floor:[0.6,0.61,0.57],dirt:[0.7,0.68,0.62],flat:0.35,keep:0.5,mote:'#ffffff',air:'none',
+  alpine:{floor:[0.47,0.48,0.45],dirt:[0.57,0.55,0.5],flat:0.35,keep:0.5,mote:'#ffffff',air:'none',
     tree(T){ if(T.n(21)<0.45){ const sc=0.5+T.h*0.5; put(T.cp,T.x,T.y,T.z,0.7*sc,1.3*sc,0.7*sc,T.ry,PINES[1]); put(T.cp,T.x+0.2,T.y+0.7*sc,T.z,0.45*sc,1*sc,0.45*sc,T.ry,PINES[0]); }      /* a knee-high pine, bent by the wind */
       else { const sz=0.9+T.h*1.6; put(P.rock,T.x,T.y+sz*0.3,T.z,sz*1.4,sz*0.7,sz,T.ry,pk(GREYS,T.n(22))); if(T.n(23)<0.4) put(P.bush,T.x,T.y+sz*0.68,T.z,sz*0.9,sz*0.12,sz*0.7,0,SNOW); } },   /* a slab of rock, some with old snow */
     props(R){ if(R.n(30)<0.14){ const p=R.at(1.9,31); for(let k=0;k<4;k++) put(P.rock,p.x,p.y+0.14+k*0.24,p.z,0.34-k*0.06,0.15,0.3-k*0.05,R.n(32+k)*6,pk(GREYS,R.n(36+k))); }                 /* a cairn marking the way */
@@ -750,7 +750,7 @@ const BIO={
     narr:['The pond was so still that it could not remember which forest was the real one.','A fish swam past at the height of June\'s shoulder, quite unbothered.'],
     reveal:{t:'The upside-down pond',b:'Water as still as glass, with a second forest hanging in the sky above the first.',narr:'Through the willow curtain the world came in two copies, and one of them was upside down.',lines:[[1,'June! There\'s a forest in the SKY!'],[0,'It\'s the pond. It\'s so still that it forgot which way is up.'],[1,'I\'m walking on a mirror!']]},
     gate:{kind:'tunnel',cols:['#9fe0d0','#8fbf9f','#bfe3c8'],label:'Through the willow curtain',say:'through that curtain of willow',sub:'Long green strands hanging to the ground, swaying like a bead curtain.',narr:'They chose the willow curtain, because behind it something was shining.',enter:[[1,'It\'s like a bead curtain!'],[0,'Hold my hand. It\'s hard to see.']]}},
-  crystal:{floor:[0.24,0.22,0.32],dirt:[0.4,0.38,0.5],flat:0.5,mote:'#e8fbff',air:'sparks',night:true,dark:true,
+  crystal:{floor:[0.24,0.22,0.32],dirt:[0.4,0.38,0.5],flat:0.5,mote:'#e8fbff',air:'sparks',dark:true,
     tree(T){ const col=pk(GEMS,T.n(21)), big=2.5+T.h*4.5; put(P.rock,T.x,T.y+0.4,T.z,1.3,0.7,1.1,T.ry,GREYS[1]);                                                                       /* a cluster of crystal spires, lit from inside */
       put(P.gcone,T.x,T.y+0.3,T.z,0.55,big,0.55,T.ry,col); put(P.gcone,T.x+0.6,T.y+0.3,T.z+0.2,0.35,big*0.6,0.35,0,pk(GEMS,T.n(22)),0.3); put(P.gcone,T.x-0.5,T.y+0.3,T.z-0.3,0.3,big*0.45,0.3,0,col,-0.35); },
     props(R){ for(let j=0;j<3;j++){ if(R.n(30+j)>0.6) continue; const p=R.at(1.9+R.n(33+j)*7,36+j); put(P.gcone,p.x,p.y,p.z,0.14,0.5+R.n(40+j)*0.7,0.14,0,pk(GEMS,R.n(44+j)),(R.n(48+j)-0.5)*0.6); }   /* little crystals in the floor */
@@ -990,7 +990,7 @@ function rebuildForest(s0){
     /* fallen leaves scattered on each path: gold under the aspens, red in the autumn woods */
     const tiltX=-Math.atan(trailY(z0+2)-trailY(z0+1));   /* fallen leaves lie flat on the slope */
     for(let w=0;w<(gap>0.5?2:1);w++){ if(choice&&z0>GATE_B-3&&gap>0.5&&(w?wr:wl)!==(Math.abs(trailX(z0+1.5)-wl)<Math.abs(trailX(z0+1.5)-wr)?wl:wr)) continue;   /* none on the path not taken */
-      const cx=w?wr:wl, bi=bioK(z0+1.5)>0.5?biomeAt(cx,z0+1.5):0, pal=bi<0?FALL_ASPEN:bi>0?FALL_AUTUMN:FALLEN, n=bi?13:7, wide=bi?6.4:4.2;
+      const cx=w?wr:wl, bi=bioK(z0+1.5)>0.5?biomeAt(cx,z0+1.5):0, NBl=BIO[bioKeyAt(z0+1.5)], nw=NBl&&NBl.tree&&newK(z0+1.5)>0.5, pal=nw?(NBl.fall||[]):bi<0?FALL_ASPEN:bi>0?FALL_AUTUMN:FALLEN, n=!pal.length?0:bi||nw?13:7,   /* no autumn leaves on the snow, the rock or the water */ wide=bi?6.4:4.2;
       for(let k=0;k<n;k++){ const id=k+w*20, z=z0+hash(r,id,62)*3; paths(z); const x=(w?pR:pL)+(hash(r,id,61)-0.5)*wide, sc=0.7+hash(r,id,63)*0.8;
         put(P.leaf,x,floorY(x,z)+0.035,z,sc,1,sc*1.6,hash(r,id,64)*6.28,pal[Math.floor(hash(r,id,65)*pal.length)],tiltX); } }
   }
@@ -1306,7 +1306,7 @@ const RESTS=[
   {lines:[[1,'Time for snack number one of nine.'],[0,'We left the house ten minutes ago.'],[1,'Hiking makes me hungry.'],[0,'Mom said you would say that.']],j:'idle',jf:Math.PI,p:'idle',pf:0}
 ];
 function startRest(){
-  const sc=nextLine('rest',RESTS), hd=heading(party.s);
+  const sc=nextLine('rest-stop',RESTS), hd=heading(party.s);
   party.vT=0; party.rest=sc.lines.reduce((t,l)=>t+lineTime(l[1])+0.45,2.2);
   playScript(sc.lines); speakIn=party.rest+5;
   juneB.skip=pipB.skip=0;
@@ -1994,7 +1994,7 @@ function updateSummit(dt,rawDt){
   summit.t+=dt; BRAINS.forEach(b=>updateSummitBrain(b,dt)); summit.update(dt,time);
   summit.th+=dt*0.075*motion;   /* one slow turn of the whole view every minute and a half */
   const th=summit.th+(camTheta-summit.cam0), aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
-  const r=10*zoom*aspectBoost, ph=clamp(0.14+userPhi,-0.2,1.0);
+  const r=10*zoom*aspectBoost, ph=clamp(0.2+userPhi,-0.2,1.0);
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
   target.set(0,1.3,0); camera.position.copy(target).add(off); camera.lookAt(target);
 }
@@ -2482,15 +2482,15 @@ const MOTE_HOME=C('#fff2b8'), MOTE_ASPEN=C('#ffe07a'), MOTE_AUTUMN=C('#f59a3c');
 /* the skies further up */
 Object.assign(SKIES,{
   winter: {top:C('#8fa9c4'),mid:C('#e6edf3'),bot:C('#d5dee8'),hemi:C('#f2f6ff'),sun:C('#fff6ea'),air:0.016, glow:0.86,shine:0.7},    /* a pale, snow-laden sky */
-  grass:  {top:C('#2f86e6'),mid:C('#dcefd6'),bot:C('#b7d98c'),hemi:C('#fff8e0'),sun:C('#fff4d6'),air:0.006, glow:0.82,shine:1},      /* wide open and bright */
+  grass:  {top:C('#2f86e6'),mid:C('#dcefd6'),bot:C('#b7d98c'),hemi:C('#fff8e0'),sun:C('#fff4d6'),air:0.006, glow:0.72,shine:0.88},      /* wide open and bright */
   marsh:  {top:C('#8fb4b0'),mid:C('#dfe6cf'),bot:C('#a9bb95'),hemi:C('#eef2dc'),sun:C('#fff2d0'),air:0.02,  glow:0.72,shine:0.6},    /* soft, grey-green and misty */
-  alpine: {top:C('#1a58c0'),mid:C('#cfe0f0'),bot:C('#a9b6c2'),hemi:C('#f4f8ff'),sun:C('#ffffff'),air:0.0055,glow:0.82,shine:1},      /* thin, clear mountain air */
-  mtn:    {top:C('#2a66c8'),mid:C('#d6e4ee'),bot:C('#b0b8bc'),hemi:C('#f6f8ff'),sun:C('#fffaf0'),air:0.007, glow:0.84,shine:0.98},
+  alpine: {top:C('#1a58c0'),mid:C('#cfe0f0'),bot:C('#a9b6c2'),hemi:C('#f4f8ff'),sun:C('#ffffff'),air:0.0055,glow:0.7,shine:0.86},      /* thin, clear mountain air */
+  mtn:    {top:C('#2a66c8'),mid:C('#d6e4ee'),bot:C('#b0b8bc'),hemi:C('#f6f8ff'),sun:C('#fffaf0'),air:0.007, glow:0.7,shine:0.86},
   glow:   {top:C('#0b1030'),mid:C('#1c2a4a'),bot:C('#12203a'),hemi:C('#7f9fe0'),sun:C('#bcd0ff'),air:0.018, glow:0.44,shine:0.3},    /* night, by moonlight */
   giant:  {top:C('#3f9fe8'),mid:C('#e3f4c8'),bot:C('#a8d47a'),hemi:C('#fbffe0'),sun:C('#fff4c8'),air:0.011, glow:0.84,shine:0.9},    /* sunny and green-gold, as it looks from down in the grass */
   pond:   {top:C('#7fb4e8'),mid:C('#d8e8f8'),bot:C('#9fc0e8'),hemi:C('#eef4ff'),sun:C('#ffffff'),air:0.012, glow:0.86,shine:0.7},    /* sky above and sky below */
   crystal:{top:C('#141024'),mid:C('#2a2440'),bot:C('#1c1830'),hemi:C('#b8a8ff'),sun:C('#cfd8ff'),air:0.03,  glow:0.52,shine:0.15},   /* inside the mountain */
-  sky:    {top:C('#2a6fdc'),mid:C('#fff0e0'),bot:C('#ffe0ea'),hemi:C('#fff6ee'),sun:C('#fff0d0'),air:0.009, glow:0.9, shine:0.95}}); /* above the clouds */
+  sky:    {top:C('#2a6fdc'),mid:C('#dfe9fb'),bot:C('#f6d9e6'),hemi:C('#fff6ee'),sun:C('#fff0d0'),air:0.0055,glow:0.76,shine:0.92}}); /* above the clouds */
 SKIES.aspen.mote=MOTE_ASPEN; SKIES.autumn.mote=MOTE_AUTUMN; SKIES.aspen.falls=SKIES.autumn.falls=1;
 for(const k in SKIES){ const B=BIO[k]; if(B&&B.mote){ SKIES[k].mote=C(B.mote); SKIES[k].falls=B.falls||0; } }
 const FOG_MIST=C('#f3f5f7'); let moteFall=0;
