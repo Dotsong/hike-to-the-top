@@ -38,6 +38,10 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   await p.evaluate(()=>window.hikeDebug.walkTo(140.5)); await p.waitForTimeout(2500);
   const revealed=await p.evaluate(()=>window.hikeDebug.stage()===4);
   if(!revealed) errs.push('the new forest did not open up after the gateway');
+  // every kind of visitor gets a turn (all four bird flights included)
+  for(const k of ['birds','birds','birds','birds','butterfly','squirrel','rabbit','swirl','woodpecker','owl']){
+    await p.evaluate(k=>window.hikeDebug.event(k),k); await p.waitForTimeout(900);
+    if(await p.evaluate(()=>window.hikeDebug.eventNow())!==k) errs.push('the '+k+' event did not start'); }
   await p.evaluate(()=>document.getElementById('goodnightBtn').click()); await p.waitForTimeout(1600);
   const backToStart=await p.evaluate(()=>!document.getElementById('intro').hidden);
   console.log({hikeStarted:true,bookOpen,mapOpen,restScene,forkChosen,revealed,backToStart});
