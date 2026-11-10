@@ -1445,7 +1445,7 @@ function finishBrain(b,pose,walking,dt){
 
 /* ---------- music: generated live ---------- */
 const Music=(()=>{
-  let ctx,master,padBus,bellBus,reverb,windGain,riverGain,on=true,nextT=0,beat=0,chordIdx=0,melIdx=5,cur;
+  let ctx,master,padBus,bellBus,reverb,windGain,riverGain,ambBus,leafGain,noiseBuf,on=true,nextT=0,beat=0,chordIdx=0,melIdx=5,cur;
   const BEAT=0.55, PER=16;
   const CHORDS=[{bass:41,notes:[57,60,64,67],pcs:[5,9,0,4,7,2]},{bass:40,notes:[55,59,62,67],pcs:[4,7,11,2,9]},{bass:38,notes:[57,60,64,65],pcs:[2,5,9,0,4]},{bass:36,notes:[55,59,62,64],pcs:[0,4,7,11,2,9]}];
   const SCALE=[67,69,72,74,76,79,81,84,86,88,91];
@@ -1478,6 +1478,11 @@ const Music=(()=>{
     ns.connect(wf); wf.connect(windGain); windGain.connect(master); ns.start();
     const rf=ctx.createBiquadFilter(); rf.type='bandpass'; rf.frequency.value=1500; rf.Q.value=0.45; riverGain=ctx.createGain(); riverGain.gain.value=0;
     ns.connect(rf); rf.connect(riverGain); riverGain.connect(master);   /* the river: the same hiss as the wind, brighter */
+    /* the forest's own sounds: a bus for the small ones (birds, crickets, drips), and a bed of leaves stirring overhead that swells and sinks */
+    noiseBuf=nb; ambBus=ctx.createGain(); ambBus.gain.value=1; ambBus.connect(master); { const send=ctx.createGain(); send.gain.value=0.55; ambBus.connect(send); send.connect(reverb); }
+    { const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=2400; const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=6800;
+      const swell=ctx.createGain(); swell.gain.value=0.6; const lfo=ctx.createOscillator(), ld=ctx.createGain(); lfo.frequency.value=0.11; ld.gain.value=0.38; lfo.connect(ld); ld.connect(swell.gain); lfo.start();
+      leafGain=ctx.createGain(); leafGain.gain.value=0; ns.connect(hp); hp.connect(lp); lp.connect(swell); swell.connect(leafGain); leafGain.connect(master); }
     const wl=ctx.createOscillator(), wlg=ctx.createGain(); wl.frequency.value=0.08; wlg.gain.value=220; wl.connect(wlg); wlg.connect(wf.frequency); wl.start();
     master.gain.linearRampToValueAtTime(0.85,ctx.currentTime+4);
     nextT=ctx.currentTime+0.2; setInterval(tick,90);
@@ -1529,6 +1534,36 @@ const Music=(()=>{
       g.gain.setValueAtTime(0.0001,tt); g.gain.linearRampToValueAtTime(0.02,tt+0.01); g.gain.exponentialRampToValueAtTime(0.0001,tt+0.11);
       o.connect(g); g.connect(master); g.connect(reverb); o.start(tt); o.stop(tt+0.13); } }
   }
+  /* ---- ambient forest sounds, all made here: each is a few short tones or a breath of noise, placed somewhere to the left or right ---- */
+  function ambience(k){ if(ctx) leafGain.gain.setTargetAtTime(0.02*k,ctx.currentTime,1.6); }   /* how loud the leaves overhead are (0 to 1) */
+  function amb(kind){ if(!ctx||!on||ctx.state!=='running') return; const t=ctx.currentTime+0.02, far=0.5+Math.random()*0.5;   /* some are near, some a long way off */
+    const g0=ctx.createGain(); g0.gain.value=far; let dest=g0;
+    if(ctx.createStereoPanner){ const p=ctx.createStereoPanner(); p.pan.value=(Math.random()*2-1)*0.85; g0.connect(p); dest=p;
+      if(kind==='bee'){ const a=p.pan.value<0?-0.9:0.9; p.pan.setValueAtTime(a,t); p.pan.linearRampToValueAtTime(-a,t+1.9); } }   /* a bee goes right past */
+    dest.connect(ambBus);
+    const tone=(f0,f1,at,len,vol,type)=>{ const o=ctx.createOscillator(), g=ctx.createGain(), tt=t+at; o.type=type||'sine';
+      o.frequency.setValueAtTime(f0,tt); o.frequency.exponentialRampToValueAtTime(f1,tt+len);
+      g.gain.setValueAtTime(0.0001,tt); g.gain.linearRampToValueAtTime(vol,tt+Math.min(0.02,len*0.3)); g.gain.setValueAtTime(vol,tt+len*0.6); g.gain.exponentialRampToValueAtTime(0.0001,tt+len);
+      o.connect(g); g.connect(g0); o.start(tt); o.stop(tt+len+0.03); };
+    const hiss=(at,len,vol,freq,q)=>{ const n=ctx.createBufferSource(), f=ctx.createBiquadFilter(), g=ctx.createGain(), tt=t+at; n.buffer=noiseBuf; f.type='bandpass'; f.frequency.value=freq; f.Q.value=q;
+      g.gain.setValueAtTime(0.0001,tt); g.gain.linearRampToValueAtTime(vol,tt+len*0.35); g.gain.exponentialRampToValueAtTime(0.0001,tt+len);
+      n.connect(f); f.connect(g); g.connect(g0); n.start(tt,Math.random()*3); n.stop(tt+len+0.03); };
+    if(kind==='warble'){ let at=0; const n=5+Math.floor(Math.random()*5), base=2500+Math.random()*900;   /* a songbird: a little phrase of sliding notes, never the same twice */
+      for(let i=0;i<n;i++){ const f=base*(0.8+Math.random()*0.7), len=0.06+Math.random()*0.09; tone(f,f*(0.78+Math.random()*0.55),at,len,0.016); at+=len+0.03+Math.random()*0.06; } }
+    else if(kind==='feebee'){ const f=3100+Math.random()*500; tone(f,f*0.985,0,0.34,0.014); tone(f*0.84,f*0.83,0.44,0.42,0.014); }   /* two clear whistled notes, the second one lower */
+    else if(kind==='trill'){ const f=3800+Math.random()*900, n=10+Math.floor(Math.random()*8); for(let i=0;i<n;i++) tone(f,f*1.12,i*0.046,0.032,0.011); }
+    else if(kind==='cuckoo'){ tone(698,690,0,0.22,0.022); tone(554,548,0.36,0.32,0.022); if(Math.random()<0.5){ tone(698,690,1.3,0.22,0.02); tone(554,548,1.66,0.32,0.02); } }   /* far off among the big trees */
+    else if(kind==='dove'){ const f=440+Math.random()*50; [[0,0.26],[0.4,0.52],[1.08,0.3],[1.5,0.3]].forEach(([at,len],i)=>tone(f*(i===1?1.06:1),f*0.95,at,len,0.024)); }   /* hoo, hooo, hoo hoo */
+    else if(kind==='cricket'){ const f=4300+Math.random()*700; for(let c=0;c<3+Math.floor(Math.random()*3);c++) for(let i=0;i<5;i++) tone(f,f,c*0.34+i*0.027,0.017,0.0065); }
+    else if(kind==='bee'){ const f=170+Math.random()*50, o=ctx.createOscillator(), lp=ctx.createBiquadFilter(), g=ctx.createGain(), w=ctx.createOscillator(), wg=ctx.createGain();
+      o.type='sawtooth'; o.frequency.setValueAtTime(f*1.06,t); o.frequency.linearRampToValueAtTime(f*0.92,t+1.9); lp.type='lowpass'; lp.frequency.value=1100;
+      w.frequency.value=23; wg.gain.value=9; w.connect(wg); wg.connect(o.frequency);
+      g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.013,t+0.9); g.gain.linearRampToValueAtTime(0.0001,t+1.9);
+      o.connect(lp); lp.connect(g); g.connect(g0); o.start(t); w.start(t); o.stop(t+2); w.stop(t+2); }
+    else if(kind==='rustle'){ let at=0; for(let i=0;i<2+Math.floor(Math.random()*3);i++){ const len=0.09+Math.random()*0.16; hiss(at,len,0.05,2600+Math.random()*1800,0.9); at+=len*0.7+Math.random()*0.12; } }   /* something small in the undergrowth */
+    else if(kind==='drip'){ const f=1300+Math.random()*500; tone(f,f*0.5,0,0.06,0.024); if(Math.random()<0.6) tone(f*1.25,f*0.7,0.11+Math.random()*0.1,0.05,0.014); }   /* water dropping off a leaf */
+    else if(kind==='tap'){ const n=2+Math.floor(Math.random()*3); for(let i=0;i<n;i++) tone(900,480,i*0.13,0.035,0.022,'triangle'); }   /* a branch knocking, or a nut coming down */
+  }
   /* browsers only allow sound after a touch or click, so the first one anywhere wakes the music up */
   let silentEl=null;
   function unlock(){
@@ -1538,7 +1573,7 @@ const Music=(()=>{
     try{ if(!silentEl){ silentEl=new Audio('data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA=='); silentEl.loop=true; silentEl.volume=0.01; silentEl.setAttribute('playsinline',''); }
       silentEl.play().catch(()=>{}); }catch(e){}
   }
-  return {start,toggle,resume,sfx,setPaused,unlock,gust,river,running:()=>!!ctx&&ctx.state==='running'};
+  return {start,toggle,resume,sfx,amb,ambience,setPaused,unlock,gust,river,running:()=>!!ctx&&ctx.state==='running'};
 })();
 
 
@@ -2063,7 +2098,7 @@ function onTail(what){
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -2325,6 +2360,18 @@ function updateEvents(dt){
 }
 /* and now and then a bird sings somewhere in the trees */
 let chirpIn=10;
+/* The first stretch of the hike (the open trail, the deep woods, and above all the first rest site) is alive with small sounds: different birds,
+   crickets and a passing bee out in the sun; a far cuckoo, a dove, drips and rustles under the big trees; and leaves stirring overhead throughout. */
+const AMB={home:['warble','warble','feebee','trill','cricket','cricket','bee','rustle'],deep:['cuckoo','dove','warble','drip','drip','rustle','rustle','tap','feebee'],
+  rest:['warble','warble','feebee','trill','cuckoo','dove','cricket','rustle','rustle','drip','bee','tap']};
+let ambIn=2.5, ambK=-1, ambLast='';
+function updateAmbient(dt){
+  const first=state.started&&(mode==='rest'?fork.site===0:mode==='trail'&&party.s<GATE_A-3), k=!first?0:mode==='rest'?1:0.5+0.4*deep(party.s);
+  if(Math.abs(k-ambK)>0.04){ ambK=k; Music.ambience(k); }
+  if(!first) return; ambIn-=dt; if(ambIn>0) return;
+  const place=mode==='rest'?'rest':deep(party.s)>0.5?'deep':'home', kind=pick(AMB[place].filter(a=>a!==ambLast)); ambLast=kind; Music.amb(kind);
+  ambIn=place==='rest'?1.6+Math.random()*2.8:place==='deep'?2.4+Math.random()*4:2+Math.random()*3.6;
+}
 function updateChirps(dt){ if(!state.started) return; chirpIn-=dt; if(chirpIn<=0){ Music.sfx('chirp'); chirpIn=9+Math.random()*14; } }
 
 /* ---------- the fact book: storybook pages about the forest ---------- */
@@ -2558,6 +2605,7 @@ $('paceBtn').addEventListener('click',()=>setPace(pace>=8?1:pace*2));
 function frame(now){
   const rawDt=Math.min(0.05,(now-last)/1000); last=now; idle+=rawDt;
   const dt=paused?0:rawDt; time+=dt;
+  updateAmbient(dt);
   if(!paused) for(let k=1;k<pace;k++) simStep(rawDt);   /* a faster pace (for testing): the walk, the talk and the story take extra steps between pictures */
 
   if(mode==='rest') updateRest(dt,rawDt);   /* the rest site is its own scene; the trail is not touched while it runs */
