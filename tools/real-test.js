@@ -13,6 +13,7 @@ sub("renderer.render(mode==='rest'","if(window.__draw||frameNo%40===0) renderer.
   const errs=[]; p.on('pageerror',e=>errs.push(e.message+' @ '+(e.stack||'').split('\n').slice(1,4).join(' | ').slice(0,400))); p.on('console',m=>{ if(m.type()==='error'&&!/ERR_FAILED|AudioContext/.test(m.text())) errs.push('console: '+m.text().slice(0,200)); });
   await p.route('**/*',r=>{ const u=r.request().url(); if(u.includes('three')) return r.fulfill({body:three,contentType:'application/javascript'}); if(u.startsWith('file:')) return r.fulfill({body:html,contentType:'text/html'}); return r.abort(); });
   await p.goto('file://'+PAGE); await p.waitForTimeout(1500);
+  if(await p.$('#splashBtn')){ await p.click('#splashBtn'); await p.waitForTimeout(1500); }
   await p.click('#beginBtn'); await p.waitForTimeout(6000);
   const flush=n=>{ if(errs.length) console.log('ERR after',n,'\n'+[...new Set(errs.splice(0))].slice(0,6).join('\n')); };
   const shot=async n=>{ await p.evaluate(()=>{window.__draw=1;}); await p.waitForTimeout(1500); await p.screenshot({path:OUT+'/'+ROUTE+'-'+n+'.png',timeout:120000}); await p.evaluate(()=>{window.__draw=0;}); flush(n); };
