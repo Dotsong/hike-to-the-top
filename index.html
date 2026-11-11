@@ -818,7 +818,18 @@ const GLOWS=pal(['#8ff5d6','#9fd8ff','#c6a8ff','#fff3a3']), GEMS=pal(['#8fe8ff',
 const NIGHT=pal(['#1f3f44','#1a3540','#24484a']), CAPS_BIG=pal(['#d9534a','#e8a060','#b79cff','#ff9eb5']), BLADES=pal(['#5d9b4f','#6aa857','#79b05a']);
 const MEADOW=pal(['#7fb85a','#9cc968','#c9c95a','#6aa857']), PASTEL=pal(['#9fe0d0','#c6b8ff','#ffc6dc','#bfe3ff']), GREYS=pal(['#9a9a94','#8b8f8a','#b0aea6']);
 const CRAGS=pal(['#8d857a','#7b746c','#a09787','#6f6a66']), PLANKS=pal(['#9c8468','#8f7a60','#7d6a54','#a89074']), PAVE=pal(['#a8a39a','#989288','#b3ada2','#8c877f']), CAVE=pal(['#4a465a','#57526a','#3f3c4e','#625c78']);
-const WHEAT=pal(['#d9b44a','#c9a03c','#e6c860','#b88f34']), APPLE=C('#d9382f');
+const WHEAT=pal(['#d9b44a','#c9a03c','#e6c860','#b88f34']), APPLE=C('#d9382f'), WHEAT_ROWS=[1.95,2.45,3,3.6,4.3,5.1,6,7.1,8.4,10,12,14.5,17.5,21.5,26];
+/* a sheet of standing wheat: a ribbon 3 m long that snakes from side to side, with a ragged top, darker at the foot and bright at the ears.
+   The whole field leans and straightens together as the wind crosses it (the shader bends each sheet by its height and where it stands). */
+const wheatGeo=new THREE.PlaneGeometry(3,1,12,3); wheatGeo.translate(0,0.5,0);
+{ const p=wheatGeo.attributes.position, col=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i); p.setZ(i,Math.sin(x*2.6)*0.2+Math.sin(x*5.3+1)*0.07); if(y>0.99) p.setY(i,1+Math.sin(x*9)*0.05+Math.sin(x*23)*0.04);
+    const v=0.62+0.42*y; col[i*3]=v; col[i*3+1]=v*(0.94+0.06*y); col[i*3+2]=v*0.9; }
+  wheatGeo.setAttribute('color',new THREE.BufferAttribute(col,3)); wheatGeo.computeVertexNormals(); }
+const wheatU={value:0}, wheatMat=new THREE.MeshLambertMaterial({color:0xffffff,emissive:0x7a5f1c,vertexColors:true,side:THREE.DoubleSide});
+wheatMat.onBeforeCompile=sh=>{ sh.uniforms.uWind=wheatU; sh.vertexShader='uniform float uWind;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+  '#include <begin_vertex>\n#ifdef USE_INSTANCING\n float wph=instanceMatrix[3].x*0.21+instanceMatrix[3].z*0.17; float gust=0.55+0.45*sin(uWind*0.35+instanceMatrix[3].z*0.06+instanceMatrix[3].x*0.03); transformed.z+=(sin(uWind*1.5+wph+position.x*0.8)*0.2+0.07*sin(uWind*4.7+wph*1.7+position.x*3.0)+0.16)*gust*position.y*position.y; transformed.x+=0.05*sin(uWind*3.1+wph)*gust*position.y;   /* long slow waves across the field, a quicker shiver on top, all leaning downwind */\n#endif'); };
+P.wheat=pool(wheatGeo,wheatMat,4200);
 const BIO={
   winter:{floor:[0.9,0.93,0.97],dirt:[0.8,0.85,0.92],mote:'#ffffff',falls:1,air:'snow',
     tree(T){ if(T.n(21)<0.7){ const sc=0.8+T.h*0.6, rr=2.3*sc; put(T.tp,T.x,T.y,T.z,0.28*sc,2,0.28*sc,T.ry,BARKS[0]);   /* a pine with snow on every tier */
@@ -835,8 +846,8 @@ const BIO={
       put(T.bp,T.x,T.y+th+cr*0.45,T.z,cr,cr*0.72,cr,T.ry,col); put(T.bp,T.x+cr*0.6,T.y+th+cr*0.2,T.z+cr*0.3,cr*0.68,cr*0.5,cr*0.68,0,col); put(T.bp,T.x-cr*0.6,T.y+th+cr*0.25,T.z-cr*0.2,cr*0.68,cr*0.5,cr*0.68,0,col);
       for(let k=0;k<9;k++){ const a=T.n(30+k)*6.28, e=T.n(40+k)*1.2-0.2, rr=cr*0.98; put(P.petal,T.x+Math.cos(a)*Math.cos(e)*rr,T.y+th+cr*0.45+Math.sin(e)*rr*0.7,T.z+Math.sin(a)*Math.cos(e)*rr,2.3,2.3,2.3,0,APPLE); }
       for(let k=0;k<3;k++){ const a=T.n(50+k)*6.28, d=0.8+T.n(54+k)*1.8; put(P.petal,T.x+Math.cos(a)*d,T.y+0.25,T.z+Math.sin(a)*d,2.3,2.3,2.3,0,APPLE); } },
-    props(R){ for(let j=0;j<32;j++){ const d=1.5+Math.pow(R.n(30+j),1.7)*28, p=R.at(d,50+j), hh=0.95+R.n(70+j)*0.45, w=0.085+R.n(90+j)*0.05+d*0.012, col=pk(WHEAT,R.n(110+j));   /* the wheat: sheaves of it, shoulder-high to Pip, right up to the edge of the path */
-        put(P.coneF,p.x,p.y,p.z,w,hh,w,0,col); if(d<9){ put(P.coneF,p.x+0.22,p.y,p.z+0.2,w*0.9,hh*0.92,w*0.9,0,pk(WHEAT,R.n(130+j))); put(P.coneF,p.x-0.18,p.y,p.z+0.3,w*0.9,hh*0.85,w*0.9,0,pk(WHEAT,R.n(140+j))); } }
+    props(R){ const hd=heading(R.z0+1.5);   /* the wheat: thick wavy sheets of it standing in rows beside the path, closer together near it, swaying in the wind (see P.wheat) */
+      WHEAT_ROWS.forEach((d,j)=>{ const p=R.at(d+(R.n(30+j)-0.5)*0.3,50+j); put(P.wheat,p.x,p.y-0.05,p.z,1.2+d*0.02,(R.side>0&&d<12?0.5:0.68)+R.n(70+j)*0.2+d*0.01,1,hd+(R.n(90+j)-0.5)*0.16,pk(WHEAT,R.n(110+j))); });   /* (lower on the camera's side, so the girls are never hidden) */
       if(R.n(160)<0.25){ const p=R.at(2+R.n(161)*7,162); for(let k=0;k<5;k++) put(P.petal,p.x+(R.n(164+k)-0.5)*1.2,p.y+0.95,p.z+(R.n(170+k)-0.5)*1.2,1,1,1,0,k%2?C('#d9534a'):C('#6f8fd0')); } },   /* poppies and cornflowers among it */
     lines:[['It goes on forever!','Forever is very gold.'],'The wheat is taller than me!',['The wind is drawing on the field.','It keeps changing its mind.'],['Can I have an apple?','One. And say thank you to the tree.'],['It sounds like the sea.','It\'s the wheat, whispering.']],
     narr:['The wheat moved in long slow waves, as if the whole field were breathing.','Here and there an apple tree stood up to its knees in gold.','There was so much sky that it was hard to know where to look.'],
@@ -3140,8 +3151,10 @@ const AMB={home:['warble','warble','feebee','trill','cricket','cricket','bee','r
   rest:['warble','warble','feebee','trill','cuckoo','dove','cricket','rustle','rustle','drip','bee','tap']};
 let ambIn=2.5, ambK=-1, ambLast='';
 function updateAmbient(dt){
-  const first=state.started&&(mode==='rest'?fork.site===0:mode==='trail'&&party.s<GATE_A-3), k=!first?0:mode==='rest'?1:0.5+0.4*deep(party.s);
+  const first=state.started&&(mode==='rest'?fork.site===0:mode==='trail'&&party.s<GATE_A-3), wheat=state.started&&mode==='trail'&&bioKeyAt(party.s)==='grass'&&gateK(party.s)<0.3;
+  const k=wheat?1:!first?0:mode==='rest'?1:0.5+0.4*deep(party.s);
   if(Math.abs(k-ambK)>0.04){ ambK=k; Music.ambience(k); }
+  if(wheat){ ambIn-=dt; if(ambIn<=0){ Music.amb('rustle'); ambIn=1.6+Math.random()*2.6; } return; }   /* the wheat field never stops whispering */
   if(!first) return; ambIn-=dt; if(ambIn>0) return;
   const place=mode==='rest'?'rest':deep(party.s)>0.5?'deep':'home', kind=pick(AMB[place].filter(a=>a!==ambLast)); ambLast=kind; Music.amb(kind);
   ambIn=place==='rest'?1.6+Math.random()*2.8:place==='deep'?2.4+Math.random()*4:2+Math.random()*3.6;
@@ -3518,7 +3531,7 @@ function frame(now){
   cave.glow.intensity=1.2*(gNow.i===0?caveK:0); setTorches(Math.max(gNow.in,darkK)); hemi.intensity+=0.3*Math.max(gNow.in,darkK); scene.fog.density-=0.03*Math.max(thK,caveK);   /* and their light fills the place a little, and reaches further into the dark */   /* flashlights on inside every gateway (tunnels, caves, hollow tree, the mist), and all through the crystal hollow */
   { const nk=nightK*(1-caveK)*(1-thK); moon.visible=stars.visible=nk>0.02; moon.material.opacity=nk; stars.material.opacity=nk*0.9;
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
-  moteFall+=dt*0.45*fallK;
+  moteFall+=dt*0.45*fallK; wheatU.value=time;
   updateSkyWeather(party.s,mistK); updateCurtains(); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
