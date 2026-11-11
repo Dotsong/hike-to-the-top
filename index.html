@@ -1917,11 +1917,11 @@ const Music=(()=>{
     pond:{bell:0.4,harp:0.8,glass:0.45},             /* watery harp */
     crystal:{bell:0.7,glass:1,drone:0.3},            /* all chimes */
     mtn:{bell:0.25,glass:0.45,choir:0.32,drone:0.9,flute:0.25,myst:1},   /* ethereal and mysterious */
-    sky:{bell:0.35,harp:1,choir:0.55,strings:0.35,sky:1},               /* harps and a full choir */
+    sky:{bell:0.35,harp:1,choir:0.55,strings:0.35,men:1,sky:1},               /* harps and a full choir */
     cave:{bell:0.15,glass:0.3,drone:0.8,myst:1}};
-  const LAYERS=['bell','harp','choir','flute','glass','wood','strings','drone','myst','sky'], mix={}, tgt={}; LAYERS.forEach(l=>{ mix[l]=tgt[l]=l==='bell'?1:0; });
-  let rise=0, riseT=0, arpI=0, harpBus, choirBus, strBus, moodNow='home';
-  function mood(a,b,k,r){ const A=MOODS[a]||MOODS.home, B=MOODS[b]||A; k=k||0; LAYERS.forEach(l=>{ tgt[l]=(A[l]||0)*(1-k)+(B[l]||0)*k; }); riseT=r||0; moodNow=a+(k>0?'>'+b+':'+k.toFixed(2):'')+(r?' rise '+r.toFixed(2):''); }
+  const LAYERS=['bell','harp','choir','flute','glass','wood','strings','drone','men','myst','sky'], mix={}, tgt={}; LAYERS.forEach(l=>{ mix[l]=tgt[l]=l==='bell'?1:0; });
+  let rise=0, riseT=0, arpI=0, harpBus, choirBus, strBus, menBus, menLevel=0, moodNow='home';
+  function mood(a,b,k,r,m){ const A=MOODS[a]||MOODS.home, B=MOODS[b]||A; k=k||0; LAYERS.forEach(l=>{ tgt[l]=(A[l]||0)*(1-k)+(B[l]||0)*k; }); riseT=r||0; menLevel=m||0; moodNow=a+(k>0?'>'+b+':'+k.toFixed(2):'')+(r?' rise '+r.toFixed(2):''); }
   const mtof=m=>440*Math.pow(2,(m-69)/12);
   function impulse(sec,decay){const r=ctx.sampleRate,len=Math.floor(r*sec),b=ctx.createBuffer(2,len,r);
     for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}return b;}
@@ -1947,6 +1947,7 @@ const Music=(()=>{
     /* the other players: plucked and blown things (dry, with a little hall), the choir (mostly hall), and the strings */
     const bus=(dry,wet)=>{ const b=ctx.createGain(), d=ctx.createGain(), w=ctx.createGain(); d.gain.value=dry; w.gain.value=wet; b.connect(d); d.connect(master); b.connect(w); w.connect(reverb); return b; };
     harpBus=bus(0.8,0.6); choirBus=bus(0.42,1); strBus=bus(0.45,0.9);
+    menBus=ctx.createGain(); menBus.gain.value=0; menBus.connect(bus(0.55,1));   /* the men of the choir have a fader of their own, which the game rides: up as the girls step out onto the ridge, back to level, then up with everything else */
     try{ meter=ctx.createAnalyser(); meter.fftSize=2048; comp.connect(meter); }catch(e){}
     const nb=ctx.createBuffer(1,ctx.sampleRate*4,ctx.sampleRate), nd=nb.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
     const ns=ctx.createBufferSource(); ns.buffer=nb; ns.loop=true;
@@ -2010,6 +2011,12 @@ const Music=(()=>{
       const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=4.4+Math.random()*1.2; vg.gain.value=9; vib.connect(vg); vib.start(t0); vib.stop(t0+dur+3.6);
       [-8,8].forEach(det=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=det; vg.connect(o.detune); o.connect(src); o.start(t0); o.stop(t0+dur+3.6); });
       F.forEach((fq,j)=>{ const bp=ctx.createBiquadFilter(), bg=ctx.createGain(); bp.type='bandpass'; bp.frequency.value=fq; bp.Q.value=5; bg.gain.value=G[j]*2.4; src.connect(bp); bp.connect(bg); bg.connect(g); }); }); }
+  /* the men: a low chorus an octave under everything, darker and rounder ("oh") */
+  function men(c,t,dur,amp){ const seen={}, vs=[c.bass+12,c.notes[0]-12,c.notes[1]-12,c.notes[2]-12].filter(m=>!seen[m]&&(seen[m]=1)), F=[430,820,2450], G=[1,0.45,0.1];
+    vs.forEach((m,i)=>{ const f=mtof(m), t0=t+i*0.17, g=ctx.createGain(), src=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1900; env(g,t0,2.8,0.022*amp,Math.max(0.1,dur-3),3.4); g.connect(lp); lp.connect(menBus);
+      const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=3.9+Math.random()*0.8; vg.gain.value=7; vib.connect(vg); vib.start(t0); vib.stop(t0+dur+3.6);
+      [-6,6].forEach(det=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=det; vg.connect(o.detune); o.connect(src); o.start(t0); o.stop(t0+dur+3.6); });
+      F.forEach((fq,j)=>{ const bp=ctx.createBiquadFilter(), bg=ctx.createGain(); bp.type='bandpass'; bp.frequency.value=fq; bp.Q.value=4.5; bg.gain.value=G[j]*2.6; src.connect(bp); bp.connect(bg); bg.connect(g); }); }); }
   /* a soft drum far below, for when the choir is at its fullest */
   function drum(t,v){ const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.setValueAtTime(72,t); o.frequency.exponentialRampToValueAtTime(44,t+0.5);
     g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+1.5); o.connect(g); g.connect(master); g.connect(reverb); o.start(t); o.stop(t+1.6); }
@@ -2022,6 +2029,7 @@ const Music=(()=>{
       if(mix.drone>0.05) drone(cur.bass,t,dur,mix.drone);
       if(mix.strings>0.05) cur.notes.forEach(n=>strings(n+12,t,dur-0.4,0.011*mix.strings*(1+1.6*rise)));
       if(mix.choir>0.05) choir(cur.notes,t,dur,mix.choir,rise);
+      if(mix.men>0.05) men(cur,t,dur,mix.men);
       if(grand&&rise>0.3) for(let i=0;i<8;i++) harp(SCALE[i+(chordIdx%2)],t+i*0.07,0.02+0.02*rise);   /* a sweep up the harp to open each bar */
     }
     if(grand&&rise>0.6&&pos%8===0) drum(t,0.05+0.07*rise);
@@ -2040,7 +2048,7 @@ const Music=(()=>{
   }
   /* a soft breeze in the leaves once the hike is under way */
   function tick(){ if(!ctx) return; while(nextT<ctx.currentTime+0.4){ step(nextT); nextT+=BEAT; beat++; }
-    const gusting=ctx.currentTime<gustUntil; windGain.gain.setTargetAtTime(solo?0:gusting?0.11:state.started?0.016:0.006,ctx.currentTime,gusting?0.45:1.5); if(solo){ leafGain.gain.value=0; riverGain.gain.value=0; ambBus.gain.value=0; } }
+    const gusting=ctx.currentTime<gustUntil; windGain.gain.setTargetAtTime(solo?0:gusting?0.11:state.started?0.016:0.006,ctx.currentTime,gusting?0.45:1.5); if(menBus) menBus.gain.setTargetAtTime(menLevel,ctx.currentTime,1.1); if(solo){ leafGain.gain.value=0; riverGain.gain.value=0; ambBus.gain.value=0; } }
   let solo=false;   /* (testing: the music with no wind, leaves, river or birds, so its level can be measured) */
   let gustUntil=0;
   function gust(){ if(ctx) gustUntil=ctx.currentTime+2.4; }
@@ -2123,7 +2131,7 @@ const Music=(()=>{
       silentEl.play().catch(()=>{}); }catch(e){}
   }
   function level(only){ if(only!==undefined) solo=!!only; if(!meter) return null; const d=new Float32Array(meter.fftSize); meter.getFloatTimeDomainData(d); let pk=0, sq=0; for(const v of d){ pk=Math.max(pk,Math.abs(v)); sq+=v*v; } return [pk,Math.sqrt(sq/d.length)]; }
-  return {mood,level,moodNow:()=>moodNow+' | '+LAYERS.filter(l=>mix[l]>0.03).map(l=>l+' '+mix[l].toFixed(2)).join(', ')+(rise>0.02?' | rise '+rise.toFixed(2):''),start,toggle,resume,sfx,amb,ambience,setPaused,unlock,gust,river,running:()=>!!ctx&&ctx.state==='running'};
+  return {mood,level,moodNow:()=>moodNow+' | '+LAYERS.filter(l=>mix[l]>0.03).map(l=>l+' '+mix[l].toFixed(2)).join(', ')+(rise>0.02?' | rise '+rise.toFixed(2):'')+(menLevel>0.02?' | men fader '+menLevel.toFixed(2):''),start,toggle,resume,sfx,amb,ambience,setPaused,unlock,gust,river,running:()=>!!ctx&&ctx.state==='running'};
 })();
 
 
@@ -3284,7 +3292,7 @@ function leaveFalls(){ fallsS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={music:()=>Music.moodNow(),musicLevel:only=>Music.level(only),musicMood:(a,b,k,r)=>{ window.__moodLock=[a,b,k,r]; },known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={music:()=>Music.moodNow(),musicLevel:only=>Music.level(only),musicMood:(a,b,k,r,m)=>{ window.__moodLock=a?[a,b,k,r,m]:null; },known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -3783,18 +3791,19 @@ const AMB={home:['warble','warble','feebee','trill','cricket','cricket','bee','r
   rest:['warble','warble','feebee','trill','cuckoo','dove','cricket','rustle','rustle','drip','bee','tap']};
 let ambIn=2.5, ambK=-1, ambLast='';
 /* which version of the music is playing: the place the girls are in, or a blend of two while they cross from one to the next */
-function updateMood(){ let a='home', b='home', k=0, r=0; const s=party.s;
+function updateMood(){ let a='home', b='home', k=0, r=0, men=0; const s=party.s;
   if(!state.started||mode==='home'||mode==='falls'){}
   else if(mode==='moon') a='glow';
-  else if(mode==='cave'){ a='sky'; b='cave'; k=0.8; r=1; }
-  else if(mode==='summit'){ a='sky'; r=1; }
+  else if(mode==='cave'){ a='sky'; b='cave'; k=0.8; r=1; men=0.6; }
+  else if(mode==='summit'){ a='sky'; r=1; men=1.9; }
   else { const key=bioKeyAt(s);
     if(fork.site===2&&fork.stage===4&&s>MTN&&s<=HILL_B+4){ a=legKey(2)||'home'; b='mtn'; k=smooth(MTN+3,BOULDER_S+2,s); }      /* up the hill, the last place's music turns into the mountain trail's */
     else if(key==='mtn'){ a='mtn'; b='sky'; k=smooth(SKY_A-34,SKY_B+3,s); }                                                 /* which, through the mist, turns into the sky garden's */
-    else if(key==='sky'){ a='sky'; r=smooth(SKY_B+6,TOP_A-3,s); }                                                           /* and that grows all the way to the last cave */
+    else if(key==='sky'){ a='sky'; r=smooth(SKY_B+6,TOP_A-3,s);
+      men=smooth(SKY_B-1,SKY_B+7,s)*(1+1.5*(1-smooth(SKY_B+13,SKY_B+32,s)))*(1+0.9*r); }   /* the low voices swell by themselves as the girls step onto the ridge, settle, and then climb with the rest */                                                           /* and that grows all the way to the last cave */
     else a=key||(s>57?'deep':'home'); }
   if(window.__moodLock){ Music.mood(...window.__moodLock); return; }   /* (testing: hold one version) */
-  Music.mood(a,b,k,r); }
+  Music.mood(a,b,k,r,men); }
 function updateAmbient(dt){
   updateMood();
   const first=state.started&&(mode==='rest'?fork.site===0:mode==='trail'&&party.s<GATE_A-3), wheat=state.started&&mode==='trail'&&bioKeyAt(party.s)==='grass'&&gateK(party.s)<0.3;
