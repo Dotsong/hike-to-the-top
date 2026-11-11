@@ -114,6 +114,15 @@ h1{font-size:clamp(2.5rem, 8vw, 4.8rem)}
 .caption{position:fixed;z-index:3;left:max(16px, env(safe-area-inset-left, 0px));bottom:calc(20px + env(safe-area-inset-bottom, 0px));
   max-width:min(30rem, calc(100vw - 190px));display:flex;flex-direction:column;gap:6px;opacity:0;transform:translateY(8px);transition:opacity 1.6s ease, transform 1.6s ease;pointer-events:none}
 .caption.show{opacity:1;transform:none}
+.dad-note{position:fixed;z-index:3;left:max(14px, env(safe-area-inset-left, 0px));top:calc(96px + env(safe-area-inset-top, 0px));width:min(270px,64vw);padding:12px 14px 10px;
+  background:#f6ead0;color:#3a2540;border-radius:3px 9px 4px 8px;box-shadow:0 8px 22px rgba(10,8,30,.35);font-family:var(--hand);transform:rotate(-2deg) translateY(-10px) scale(.94);transform-origin:20% 0;
+  opacity:0;pointer-events:none;transition:opacity .7s ease, transform .7s ease}
+.dad-note.show{opacity:1;transform:rotate(-2deg)}
+body.is-paused .dad-note{opacity:0}
+.dad-note .dn-head{display:block;font:700 .62rem/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:#a0738a;margin-bottom:5px}
+.dad-note p{margin:0;font-size:1.2rem;line-height:1.22}
+.dad-note .dn-sign{display:block;text-align:right;font-size:.95rem;color:#8a5a3c;margin-top:3px}
+@media (max-width:640px){ .dad-note{top:calc(150px + env(safe-area-inset-top, 0px))} }
 .cap-title{font-size:clamp(1.5rem, 4.6vw, 2.3rem);text-shadow:0 2px 18px rgba(10,8,30,.6)}
 .cap-body{margin:0;font-size:.98rem;line-height:1.5;color:var(--ink-soft);text-shadow:0 1px 10px rgba(10,8,30,.7)}
 
@@ -369,6 +378,8 @@ body.is-paused .narrator{opacity:0}
 
 <p class="narrator" id="narrator" aria-live="polite"></p>
 
+<div class="dad-note" id="dadNote" aria-live="polite"><span class="dn-head">A note, in Dad&#8217;s writing</span><p id="dadNoteText"></p><span class="dn-sign">&#8212; me, age 8</span></div>
+
 <div class="caption" id="caption" aria-live="polite">
   <h2 class="cap-title" id="capTitle"></h2>
   <p class="cap-body" id="capBody"></p>
@@ -503,7 +514,7 @@ const hash=(a,b,c)=>{ const v=Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453; retur
      104     the fork: two paths leave the clearing and drift apart
      128-140 each path goes through a gateway (thicket on the left path, cave on the right) that hides what is beyond
      140+    the aspen grove or the autumn woods
-     250     a second rest site and a second choice: winter forest or grassland (after the autumn woods), marsh or alpine rock garden (after the aspens)
+     250     a second rest site and a second choice: winter forest or wheat field (after the autumn woods), marsh or alpine rock garden (after the aspens)
      398     a third: moonlit glow-wood or giant garden; upside-down pond or crystal hollow
      500     whichever it was gives way to the stony mountain trail; at 536 a bank of mist, 15 m deep, and beyond it the sky garden
      643-655 one last cave, climbing steeply, and then the top of the mountain, which is a scene of its own */
@@ -560,7 +571,7 @@ function bioKeyAt(z){ if(z>SKY_B) return skyOpen?'sky':'mtn'; if(z>MTN) return '
 function boundAt(z){ let b=-1e9; for(let i=0;i<5;i++) if(z>BOUNDS[i]) b=BOUNDS[i]; return b; }
 const prevKeyAt=z=>bioKeyAt(boundAt(z)-0.01);
 const newK=z=>{ const b=boundAt(z); return smooth(0,b===MTN?26:7,z-b); };   /* how much of the place at z has taken over from the one before */
-const FLATS={grass:0.55,marsh:0.14,alpine:0.7,mtn:0.8,pond:0.03,crystal:0.8,sky:0.45};   /* how hilly the land beside the trail is in each place (1 where not listed) */
+const FLATS={grass:0.4,marsh:0.14,alpine:0.7,mtn:0.8,pond:0.03,crystal:0.8,sky:0.45};   /* how hilly the land beside the trail is in each place (1 where not listed) */
 function landK(z){ const b=boundAt(z); if(b<0) return 1; const k=FLATS[bioKeyAt(z)], p=FLATS[prevKeyAt(z)]; return lerp(p===undefined?1:p,k===undefined?1:k,smooth(0,25,z-b)); }
 const GATE_KIND={winter:'dim',grass:'dim',marsh:'dim',alpine:'dark',glow:'dark',giant:'dim',pond:'dim',crystal:'dark'};   /* leafy tunnels are dim, rock and hollow trees are dark */
 const gI={k:0,in:0,style:'',i:-1};
@@ -780,7 +791,7 @@ const leafGeo=new THREE.CircleGeometry(0.12,5); leafGeo.rotateX(-Math.PI/2);
 const logGeo=new THREE.CylinderGeometry(0.5,0.55,1,9); logGeo.rotateZ(Math.PI/2);   /* a fallen log, lying along x; scaled to length */
 /* trees close to the girls cast shadows; the far ones do not need to */
 const P={trunkN:pool(trunkGeo,white(),300,true), blobN:pool(blobGeo,white(),900,true), coneN:pool(coneGeo,white(),420,true),
-  trunkF:pool(trunkGeo,white(),3200), blobF:pool(blobGeo,white(),6400), coneF:pool(coneGeo,white(),5200),
+  trunkF:pool(trunkGeo,white(),3200), blobF:pool(blobGeo,white(),6400), coneF:pool(coneGeo,white(),12000),
   bush:pool(blobGeo,white(),4200,true), rock:pool(rockGeo,white(),1900,true), log:pool(logGeo,white(),700,true), stem:pool(stemGeo,white(),160), cap:pool(capGeo,white(),160,true),
   petal:pool(petalGeo,white(),2600), leaf:pool(leafGeo,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}),2800)};
 const GREENS=['#5d9b4f','#6aa857','#4f8a4b','#79b05a','#8fbf5f'].map(C), GOLDS=['#e0a13a','#d9783c','#e8c24a'].map(C);
@@ -807,6 +818,7 @@ const GLOWS=pal(['#8ff5d6','#9fd8ff','#c6a8ff','#fff3a3']), GEMS=pal(['#8fe8ff',
 const NIGHT=pal(['#1f3f44','#1a3540','#24484a']), CAPS_BIG=pal(['#d9534a','#e8a060','#b79cff','#ff9eb5']), BLADES=pal(['#5d9b4f','#6aa857','#79b05a']);
 const MEADOW=pal(['#7fb85a','#9cc968','#c9c95a','#6aa857']), PASTEL=pal(['#9fe0d0','#c6b8ff','#ffc6dc','#bfe3ff']), GREYS=pal(['#9a9a94','#8b8f8a','#b0aea6']);
 const CRAGS=pal(['#8d857a','#7b746c','#a09787','#6f6a66']), PLANKS=pal(['#9c8468','#8f7a60','#7d6a54','#a89074']), PAVE=pal(['#a8a39a','#989288','#b3ada2','#8c877f']), CAVE=pal(['#4a465a','#57526a','#3f3c4e','#625c78']);
+const WHEAT=pal(['#d9b44a','#c9a03c','#e6c860','#b88f34']), APPLE=C('#d9382f');
 const BIO={
   winter:{floor:[0.9,0.93,0.97],dirt:[0.8,0.85,0.92],mote:'#ffffff',falls:1,air:'snow',
     tree(T){ if(T.n(21)<0.7){ const sc=0.8+T.h*0.6, rr=2.3*sc; put(T.tp,T.x,T.y,T.z,0.28*sc,2,0.28*sc,T.ry,BARKS[0]);   /* a pine with snow on every tier */
@@ -817,15 +829,19 @@ const BIO={
     narr:['Snow lay on every branch like icing nobody had touched.','The only sound was the squeak of four small boots.'],
     reveal:{t:'The winter forest',b:'Snow on every bough, and a hush over everything.',narr:'On the other side it was winter, as if the mountain kept a little of it in a drawer.',lines:[[1,'SNOW!'],[0,'In the middle of the hike! The mountain saved us some.'],[1,'I\'m going to make the smallest snowman ever.']]},
     gate:{kind:'tunnel',cols:['#3f7a52','#f4f7fb','#356b4a','#f4f7fb'],label:'Under the snowy boughs',say:'under those snowy branches',sub:'The boughs hang low with snow. It looks cold in there, and exciting.',narr:'They chose the snowy boughs, because Pip wanted to see her own breath.',enter:[[1,'Brrr! It just got cold.'],[0,'Zip up, Pip.']]}},
-  grass:{floor:[0.55,0.72,0.36],dirt:[0.74,0.64,0.42],flat:0.2,keep:0.07,mote:'#fff7d6',air:'seeds',
-    tree(T){ const th=4.5+T.h*2, cr=3.6+T.h*1.4, col=pk(GREENS,T.n(22)); put(T.tp,T.x,T.y,T.z,0.5,th,0.5,T.ry,BARKS[0]);   /* a lone oak, wide as a house */
-      put(T.bp,T.x,T.y+th+cr*0.4,T.z,cr,cr*0.7,cr,T.ry,col); put(T.bp,T.x+cr*0.6,T.y+th,T.z+cr*0.3,cr*0.7,cr*0.5,cr*0.7,0,col); put(T.bp,T.x-cr*0.6,T.y+th+0.3,T.z-cr*0.2,cr*0.7,cr*0.5,cr*0.7,0,col); },
-    props(R){ for(let j=0;j<7;j++){ const p=R.at(1.5+R.n(30+j)*15,40+j), hh=0.6+R.n(50+j)*0.7; put(P.coneF,p.x,p.y,p.z,0.22,hh,0.22,0,pk(MEADOW,R.n(60+j))); }                                 /* tall grass */
-      if(R.n(70)<0.6){ const p=R.at(1.8+R.n(71)*6,72), col=pk(PETALS,R.n(73)); for(let k=0;k<6;k++) put(P.petal,p.x+(R.n(74+k)-0.5)*1.4,p.y+0.5,p.z+(R.n(80+k)-0.5)*1.4,1,1,1,0,col); } },     /* wildflowers nodding above it */
-    lines:[['I can see forever!','Forever is very green.'],'The grass is taller than me!',['The wind is drawing on the hills.','It keeps changing its mind.'],['Let\'s roll down that one.','On the way back. Promise.']],
-    narr:['The grass moved in long slow waves, as if the hill were breathing.','There was so much sky that it was hard to know where to look.'],
-    reveal:{t:'The grassland',b:'Rolling hills of long grass, and more sky than anywhere else on the mountain.',narr:'The trees simply stopped, and the whole sky came down to meet them.',lines:[[1,'Where did all the trees go?'],[0,'It\'s a meadow. A huge one.'],[1,'I can see the top! It\'s RIGHT THERE.']]},
-    gate:{kind:'tunnel',cols:['#3f7a4a','#35703f','#4a8552'],label:'Through the hedge',say:'through a gap in that hedge',sub:'A gap in a tall green hedge. Something bright is on the other side.',narr:'They chose the gap in the hedge, because there was sunshine leaking through it.',enter:[[0,'Squeeze through, Pip.'],[1,'It\'s all prickly!']]}},
+  /* the wheat field: gold from edge to edge and on over every rise, with a few old apple trees standing in it */
+  grass:{floor:[0.7,0.55,0.23],dirt:[0.6,0.48,0.32],keep:0.045,mote:'#fff0c0',air:'chaff',
+    tree(T){ const th=2+T.h*0.9, cr=2.3+T.h*0.9, col=pk(GREENS,T.n(22)); put(T.tp,T.x,T.y,T.z,0.36,th,0.36,T.ry,BARKS[1]);   /* an apple tree: short and broad, with red apples in it and a few in the wheat underneath */
+      put(T.bp,T.x,T.y+th+cr*0.45,T.z,cr,cr*0.72,cr,T.ry,col); put(T.bp,T.x+cr*0.6,T.y+th+cr*0.2,T.z+cr*0.3,cr*0.68,cr*0.5,cr*0.68,0,col); put(T.bp,T.x-cr*0.6,T.y+th+cr*0.25,T.z-cr*0.2,cr*0.68,cr*0.5,cr*0.68,0,col);
+      for(let k=0;k<9;k++){ const a=T.n(30+k)*6.28, e=T.n(40+k)*1.2-0.2, rr=cr*0.98; put(P.petal,T.x+Math.cos(a)*Math.cos(e)*rr,T.y+th+cr*0.45+Math.sin(e)*rr*0.7,T.z+Math.sin(a)*Math.cos(e)*rr,2.3,2.3,2.3,0,APPLE); }
+      for(let k=0;k<3;k++){ const a=T.n(50+k)*6.28, d=0.8+T.n(54+k)*1.8; put(P.petal,T.x+Math.cos(a)*d,T.y+0.25,T.z+Math.sin(a)*d,2.3,2.3,2.3,0,APPLE); } },
+    props(R){ for(let j=0;j<32;j++){ const d=1.5+Math.pow(R.n(30+j),1.7)*28, p=R.at(d,50+j), hh=0.95+R.n(70+j)*0.45, w=0.085+R.n(90+j)*0.05+d*0.012, col=pk(WHEAT,R.n(110+j));   /* the wheat: sheaves of it, shoulder-high to Pip, right up to the edge of the path */
+        put(P.coneF,p.x,p.y,p.z,w,hh,w,0,col); if(d<9){ put(P.coneF,p.x+0.22,p.y,p.z+0.2,w*0.9,hh*0.92,w*0.9,0,pk(WHEAT,R.n(130+j))); put(P.coneF,p.x-0.18,p.y,p.z+0.3,w*0.9,hh*0.85,w*0.9,0,pk(WHEAT,R.n(140+j))); } }
+      if(R.n(160)<0.25){ const p=R.at(2+R.n(161)*7,162); for(let k=0;k<5;k++) put(P.petal,p.x+(R.n(164+k)-0.5)*1.2,p.y+0.95,p.z+(R.n(170+k)-0.5)*1.2,1,1,1,0,k%2?C('#d9534a'):C('#6f8fd0')); } },   /* poppies and cornflowers among it */
+    lines:[['It goes on forever!','Forever is very gold.'],'The wheat is taller than me!',['The wind is drawing on the field.','It keeps changing its mind.'],['Can I have an apple?','One. And say thank you to the tree.'],['It sounds like the sea.','It\'s the wheat, whispering.']],
+    narr:['The wheat moved in long slow waves, as if the whole field were breathing.','Here and there an apple tree stood up to its knees in gold.','There was so much sky that it was hard to know where to look.'],
+    reveal:{t:'The wheat field',b:'An endless field of gold, with a few old apple trees, and more sky than anywhere else on the mountain.',narr:'The trees simply stopped, and there was wheat: gold, and whispering, as far as anyone could see.',lines:[[1,'Where did all the trees go?'],[0,'It\'s a wheat field. A field that never ends.'],[1,'It\'s like walking through a bowl of cereal!']]},
+    gate:{kind:'tunnel',cols:['#3f7a4a','#35703f','#4a8552'],label:'Through the hedge',say:'through a gap in that hedge',sub:'A gap in a tall green hedge. Something golden is on the other side.',narr:'They chose the gap in the hedge, because there was sunshine leaking through it.',enter:[[0,'Squeeze through, Pip.'],[1,'It\'s all prickly!']]}},
   marsh:{floor:[0.36,0.5,0.34],dirt:[0.66,0.52,0.36],flat:0.12,keep:0.3,mote:'#e8f6c8',air:'midges',
     tree(T){ const th=3+T.h*4; put(T.tp,T.x,T.y,T.z,0.2,th,0.2,T.ry,GREYS[1]); if(T.n(22)<0.5) put(T.tp,T.x+0.3,T.y+th*0.55,T.z,0.07,1.4,0.07,0,GREYS[1]); },                              /* an old drowned trunk */
     props(R){ for(let j=0;j<5;j++){ const p=R.at(1.7+R.n(30+j)*8,40+j), hh=1.5+R.n(50+j)*0.9; put(P.trunkF,p.x,p.y,p.z,0.045,hh,0.045,0,TAN); put(P.bush,p.x,p.y+hh,p.z,0.07,0.2,0.07,0,BARKS[0]); }   /* reeds and cattails */
@@ -932,7 +948,7 @@ const REST_LOOKS={
   aspen: {sky:['#1f7fe8','#d6ebf8','#8fb89a'],fog:0.014,hemi:['#eaf4ff','#6f8f6a',0.78],leaf:ASPENS,bark:[ASPEN_BARK],slim:true,pine:0,under:false,grd:[[0.66,0.56,0.38],[0.58,0.69,0.36],[0.5,0.62,0.34]]},
   autumn:{sky:['#8f9fc6','#ffd3a0','#b98a5a'],fog:0.017,hemi:['#ffe3bd','#7a5a3a',0.7],leaf:AUTUMNS,bark:BARKS.slice(0,3),slim:false,pine:0,under:false,grd:[[0.64,0.52,0.36],[0.66,0.5,0.28],[0.56,0.4,0.24]]},
   winter:{sky:['#9fb4c8','#e9eef3','#cfd8e0'],fog:0.018,hemi:['#f2f6ff','#9fb0c0',0.84],leaf:PINES,bark:[BARKS[0]],slim:false,pine:1,snow:true,under:false,grd:[[0.8,0.85,0.92],[0.92,0.95,0.98],[0.86,0.9,0.95]]},
-  grass: {sky:['#3f8fe0','#e4f0d8','#a8cf80'],fog:0.007,hemi:['#fff8e0','#6f9a52',0.86],leaf:GREENS,bark:[BARKS[0]],slim:false,pine:0,under:false,few:0.12,grd:[[0.74,0.64,0.42],[0.55,0.72,0.36],[0.5,0.68,0.34]]},
+  grass: {sky:['#3f8fe0','#f2e6bc','#e6cf7a'],fog:0.007,hemi:['#fff8e0','#b89a52',0.84],leaf:GREENS,bark:[BARKS[0]],slim:false,pine:0,under:false,few:0.1,grd:[[0.72,0.6,0.4],[0.8,0.7,0.36],[0.86,0.71,0.33]]},
   marsh: {sky:['#9fc0b8','#e6ead0','#a8b890'],fog:0.022,hemi:['#eef2dc','#5f7a56',0.7],leaf:GREENS,bark:[GREYS[1]],slim:true,pine:0,under:false,few:0.3,grd:[[0.66,0.52,0.36],[0.4,0.55,0.36],[0.34,0.48,0.33]]},
   alpine:{sky:['#1f5fc0','#cfe0f0','#9fb0c0'],fog:0.006,hemi:['#f4f8ff','#8a8f8a',0.84],leaf:PINES,bark:[BARKS[0]],slim:false,pine:1,under:false,few:0.1,grd:[[0.7,0.68,0.62],[0.6,0.64,0.55],[0.6,0.61,0.57]]}
 };
@@ -943,7 +959,7 @@ BIO.mtn=Object.assign({},BIO.alpine,{gate:null,reveal:null,
 BIO.winter.coat='up'; BIO.alpine.coat=BIO.mtn.coat=BIO.sky.coat=BIO.glow.coat=BIO.crystal.coat='down';   /* where it is cold enough for a parka, and whether the hood is up */
 for(const k in BIO){ const g=BIO[k].gate; if(g){ g.pal=(g.cols||g.rock||[]).map(C); if(g.glow) g.glowC=C(g.glow); } }
 const TOP_GATE={kind:'arch',pal:pal(['#8b8f8a','#9a9a94','#7d807c'])};   /* the last cave */
-const GUSTS={winter:[SNOW,WHITE],grass:MEADOW,marsh:[TAN,GREENS[3],TAN],alpine:[WHITE,SNOW],glow:GLOWS,giant:BLOOM,pond:PASTEL,crystal:GEMS,sky:BIO.sky.fall};   /* what the wind throws about when each place opens up */
+const GUSTS={winter:[SNOW,WHITE],grass:WHEAT,marsh:[TAN,GREENS[3],TAN],alpine:[WHITE,SNOW],glow:GLOWS,giant:BLOOM,pond:PASTEL,crystal:GEMS,sky:BIO.sky.fall};   /* what the wind throws about when each place opens up */
 const inGates=z=>{ for(let i=1;i<5;i++) if(i!==3&&z>GA[i]-1&&z<GB[i]+1) return true; return false; };
 /* A later gateway, drawn where the trail runs through it. A 'tunnel' is small trees meeting overhead, in that gateway's own colors (snowy boughs,
    reeds, willow, big leaves); an 'arch' is rock, or the wood of a hollow tree. */
@@ -1300,9 +1316,10 @@ function makeRestSet(key){
     [[0,0.5,'#ff9a3c'],[0.12,0.36,'#ffd24a'],[-0.1,0.3,'#ff7a2f']].forEach(([dx,h,c])=>{ const f=add(new THREE.ConeGeometry(0.2,h,7),new THREE.MeshBasicMaterial({color:c}),-3.7+dx,0.2+h/2,1.7+dx); f.userData.flame=h; });
     [[0.5,0.45],[0.36,1.12],[0.25,1.6]].forEach(([r2,y])=>ball(r2,'#fbfdff',3.9,y,0.9)); add(new THREE.ConeGeometry(0.05,0.24,6),'#e07a2f',3.9,1.6,1.2).rotation.x=Math.PI/2;
     [-1,1].forEach(s=>{ ball(0.03,'#2a1c26',3.9+s*0.09,1.68,1.12); const arm=cyl(0.02,0.02,0.6,'#5a3c2a',3.9+s*0.5,1.2,0.9,5); arm.rotation.z=s*1.1; }); cyl(0.16,0.2,0.2,'#3b3550',3.9,1.92,0.9); }
-  else if(key==='grass'){   /* a picnic bench and table under the one big oak for miles, with a kite caught in it */
+  else if(key==='grass'){   /* a picnic bench and table under the biggest apple tree in the field, with a kite caught in it */
     plankBench(); box(3.7,0.1,1.0,'#b98a5a',0,1.08,-1.0); [-1.5,1.5].forEach(x=>{ box(0.1,1.05,0.1,'#7a5238',x,0.53,-1.3); box(0.1,1.05,0.1,'#7a5238',x,0.53,-0.7); });
     cyl(0.5,0.62,5.2,'#8a5a3c',-5.2,2.6,-2.6,9); [[0,6.6,0,3.6],[2.2,5.6,1,2.5],[-2.2,5.8,-0.8,2.5],[0.5,5.4,-2,2.3]].forEach(([x,y,z,r2])=>{ const b=add(blobGeo,'#5d9b4f',-5.2+x,y,-2.6+z); b.scale.set(r2,r2*0.72,r2); });
+    [[1.6,5.2,1.9],[-0.9,4.6,2.1],[2.9,4.9,0.2],[0.2,4.3,2.6],[-2.4,5.0,0.9],[1.1,4.2,-0.3]].forEach(([x,y,z])=>ball(0.17,'#d9382f',-5.2+x,y,-2.6+z)); [[-3.6,0.15,-0.6],[-4.4,0.15,0.3]].forEach(([x,y,z])=>ball(0.17,'#d9382f',x,y,z));   /* it is an apple tree, and a good one */
     const kite=add(new THREE.CircleGeometry(0.42,4),new THREE.MeshLambertMaterial({color:0xff8a7a,side:THREE.DoubleSide}),-3.4,4.5,-1.4); kite.rotation.set(0.3,0.6,0.2); cyl(0.008,0.008,1.6,'#fff6ec',-3.3,3.7,-1.3,4).rotation.z=0.25; }
   else if(key==='marsh'){   /* a landing stage of old planks, a bench, a rowing boat pulled up beside it and a lantern on a post */
     plankBench(); for(let k=-4;k<=4;k++) box(0.82,0.05,5.4-Math.abs(k)*0.5,k%2?'#a27c58':'#8f6b4a',k*0.86,0.03,0.9);
@@ -2073,8 +2090,8 @@ function resetHike(){
 function zoneList(){ const c=choice||1, p1=picks[1]||1, p2=picks[2]||1, A=GATE_A+1, B=SITES[1].a+1, D=SITES[2].a+1, R2=SITES[1].rest-7, R3=SITES[2].rest-7;
   return [['The way there',[['Trailhead',0],['River bend',34],['Deep woods',58],['First rest site',REST_C-8]]],
     ['After the first fork',[['Autumn woods',A,[1,0,0]],['Aspen grove',A,[-1,0,0]],['Second rest site, autumn track',R2,[1,0,0]],['Second rest site, aspen track',R2,[-1,0,0]]]],
-    ['After the second fork',[['Winter forest',B,[1,1,0]],['Grassland',B,[1,-1,0]],['Marsh boardwalk',B,[-1,1,0]],['Alpine rock garden',B,[-1,-1,0]],
-      ['Third rest site, after winter',R3,[1,1,0]],['Third rest site, after grassland',R3,[1,-1,0]],['Third rest site, after marsh',R3,[-1,1,0]],['Third rest site, after alpine',R3,[-1,-1,0]]]],
+    ['After the second fork',[['Winter forest',B,[1,1,0]],['Wheat field',B,[1,-1,0]],['Marsh boardwalk',B,[-1,1,0]],['Alpine rock garden',B,[-1,-1,0]],
+      ['Third rest site, after winter',R3,[1,1,0]],['Third rest site, after the wheat field',R3,[1,-1,0]],['Third rest site, after marsh',R3,[-1,1,0]],['Third rest site, after alpine',R3,[-1,-1,0]]]],
     ['After the third fork',[['Moonlit glow-wood',D,[1,p1,1]],['Giant garden',D,[1,p1,-1]],['Upside-down pond',D,[-1,p1,1]],['Crystal hollow',D,[-1,p1,-1]],
       ['Lantern-folk village',VILLAGE_Z-12,[1,p1,1]],['Buttonbug village',VILLAGE_Z-12,[1,p1,-1]],['Rippling village',VILLAGE_Z-12,[-1,p1,1]],['Chimeling village',VILLAGE_Z-12,[-1,p1,-1]]]],
     ['The way to the top',[['Mountain trail',MTN-3,[c,p1,p2],0],['Into the mist',SKY_A-5,[c,p1,p2],1],['Sky garden',SKY_B-1,[c,p1,p2],2],['Last cave',TOP_A-5,[c,p1,p2],3],['Summit',TOP_B-3.5,[c,p1,p2],4],['Dinner at home','home',[c,p1,p2]],['The secret ending (as if everything were found)','secret',[c,p1,p2]]]]]; }
@@ -2117,6 +2134,19 @@ const REST_SEATS=[[-0.55,0],[0.62,0]];   /* June and Pip on the log */
 const REST_SPOTS=[[-3.6,4.2,'crouch'],[3.2,5,'look'],[-2.6,6.2,'point'],[0.9,5.6,'look'],[4.2,2.4,'scoop'],[-4.4,2.6,'crouch'],[1.7,3.4,'spin'],[-1.3,3.1,'hop']];   /* things worth getting up for */
 const REST_ARRIVE=[[0,'Ahh. That\'s better.'],[1,'This log is exactly my size.'],[0,'Listen. You can hear the whole forest.']];
 const REST_PATHS=[[1,'June, look! The trail splits in two.'],[0,'One goes into that thicket. The other goes into a little cave.'],[1,'Which one do we take?']];
+/* At every rest site the girls find a scrap of paper tucked under the seat, in Dad's eight-year-old handwriting, about the place they have
+   just walked through. He was as astonished as they are, and just as sure that nobody would ever believe him. (Nobody did. In the end, not even he.) */
+const DAD_NOTES={
+  deep:'I am in the big woods. The trees are SO big. I think one of them looked at me. I am writing it down because nobody is going to believe me.',
+  aspen:'The white trees have EYES. And the whole forest CLAPPED at me. I am not making this up. Nobody will ever, ever believe this.',
+  autumn:'It is FALL in there. It was summer this morning!! I checked twice. I jumped in the leaves 11 times. Mom is never going to believe me.',
+  winter:'It SNOWED. In JULY. I made a snowman called Gerald to prove it, but I can not carry him home. So nobody will believe me.',
+  grass:'A field of wheat that goes on FOREVER. On a mountain?? With apple trees in it. I ate an apple. It was real. Nobody is going to believe this.',
+  marsh:'The wood path goes over water for miles. A frog said good morning to me. I think. I am not telling anybody, because nobody would believe it.',
+  alpine:'I shouted HELLO and the mountain shouted back something DIFFERENT. I do not understand this mountain at all. Nobody will believe me.'};
+const noteEl=$('dadNote'); let noteT=0;
+function showDadNote(key){ if(!DAD_NOTES[key]) return; $('dadNoteText').textContent=DAD_NOTES[key]; noteEl.classList.add('show'); noteT=15; }
+function hideDadNote(){ noteT=0; noteEl.classList.remove('show'); }
 function buildRest(si){
   const LK=si>0?REST_LOOKS[legKey(si-1)]:null, KIT=kitFor(si);   /* later rest sites stand in whichever place the girls have reached, and look like it */
   let sd=4242; const r=()=>{ sd=(sd*16807)%2147483647; return (sd-1)/2147483646; };
@@ -2300,15 +2330,17 @@ function updateRest(dt,rawDt){
   BRAINS.forEach(b=>updateRestBrain(b,dt));
   /* the scene: sit down and sigh, look around for a while, notice the two paths, then the buttons appear */
   if(rest.phase===0&&rest.t>4.5){ rest.phase=1; playScript(REST_ARRIVE); }
-  else if(rest.phase===1&&rest.t>8&&quiet()){ rest.phase=2; rest.t2=rest.t; rest.canAct=true; speakIn=6; narrate('For a while nobody said anything important. That is what rest sites are for.'); }
-  else if(rest.phase===2&&rest.t>rest.t2+12){ rest.canAct=false; if(quiet()&&!BRAINS.some(b=>b.cur||b.queue.length)){ rest.phase=3; narrate(fork.site?'And once again, the trail had two ideas about where to go next.':'Then Pip noticed something. The trail had two ideas about where to go next.'); playScript(restPathLines());
+  else if(rest.phase===1&&rest.t>8&&quiet()){ rest.phase=2; rest.t2=rest.t; rest.canAct=true; speakIn=20;   /* Pip finds a note of Dad's about the place they have just come through */
+    narrate('Tucked under the seat was a scrap of paper, soft with age. Somebody had been here before them.'); showDadNote(fork.site?legKey(fork.site-1):'deep');
+    playScript([[1,'June! There\'s a note under here!'],[0,'That\'s Dad\'s writing. From when he was little!'],[1,pick(['He saw it TOO!','He was here! Right here!','Dad had adventures?!'])],[0,'Keep it safe, Pip. We\'re showing him at dinner.']]); }
+  else if(rest.phase===2&&rest.t>rest.t2+19){ rest.canAct=false; if(quiet()&&!BRAINS.some(b=>b.cur||b.queue.length)){ rest.phase=3; narrate(fork.site?'And once again, the trail had two ideas about where to go next.':'Then Pip noticed something. The trail had two ideas about where to go next.'); playScript(restPathLines());
       pipB.queue.push({k:'pose',pose:'sitpoint',dur:5,face:0}); juneB.queue.push({k:'pose',pose:'sit',dur:3},{k:'pose',pose:'sitlook',dur:4,face:0}); } }
   else if(rest.phase===3&&quiet()){ rest.phase=4; rest.ready=true; rest.canAct=true; speakIn=9; $('forkDock').hidden=false; }
   if(rest.leaving){ const lv=rest.leaving; lv.t+=dt;   /* off they go: a few steps toward the chosen path, then fade back to the trail */
     if(lv.t>3.6&&!lv.fading){ lv.fading=true; const tok=restToken; $('fade').classList.add('on');
       setTimeout(()=>{ if(tok!==restToken||mode!=='rest') return; leaveRest(lv.c); $('fade').classList.remove('on'); },950); } }
   chirpRest-=dt; if(chirpRest<=0){ Music.sfx('chirp'); chirpRest=5+Math.random()*8; }
-  rest.update(dt,time);
+  rest.update(dt,time); if(noteT>0){ noteT-=dt; if(noteT<=0||rest.leaving) hideDadNote(); }
   /* camera: drifts slowly round the girls; when they notice the paths it settles behind them, looking the way they are looking */
   if(rest.phase<3) rest.th+=dt*0.035*motion; else { let dd=Math.PI-0.5-rest.th; dd=Math.atan2(Math.sin(dd),Math.cos(dd)); rest.th+=dd*(1-Math.exp(-0.55*dt)); }
   let th=rest.th+(camTheta-rest.cam0)+Math.sin(time*0.07)*0.12*motion;
@@ -2348,7 +2380,7 @@ function chooseTrail(c){
 /* back to the trail. c is the path that was picked (0 when the hike is simply being reset). */
 function leaveRest(c){
   rest.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); june.pack.visible=pip.pack.visible=true;
-  rest.dispose(); rest=null; mode='trail'; landY=groundY; hideFork(); zoom=1; userPhi=0;
+  hideDadNote(); rest.dispose(); rest=null; mode='trail'; landY=groundY; hideFork(); zoom=1; userPhi=0;
   if(!c) return;
   /* the trail picks up with the girls already inside their gateway */
   takeTrail(c); party.s=SITES[fork.site].a+1; party.v=WALK; fork.entered=true; placeGirls(); groundRow=forestRow=null; camHd=heading(party.s); lookBack=0;
@@ -2491,15 +2523,15 @@ try{ const j=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(j&&Array.isA
 function remember(kind,key){ if(!key||saved[kind].includes(key)) return; saved[kind].push(key); try{ localStorage.setItem(SAVE_KEY,JSON.stringify(saved)); }catch(e){} }
 const friendsHome=()=>forceSecret?ALL_FRIENDS.slice():ALL_FRIENDS.filter(k=>saved.friends.includes(k));
 const secretReady=()=>forceSecret||ALL_PLACES.every(k=>saved.places.includes(k))&&ALL_FRIENDS.every(k=>saved.friends.includes(k));
-const PLACE_SAID={aspen:'an aspen grove, all white and gold',autumn:'the autumn woods, where it rained leaves',winter:'a forest full of SNOW',grass:'a meadow as big as the sky',marsh:'a marsh with a wooden path over it',
+const PLACE_SAID={aspen:'an aspen grove, all white and gold',autumn:'the autumn woods, where it rained leaves',winter:'a forest full of SNOW',grass:'a wheat field that never ends',marsh:'a marsh with a wooden path over it',
   alpine:'a garden made of rocks, where the wind lives',glow:'a forest that glows in the dark',giant:'a garden where we were TINY',pond:'a pond that was upside down',crystal:'a cave full of crystals that ring'};
 const HOME_LINES=['This is the best spaghetti in the whole world.',['Can we go again tomorrow?','After we tell Michelle.'],'My legs are still walking under the table.',['Dad, your map was right about everything.','Almost everything. It didn\'t say there\'d be a village.'],['Snack number nine was at the top.','I know. I counted.']];
 function homeScript(){ const k=[0,1,2].map(i=>legKey(i)||['autumn','winter','glow'][i]), F=FOLK[k[2]];
   return [[3,'So, my mountain climbers. How was it?'],[1,'We went ALL the way to the top!'],[4,'All the way up! Well done, you two. That\'s a proper walk.'],
     [0,'First we walked through '+PLACE_SAID[k[0]]+'. Then '+PLACE_SAID[k[1]]+'.'],[4,'Mm-hm. Lovely. Pass the cheese, would you, Pip?'],
     [1,'And then '+PLACE_SAID[k[2]]+'! With a VILLAGE! Of '+F.kind+'!'],[4,'A village of '+F.kind+'. Goodness. What imaginations you two have.'],
-    [0,'It isn\'t imagination, Dad. It\'s all on the map now. We drew it in.'],[4,'On my old map? There\'s nothing on that but a dotted line. It\'s woods, and then it\'s the top.'],
-    [1,'That\'s because you walked in a straight line and didn\'t LOOK.'],[4,'Ha! Very likely, sweetheart. Now eat up, before it goes cold.'],[0,F.name+' sent us home by '+F.ride+'. That\'s why we weren\'t late.'],
+    [0,'It isn\'t imagination, Dad. You saw it too! We found your notes. You wrote that nobody would ever believe you.'],[4,'My notes? Good grief. I wrote all sorts of stories when I was eight.'],
+    [1,'They aren\'t stories. It\'s all REAL.'],[4,'Of course it is, sweetheart. I had quite an imagination myself, once. Now eat up, before it goes cold.'],[0,F.name+' sent us home by '+F.ride+'. That\'s why we weren\'t late.'],
     [4,'Well, however you managed it, you were right on time. I\'m proud of you both.'],[3,'I think it sounds wonderful. More spaghetti?'],[1,'Yes, please.'],
     [0,'We have to tell Michelle. SHE\'ll believe us.'],[1,'Tomorrow! First thing! And Lumi, too.'],[4,'Good plan. And next time, bring me a photo of this village, hm?']]; }
 function buildHome(){
@@ -2733,7 +2765,7 @@ const MAP_LEG1={winter:'M352 196 C380 170 420 132 462 118',grass:'M352 196 C390 
 const MAP_UP='M628 240 C650 214 664 172 672 134 C676 114 680 98 682 82';
 const MAP_PLACE={   /* where each place is drawn, where its name goes, its name and its colors */
   autumn:[322,186,322,170,'Autumn woods','#d9532f','#e8a53a'],aspen:[322,340,322,366,'Aspen grove','#e6c84a','#fffaf0'],
-  winter:[404,134,398,112,'Winter forest','#f4f7fb','#3f7a52'],grass:[410,216,410,240,'Grassland','#8fbf5f','#c9c95a'],marsh:[410,288,408,270,'Marsh','#7fa87a','#5f9fc0'],alpine:[404,368,400,394,'Alpine rocks','#9a9a94','#f4f7fb'],
+  winter:[404,134,398,112,'Winter forest','#f4f7fb','#3f7a52'],grass:[410,216,410,240,'Wheat field','#e6c45a','#d9382f'],marsh:[410,288,408,270,'Marsh','#7fa87a','#5f9fc0'],alpine:[404,368,400,394,'Alpine rocks','#9a9a94','#f4f7fb'],
   glow:[556,112,556,90,'Glow-wood','#1f3f44','#8ff5d6'],giant:[556,190,560,216,'Giant garden','#d9534a','#6aa857'],pond:[556,292,560,270,'Upside-down pond','#7fc4ee','#c6b8ff'],crystal:[556,366,556,394,'Crystal hollow','#b79cff','#8fe8ff']};
 let mapHidden=false;
 function drawMap(){
@@ -3321,7 +3353,7 @@ const MOTE_HOME=C('#fff2b8'), MOTE_ASPEN=C('#ffe07a'), MOTE_AUTUMN=C('#f59a3c');
 /* the skies further up */
 Object.assign(SKIES,{
   winter: {top:C('#8fa9c4'),mid:C('#e6edf3'),bot:C('#d5dee8'),hemi:C('#f2f6ff'),sun:C('#fff6ea'),air:0.016, glow:0.86,shine:0.7},    /* a pale, snow-laden sky */
-  grass:  {top:C('#2f86e6'),mid:C('#dcefd6'),bot:C('#b7d98c'),hemi:C('#fff8e0'),sun:C('#fff4d6'),air:0.006, glow:0.72,shine:0.88},      /* wide open and bright */
+  grass:  {top:C('#2f86e6'),mid:C('#f1e6c0'),bot:C('#e6cf86'),hemi:C('#fff8e0'),sun:C('#fff4d6'),air:0.006, glow:0.6,shine:0.8},      /* wide open and bright */
   marsh:  {top:C('#8fb4b0'),mid:C('#dfe6cf'),bot:C('#a9bb95'),hemi:C('#eef2dc'),sun:C('#fff2d0'),air:0.02,  glow:0.72,shine:0.6},    /* soft, grey-green and misty */
   alpine: {top:C('#1a58c0'),mid:C('#cfe0f0'),bot:C('#a9b6c2'),hemi:C('#f4f8ff'),sun:C('#ffffff'),air:0.0055,glow:0.7,shine:0.86},      /* thin, clear mountain air */
   mtn:    {top:C('#2a66c8'),mid:C('#d6e4ee'),bot:C('#b0b8bc'),hemi:C('#f6f8ff'),sun:C('#fffaf0'),air:0.007, glow:0.7,shine:0.86},

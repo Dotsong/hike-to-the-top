@@ -56,6 +56,7 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
     await p.evaluate(m=>window.hikeDebug.walkTo(m),at);
     await p.waitForFunction(()=>window.hikeDebug.mode()==='rest'&&window.hikeDebug.ready()&&!document.getElementById('forkDock').hidden,null,{timeout:120000});
     if(await p.evaluate(()=>window.hikeDebug.site())!==i) errs.push('rest site '+(i+1)+' was not reached');
+    if(!await p.evaluate(()=>document.getElementById('dadNoteText').textContent.length>20)) errs.push('no note from Dad at rest site '+(i+1));
     await p.screenshot({path:require('os').tmpdir()+'/hike-dock-'+ROUTE+'-'+i+'.png'});
     await p.evaluate(id=>document.getElementById(id).click(),ROUTE[i]==='L'?'autumnBtn':'aspenBtn');
     await p.waitForFunction(()=>window.hikeDebug.mode()==='trail'&&window.hikeDebug.stage()===3,null,{timeout:20000});
