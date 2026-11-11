@@ -543,11 +543,11 @@ let choice=0;   /* 0 = not chosen yet, -1 = the thicket path (aspen grove), 1 = 
 /* the middle of the trail: two lazy waves, the curve to the right at the river, and the tight bends that wind through the deep woods */
 const x0=s=>7*Math.sin(s*0.021)+3.5*Math.sin(s*0.047+1.3)-12*smooth(40,64,s)+3.2*Math.sin((s-64)*0.224)*smooth(62,72,s)*(1-smooth(88,97,s))
   +(s>GATE_B+8?wildK(s)*(2.4*Math.sin(s*0.17+0.7)+1.2*Math.sin(s*0.31+2.1)):0)
-  +(s>490?17*Math.sin(Math.PI*smooth(MTN+4,MTN+56,s)):0);   /* the mountain trail swings wide round a shoulder of the mountain, then straightens out for the last stretch to the mist */   /* and, all the way up the mountain, the same kind of winding as in the deep woods */
+  +(s>490?8.5*Math.sin((s-MTN-3)*0.2856)*smooth(MTN+3,MTN+10,s)*(1-smooth(MTN+47,MTN+58,s)):0);   /* the switchbacks up the hill: two and a half zigzags, straightening out for the boulder */   /* and, all the way up the mountain, the same kind of winding as in the deep woods */
 /* How wild the trail may be at s: 1 out in the middle of a place, 0 wherever it has to behave (rest sites, gateways, villages, the pond's
    boardwalk, the mist and the sky garden). The bends, the humps and hollows, the gullies and the little canyons all scale by this. */
-function wildK(s){ if(s<GATE_B+10||s>SKY_A-18) return 0; if(s>GB[2]&&picks[2]&&legKey(2)==='pond'&&s<MTN+6) return 0;
-  let k=smooth(GATE_B+10,GATE_B+24,s)*(1-smooth(SKY_A-34,SKY_A-18,s))*smooth(15,26,Math.abs(s-VILLAGE_Z));
+function wildK(s){ if(s<GATE_B+10||s>MTN-6) return 0; if(s>GB[2]&&picks[2]&&legKey(2)==='pond'&&s<MTN+6) return 0;
+  let k=smooth(GATE_B+10,GATE_B+24,s)*(1-smooth(MTN-22,MTN-6,s))*smooth(15,26,Math.abs(s-VILLAGE_Z));
   for(let i=1;i<3;i++) k*=smooth(20,34,Math.abs(s-SITES[i].rest))*smooth(15,27,Math.abs(s-(GA[i]+GB[i])/2)); return k; }
 /* Every 44 m or so there is something in the trail's way: a gully to dip down through, a knoll to climb over, or a small canyon to walk
    along the bottom of. (Which, and exactly where, is fixed by the number of the stretch, so it is the same every time.) */
@@ -570,7 +570,11 @@ const trailX=s=>x0(s)+choice*spread(s-FORK);       /* the path the girls are on 
    mist, the sky garden, one last cave and the top. Past the first fork there is only ever one trail on the ground: the choice is made in
    the rest scene, and the trail picks up inside whichever gateway was chosen. */
 const SITES=[{rest:REST_C,a:GATE_A,b:GATE_B},{rest:250,a:276,b:288},{rest:398,a:424,b:436}];
-const MTN=500, SKY_A=572, SKY_B=587, TOP_A=679, TOP_B=691;   /* the mountain trail is 72 m long; the mist is 15 m deep */
+const MTN=500, HILL_B=MTN+72, BOULDER_S=MTN+59, SKY_A=HILL_B+60, SKY_B=SKY_A+15, TOP_A=SKY_B+92, TOP_B=TOP_A+12;
+/* Between the last of the three places and the mountain trail there is a steep hill (MTN to HILL_B). The trail climbs it in switchbacks,
+   the place below thins out into bare rock on the way up, near the top it runs into a bank of mist with a boulder across it to be climbed
+   over, and beyond the boulder the mist clears and the mountain trail proper begins. */
+const hillMistK=s=>smooth(MTN+40,MTN+49,s)*(1-smooth(BOULDER_S+3,HILL_B+2,s));
 const GA=[GATE_A,276,424,SKY_A,TOP_A], GB=[GATE_B,288,436,SKY_B,TOP_B], BOUNDS=[GATE_B,288,436,MTN,SKY_B];   /* where each gateway starts and ends, and where each new place begins */
 const VILLAGE_Z=466;   /* each of the last four places has a village, here */
 const picks=[0,0,0];   /* what was chosen at each rest site: 1 the left-hand button, -1 the right-hand one */
@@ -582,7 +586,7 @@ let skyOpen=false, skyShut=false, mtnShut=false;   /* mtnShut: they are out on t
 function bioKeyAt(z){ if(z>SKY_B) return skyOpen?'sky':'mtn'; if(z>MTN) return 'mtn'; for(let i=2;i>=0;i--) if(z>SITES[i].b){ const k=legKey(i); if(k) return k; } return null; }   /* the name of the place at z (null in the home woods) */
 function boundAt(z){ let b=-1e9; for(let i=0;i<5;i++) if(z>BOUNDS[i]) b=BOUNDS[i]; return b; }
 const prevKeyAt=z=>bioKeyAt(boundAt(z)-0.01);
-const newK=z=>{ const b=boundAt(z); return smooth(0,b===MTN?9:7,z-b); };   /* how much of the place at z has taken over from the one before */
+const newK=z=>{ const b=boundAt(z); return smooth(0,b===MTN?58:7,z-b); };   /* (up the hill the last place gives way to the mountain little by little) */   /* how much of the place at z has taken over from the one before */
 const FLATS={grass:0.4,marsh:0.14,alpine:0.7,mtn:0.8,pond:0.03,crystal:0.8,sky:0.45};   /* how hilly the land beside the trail is in each place (1 where not listed) */
 function landK(z){ const b=boundAt(z); if(b<0) return 1; const k=FLATS[bioKeyAt(z)], p=FLATS[prevKeyAt(z)]; return lerp(p===undefined?1:p,k===undefined?1:k,smooth(0,25,z-b)); }
 const GATE_KIND={winter:'dim',grass:'dim',marsh:'dim',alpine:'dark',glow:'dark',giant:'dim',pond:'dim',crystal:'dark'};   /* leafy tunnels are dim, rock and hollow trees are dark */
@@ -606,7 +610,7 @@ const hill=s=>smooth(50,62,s)*(1-smooth(62,90,s));
 /* height of the trail: a gentle climb, up and over the hill, down into the deep forest, level at the rest site, then steeper and rolling past the gateways */
 const trailY0=s=>0.05*Math.min(s,46)+0.8*Math.sin(s*0.03)*(1-smooth(36,50,s))+2.8*hill(s)-3.8*smooth(64,89,s)+0.4*Math.sin(s*0.3)*smooth(64,72,s)*(1-smooth(81,89,s))   /* the last part: little rises and dips in the forest floor */
   +0.03*Math.max(0,climbS(s)-106)+0.07*Math.max(0,climbS(s)-GATE_B)+smooth(GATE_B,GATE_B+25,s)*calm(s)*(2.2*Math.sin(s*0.045+0.6)+1.3*Math.sin(s*0.083+2))
-  +0.05*Math.max(0,s-MTN)+0.2*Math.max(0,s-TOP_A)   /* steeper on the mountain trail, and steepest of all in the last cave */
+  +0.05*Math.max(0,s-MTN)+(s>MTN?13*smooth(MTN+2,MTN+60,s):0)+0.2*Math.max(0,s-TOP_A)   /* steeper on the mountain trail, and steepest of all in the last cave */
   +(s>GATE_B+8?wildK(s)*(0.5*Math.sin(s*0.29+1)+0.35*Math.sin(s*0.47))+featY(s):0);   /* humps and hollows, gullies and knolls */
 const trailY=s=>{ const w=s>GB[2]&&s<MTN?pondK(s):0; if(w<=0) return trailY0(s);   /* on the pond the climb is taken in level steps, 11 m long */
   const u=(s-GB[2])/11, q=GB[2]+11*(Math.floor(u)+smooth(0.72,1,u-Math.floor(u))); return lerp(trailY0(s),trailY0(q),w); };
@@ -660,7 +664,7 @@ const OB_FROM=68, OB_STEP=13;
 function obstacle(k){ if(k<0) return null; const s=OB_FROM+k*OB_STEP+hash(k,3,91)*6;
   if(Math.abs(s-REST_C)<12||s>FORK-4&&s<GATE_B+8||Math.abs(s-SITES[1].rest)<12||Math.abs(s-SITES[2].rest)<12||s>TOP_A-10) return null;
   for(let i=1;i<3;i++) if(s>GA[i]-6&&s<GB[i]+8) return null;
-  if(s>SKY_A-6||s>SITES[2].b&&Math.abs(s-VILLAGE_Z)<17) return null;   /* and nothing lies across the path along the ridge, or through a village */
+  if(s>MTN-6||s>SITES[2].b&&Math.abs(s-VILLAGE_Z)<17) return null;   /* and nothing lies across the path along the ridge, or through a village */
   return {s,side:hash(k,5,92)<0.5?-1:1,log:hash(k,7,93)<0.45}; }
 function dodge(s){ let sh=0; const k0=Math.floor((s-OB_FROM)/OB_STEP);   /* how far to step aside at this point on the trail */
   for(let k=k0-1;k<=k0+1;k++){ const o=obstacle(k); if(o&&!o.log) sh-=o.side*1.45*Math.exp(-Math.pow((s-o.s)/2.3,2)); }
@@ -672,7 +676,8 @@ function sidestep(s,d){ let sh=0;   /* how far to shift a girl walking at offset
   for(const o of solids){ const ds=o.z-s; if(ds<-1.2||ds>3.2) continue; const gap=d+sh-(o.x-trailX(o.z)), need=o.r+0.75;
     if(Math.abs(gap)<need) sh+=(gap>=0?1:-1)*(need-Math.abs(gap))*smooth(3.2,1.3,ds)*smooth(-1.2,-0.3,ds); } return sh; }
 const duckAt=s=>choice<0?Math.max(0,1-Math.pow((s-GATE_OB)/1.3,2)):0;   /* how low to duck under the branch in the thicket */
-function logHop(s){ const k0=Math.floor((s-OB_FROM)/OB_STEP);   /* how far through a hop over a log a girl at s is: 0 on the ground, 1 at the top */
+function logHop(s){ { const u=(s-BOULDER_S)/1.7; if(u>-1&&u<1) return (1-u*u)*2.7; }   /* the boulder in the mist: a much bigger scramble */
+  const k0=Math.floor((s-OB_FROM)/OB_STEP);   /* how far through a hop over a log a girl at s is: 0 on the ground, 1 at the top */
   for(let k=k0-1;k<=k0+1;k++){ const o=obstacle(k); if(o&&o.log){ const u=(s-o.s)/0.62; if(u>-1&&u<1) return 1-u*u; } } return 0; }
 
 /* ---------- renderer & scene ---------- */
@@ -762,7 +767,7 @@ function rebuildGround(s0){
   const r0=Math.floor((s0-BACK)/ROW);
   for(let i=0;i<NR;i++){ const r=r0+i, z=r*ROW;
     const [xl,xr,wl,wr]=fillRow(z);
-    const g=deep(z)*0.85, bp=bioK(z), nb=BIO[bioKeyAt(z)], pb=BIO[prevKeyAt(z)], nk=newK(z), fogQ=Math.max(!skyOpen?smooth(SKY_B+2,SKY_B+12,z):skyShut?1-smooth(SKY_B-6,SKY_B-1.5,z):0,mtnShut?1-smooth(MTN-9,MTN-4,z):0), tyRow=trailY(z);   /* beyond the cloud bank the ground is only more cloud */
+    const g=deep(z)*0.85, bp=bioK(z), nb=BIO[bioKeyAt(z)], pb=BIO[prevKeyAt(z)], nk=newK(z), fogQ=Math.max(!skyOpen?smooth(SKY_B+2,SKY_B+12,z):skyShut?1-smooth(SKY_B-6,SKY_B-1.5,z):0,mtnShut?1-smooth(MTN+44,MTN+51,z):0), tyRow=trailY(z);   /* beyond the cloud bank the ground is only more cloud */
     const only=choice&&z>GATE_B-3?(Math.abs(trailX(z)-xl)<Math.abs(trailX(z)-xr)?-1:1):0;   /* past the gateways only the chosen path is a path; the other is just forest floor */
     for(let j=0;j<NC;j++){ const x=rowX[j], k=(i*NC+j)*3, a=only<0?Math.abs(x-xl)/wl:only>0?Math.abs(x-xr)/wr:Math.min(Math.abs(x-xl)/wl,Math.abs(x-xr)/wr);
       gPos[k]=x; gPos[k+1]=groundY(x,z); gPos[k+2]=z;
@@ -1140,7 +1145,7 @@ function rebuildForest(s0){
   const r0=Math.floor((s0-BACK)/3), r1=Math.floor((s0+FWD)/3);
   for(let r=r0;r<=r1;r++){ const z0=r*3, inGate=z0+3>GATE_A-1&&z0<GATE_B+0.5;
     if(!skyOpen&&z0>SKY_B+6) continue;   /* nothing of the sky garden, or of anything past it, exists yet */
-    if(skyShut&&z0+3<=SKY_B-1||mtnShut&&z0+3<=MTN-4) continue;    /* and from the ridge, nothing of the mountain below exists any more */
+    if(skyShut&&z0+3<=SKY_B-1||mtnShut&&z0+3<=MTN+50) continue;    /* and from the ridge, nothing of the mountain below exists any more */
     for(const side of [-1,1]){ const dp=deep(z0+1.5), bands=side<0||dp>0.5?BANDS_UP:BANDS_DOWN, q=side*10;   /* in the deep woods the trees close in on both sides */
       const edge=z=>{ paths(z); return side<0?pL:pR; };   /* things on the left grow beside the left path, things on the right beside the right one */
       /* trees */
@@ -1251,6 +1256,9 @@ function rebuildForest(s0){
       KIT.mush.forEach(([x,z],i)=>{ for(let k=0;k<4;k++){ const mx=X+x+(hash(i,k,79)-0.5)*0.7, mz=Z+z+(hash(i,k,80)-0.5)*0.7, ms=0.8+hash(i,k,81)*0.9, my=floorY(mx,mz); put(P.stem,mx,my,mz,ms,ms,ms,0,STEM); put(P.cap,mx,my,mz,ms,ms,ms,0,CAPS[i%3]); } });
       KIT.ferns.forEach(([x,z],i)=>{ const y=floorY(X+x,Z+z), s1=0.8+hash(i,1,82)*0.5; for(let k=0;k<6;k++){ const fa=k*1.047+hash(i,k,83)*0.4; put(P.bush,X+x+Math.sin(fa)*0.36*s1,y+0.2*s1,Z+z+Math.cos(fa)*0.36*s1,0.11*s1,0.045*s1,0.46*s1,fa,FERNS[i%3]); } });
       KIT.flowers.forEach(([x,z],i)=>{ for(let k=0;k<7;k++){ const fx=X+x+(hash(i,k,84)-0.5)*1.3, fz=Z+z+(hash(i,k,85)-0.5)*1.3; put(P.petal,fx,floorY(fx,fz)+0.11,fz,1,1,1,0,PETALS[i%5]); } }); }
+    if(BOULDER_S>=z0&&BOULDER_S<z0+3){ const x=trailX(BOULDER_S), y=trailY(BOULDER_S);   /* the boulder across the trail in the mist, with smaller rocks jammed in either side of it */
+      put(P.rock,x,y+0.5,BOULDER_S,2.5,1.25,1.25,0.4,ROCKS[1]); put(P.rock,x-2.6,y+0.6,BOULDER_S+0.2,1.7,1.5,1.3,1.9,ROCKS[0]); put(P.rock,x+2.7,y+0.55,BOULDER_S-0.1,1.8,1.4,1.4,3.3,ROCKS[2]);
+      put(P.rock,x-4.6,y+0.9,BOULDER_S,2,1.9,1.6,5,ROCKS[1]); put(P.rock,x+4.8,y+0.9,BOULDER_S+0.3,2.1,1.8,1.7,0.9,ROCKS[0]); put(P.bush,x+0.3,y+1.42,BOULDER_S,1.3,0.2,0.7,0,MOSS); }
     /* boulders and fallen logs lying on one half of the trail, for the girls to walk around */
     for(let k=Math.floor((z0-OB_FROM)/OB_STEP)-1;k<=Math.floor((z0-OB_FROM)/OB_STEP)+1;k++){ const o=obstacle(k); if(!o||o.s<z0||o.s>=z0+3) continue;
       const y=trailY(o.s);
@@ -1681,7 +1689,7 @@ const fork={stage:0,t:0,entered:false,gateEvt:false,river:false,deepSaid:false,h
 /* is a planned stop (a rest site, the mist, the last cave) less than m metres ahead? */
 function nearStop(m){ const nx=fork.stage===0?REST_C:fork.stage===4&&fork.site<2?SITES[fork.site+1].rest:1e9; if(party.s>nx-m) return true;
   if(fork.site===2&&fork.stage===4) for(const i of [3,4]) if(party.s>GA[i]-m&&party.s<GB[i]+6) return true; return false; }
-const TAIL_AT=[MTN+4,SKY_A-2,SKY_B+1.2,TOP_A-2,TOP_B-1.5], TAIL_EV=['trail','mist','sky','cave','top'];
+const TAIL_AT=[MTN+4,BOULDER_S-7,HILL_B,SKY_A-2,SKY_B+1.2,TOP_A-2,TOP_B-1.5], TAIL_EV=['hill','boulder','trail','mist','sky','cave','top'];
 let landY=groundY;   /* the height of the ground under the girls' feet: the trail's, or the rest scene's */
 const R={};
 function makeBrain(girl,o){ return Object.assign({girl,pos:new THREE.Vector2(),y:0,face:0,faceT:0,queue:[],cur:null,t:0,walkPhase:0,skip:0,
@@ -1742,10 +1750,10 @@ function updateParty(dt){
     else { party.restIn-=dt; if(party.restIn<=0&&!nearStop(30)&&gateK(party.s)<0.05&&!juneB.cur&&!pipB.cur&&!juneB.queue.length&&!pipB.queue.length&&quiet()) startRest(); }
   }
   if(state.started&&fork.site===2&&fork.stage===4&&!fork.village&&party.rest<=0&&party.s>=VILLAGE_Z-3.5&&party.s<VILLAGE_Z+5){ fork.village=true; onVillage(); }   /* the village: stop and say hello */
-  if(state.started&&fork.site===2&&fork.stage===4&&fork.tail<5&&party.s>=TAIL_AT[fork.tail]) onTail(TAIL_EV[fork.tail++]);   /* the mountain trail, the mist, the sky garden, the last cave, the top */
+  if(state.started&&fork.site===2&&fork.stage===4&&fork.tail<7&&party.s>=TAIL_AT[fork.tail]) onTail(TAIL_EV[fork.tail++]);   /* the mountain trail, the mist, the sky garden, the last cave, the top */
   if(state.started&&fork.stage===3&&!fork.entered&&party.s>=SITES[fork.site].a-2){ fork.entered=true; onGateEnter(); }
   if(state.started&&fork.site===0&&fork.stage===3&&!fork.gateEvt&&party.s>=GATE_OB-2){ fork.gateEvt=true; onGateObstacle(); }
-  party.v=damp(party.v,party.vT,2.2,dt); party.s+=party.v*dt;
+  party.v=damp(party.v,party.vT,2.2,dt); party.s+=party.v*dt*(party.s>MTN-4&&party.s<HILL_B?Math.cos(heading(party.s)):1);   /* on the switchbacks, the same walking pace covers less of the way up */
 }
 /* a girl with her flashlight on holds it out in front of her, whatever else she is doing, and plays the beam about: slowly from side to side
    and a little up and down, her head turning to follow it. (Each girl sweeps in her own time, so the two beams cross and part.) */
@@ -1761,7 +1769,7 @@ function rigPose(b,pose,tt,walking){
     R.llx=w*0.6;R.lrx=-w*0.6;R.lax=-w*0.55;R.rax=w*0.55;R.rootY=Math.abs(Math.cos(b.walkPhase))*0.035;R.hy=Math.sin(tt*0.35+s)*0.3;R.lean=0.08;
     if(b.skip>0){ R.rootY=Math.abs(Math.sin(b.walkPhase*0.5))*0.2;R.laz=-0.9;R.raz=0.9;R.hx=-0.12; }
     if(b.duck>0){ const k=b.duck; R.drop=0.2*k;R.lean=0.08+0.62*k;R.hx=0.38*k;R.rootY*=1-k; }   /* ducking under a low branch */
-    if(b.hop>0){ const h=b.hop; R.rootY=h*0.64;R.llx=-0.95*h;R.lrx=0.55*h;R.lax=0;R.rax=0;R.laz=-0.15-1.7*h;R.raz=0.15+1.7*h;R.hx=-0.18*h;R.lean=0.08-0.1*h; }   /* a little leap over a log: one leg out in front, arms flung wide */
+    if(b.hop>0){ const h=Math.min(1,b.hop); R.rootY=b.hop*0.64;R.llx=-0.95*h;R.lrx=0.55*h;R.lax=0;R.rax=0;R.laz=-0.15-1.7*h;R.raz=0.15+1.7*h;R.hx=-0.18*h;R.lean=0.08-0.1*h; }   /* a little leap over a log: one leg out in front, arms flung wide */
     return; }
   switch(pose){
     case 'wave': R.hz=0.15*b.hand;
@@ -2140,7 +2148,7 @@ function zoneList(){ const c=choice||1, p1=picks[1]||1, p2=picks[2]||1, A=GATE_A
       ['Third rest site, after winter',R3,[1,1,0]],['Third rest site, after the wheat field',R3,[1,-1,0]],['Third rest site, after marsh',R3,[-1,1,0]],['Third rest site, after alpine',R3,[-1,-1,0]]]],
     ['After the third fork',[['Moonlit glow-wood',D,[1,p1,1]],['Giant garden',D,[1,p1,-1]],['Upside-down pond',D,[-1,p1,1]],['Crystal hollow',D,[-1,p1,-1]],
       ['Lantern-folk village',VILLAGE_Z-12,[1,p1,1]],['Buttonbug village',VILLAGE_Z-12,[1,p1,-1]],['Rippling village',VILLAGE_Z-12,[-1,p1,1]],['Chimeling village',VILLAGE_Z-12,[-1,p1,-1]]]],
-    ['The way to the top',[['Mountain trail',MTN-3,[c,p1,p2],0],['Into the mist',SKY_A-5,[c,p1,p2],1],['Sky garden',SKY_B-1,[c,p1,p2],2],['Last cave',TOP_A-5,[c,p1,p2],3],['Summit',TOP_B-3.5,[c,p1,p2],4],['Dinner at home','home',[c,p1,p2]],['The secret ending (as if everything were found)','secret',[c,p1,p2]]]],
+    ['The way to the top',[['The steep climb',MTN-3,[c,p1,p2],0],['The boulder in the mist',BOULDER_S-12,[c,p1,p2],1],['Mountain trail',HILL_B-3,[c,p1,p2],2],['Into the mist',SKY_A-5,[c,p1,p2],3],['Sky garden',SKY_B-1,[c,p1,p2],4],['Last cave',TOP_A-5,[c,p1,p2],5],['Summit',TOP_B-3.5,[c,p1,p2],6],['Dinner at home','home',[c,p1,p2]],['The secret ending (as if everything were found)','secret',[c,p1,p2]]]],
     ['After the secret ending',[['The river, with the crossing open','river'],['Behind the waterfall','falls']]]]; }
 function warp(name,s,p,tail){
   resetHike(); p=p||[0,0,0];
@@ -2149,7 +2157,7 @@ function warp(name,s,p,tail){
   if(s==='secret'){ forceSecret=true; s='home'; }
   if(s==='river'){ forceRiver=true; s=33; }   /* a few steps before the river, with the crossing allowed */
   if(s==='falls'){ party.s=39; placeGirls(); enterFalls(); return; }
-  if(s==='home'){ fork.site=2; fork.stage=4; fork.tail=5; fork.village=true; party.s=TOP_B-3; placeGirls(); enterHome(); return; }
+  if(s==='home'){ fork.site=2; fork.stage=4; fork.tail=7; fork.village=true; party.s=TOP_B-3; placeGirls(); enterHome(); return; }
   fork.village=s>VILLAGE_Z+5; fork.river=s>=39; fork.deepSaid=s>=57; fork.hopSaid=s>60; fork.entered=true; fork.gateEvt=n>1||s>GATE_OB;
   party.s=s; party.v=party.vT=WALK; party.restIn=60+Math.random()*30; lookBack=s<5?1:0; hikeT=s<5?0:99;
   placeGirls(); groundRow=forestRow=null; camHd=heading(s); EVT.inT=20; speakIn=6;
@@ -2571,7 +2579,7 @@ function buildCave(){
     dispose(){ sc.traverse(o=>{ if(o.geometry&&o.geometry!==rockGeo&&o.geometry!==stemGeo&&o.geometry!==capGeo&&o.geometry!==wingGeo) o.geometry.dispose(); if(o.material&&!tones.includes(o.material)) o.material.dispose(); }); tones.forEach(m=>m.dispose()); } };
 }
 function enterCave(){
-  const tok=++restToken; $('fade').classList.add('on'); fork.tail=5;
+  const tok=++restToken; $('fade').classList.add('on'); fork.tail=7;
   setTimeout(()=>{ if(tok!==restToken||!state.started) return;
     caveS=buildCave(); Object.assign(caveS,{t:0,pt:0,phase:'walk',step:0,cam0:camTheta,amb:3,cam:new THREE.Vector3(0,3,-12)});
     scene.remove(june.g,pip.g); caveS.scene.add(june.g,pip.g); endEvent(); setTorches(1);
@@ -2652,7 +2660,10 @@ function updateSummit(dt,rawDt){
 function leaveSummit(){ $('homeDock').hidden=true; june.g.scale.setScalar(june.scale); pip.g.scale.setScalar(pip.scale); june.g.rotation.z=pip.g.rotation.z=0; bubbles[2].head=nobody.head; bubbles[2].root=nobody.g; summit.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); summit.dispose(); summit=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
 /* the last stretch: the mountain trail, the mist, the sky garden, the last cave, the top */
 function onTail(what){
-  if(what==='trail'){ narrate('Higher still, the path turned to stone and the air grew thin and bright.'); showCaption({t:'The mountain trail',b:'Steep and stony now. A bank of cloud is coming down to meet it.'}); }
+  if(what==='hill'){ narrate('And there the ground simply stood up. The trail did not go round the hill, or through it. It went up it, this way and that.'); playScript([[1,'It goes STRAIGHT UP.'],[0,'It zigzags. That\'s how you climb something steep.'],[1,'Zig. Zag. Zig.']]); speakIn=16;
+    showCaption({t:'The steep climb',b:'Switchbacks up a hill so high that its top is lost in cloud.'}); return; }
+  if(what==='boulder'){ narrate('Near the top the cloud came down to meet them, and in the middle of the cloud, right across the trail, sat a boulder.'); playScript([[0,'I can hardly see. Hold on... there\'s a rock in the way.'],[1,'Over it! I\'ll go first!'],[0,'Hands and knees, Pip.']]); speakIn=14; return; }
+  if(what==='trail'){ narrate('Higher still, the path turned to stone and the air grew thin and bright.'); showCaption({t:'The mountain trail',b:'The cloud is behind them now. Bare stone, thin bright air, and the top not far off.'}); }
   else if(what==='mist'){ playScript(BIO.sky.gate.enter); speakIn=14; narrate('Then the cloud closed round them, soft and white and very quiet.'); }
   else if(what==='sky'){ const R=BIO.sky.reveal; hushBubbles(); startGust(BIO.sky.fall,party.s); Music.gust(); revealT=0; speakIn=16; narrate(R.narr); playScript(R.lines); showCaption({t:R.t,b:R.b}); }
   else if(what==='cave') enterCave();   /* the last cave is a scene of its own; the summit follows it */
@@ -3148,13 +3159,13 @@ function drawMap(){
   const all=[MAP_A], taken=[], rests=[], blanks=[];
   for(const n in WAYS){ if(!known(n)) continue; rests.push(N[n]); for(const [k,i,d] of WAYS[n]){ (found(k,i)?taken:all).push(d); if(!blanks.some(b=>b[0]===k)) blanks.push([k,i]); } }
   ALL_FRIENDS.forEach(k=>{ if(found(k,2)) taken.push(line(k,'M')); });
-  const upKnown=done||saved.top||fork.site===2&&fork.tail>=1, mistKnown=done||saved.top||fork.site===2&&fork.tail>=2; if(upKnown) taken.push(MAP_UP);
+  const upKnown=done||saved.top||fork.site===2&&fork.tail>=1, mistKnown=done||saved.top||fork.site===2&&fork.tail>=4; if(upKnown) taken.push(MAP_UP);
   const villages=ALL_FRIENDS.filter(k=>saved.friends.includes(k)||k===k2&&fork.village);
   /* the path they have taken, piece by piece, with the metres each piece covers */
   const walked=[[MAP_A,0,REST_C]];
   if(k0) walked.push([MAP_LEG0[k0],REST_C,SITES[1].rest]); if(k1) walked.push([MAP_LEG1[k1],SITES[1].rest,SITES[2].rest]);
   if(k2&&r3) walked.push([line(r3,k2),SITES[2].rest,VILLAGE_Z],[line(k2,'M'),VILLAGE_Z,MTN],[MAP_UP,MTN,TOP_B]);
-  const sNow=mode==='summit'||mode==='home'?TOP_B:Math.max(0,party.s), skyKnown=saved.top||fork.site===2&&fork.tail>=3||mode==='summit'||mode==='home';
+  const sNow=mode==='summit'||mode==='home'?TOP_B:Math.max(0,party.s), skyKnown=saved.top||fork.site===2&&fork.tail>=5||mode==='summit'||mode==='home';
   /* Dad's map was only ever this: home, the woods, and a checkered line straight to the top, which is all he saw of the mountain. Everything
      else is the girls' doing. The sheet starts narrow, with the mountain drawn right beside the woods, and each new stretch they reach
      unfolds another strip of paper between the two. */
@@ -3180,7 +3191,7 @@ function drawMap(){
     ${blanks.map(([k,i])=>place(k,i)).join('')}
     ${villages.map(k=>`<g transform="translate(${N[k][0]+16} ${N[k][1]+4})"><path d="M-6 6v-8l6-6 6 6v8z" fill="#fff6ec" stroke="#d0607a" stroke-width="1.8" stroke-linejoin="round"/><text x="12" y="6" font-size="13" style="fill:#d0607a">${FOLK[k].village}</text></g>`).join('')}
     ${mistKnown?`<g fill="none" stroke="#8aa0b4" stroke-width="2.4" stroke-linecap="round"><path d="M630 204 q8 -6 16 0 t16 0 t16 0"/><path d="M636 194 q8 -6 16 0 t16 0 t16 0"/></g><text x="706" y="212" font-size="13" text-anchor="end">Mist</text>`:''}
-    ${done||saved.top||fork.site===2&&fork.tail>=4?`<g><path d="M667 122c0-9 5-13 9-13s9 4 9 13z" fill="#9a9a94" stroke="${ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M672 122a4 5 0 0 1 8 0z" fill="#1d2228"/></g>`:''}
+    ${done||saved.top||fork.site===2&&fork.tail>=6?`<g><path d="M667 122c0-9 5-13 9-13s9 4 9 13z" fill="#9a9a94" stroke="${ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M672 122a4 5 0 0 1 8 0z" fill="#1d2228"/></g>`:''}
     <g transform="translate(${dx} 0)"><path d="M682 80v-22" stroke="${ink}" stroke-width="2"/><path d="M682 58l14 5-14 5z" fill="#d0607a"/><text x="682" y="46" font-size="17" text-anchor="middle">The top</text></g>
     ${upKnown?`<text x="652" y="304" font-size="14" text-anchor="middle">Mountain trail</text>`:''}
     ${skyKnown?`<text x="648" y="160" font-size="14" text-anchor="end">Sky garden</text>`:mistKnown?`<text x="652" y="166" font-size="18" text-anchor="end" opacity=".7">?</text>`:''}
@@ -3741,9 +3752,9 @@ const curtainTex=alphaTex(128,(u,v)=>{ const top=0.84+0.07*Math.sin(u*19)+0.05*M
 const curtainGeo=new THREE.PlaneGeometry(460,110), curtains=[];   /* wide and tall enough, and reaching far enough down the slopes, that nothing shows round, over or under them */
 for(let i=0;i<12;i++){ const m=new THREE.Mesh(curtainGeo,new THREE.MeshBasicMaterial({color:0xffffff,map:curtainTex,transparent:true,opacity:0.62,depthWrite:false,side:THREE.DoubleSide}));
   m.visible=false; m.renderOrder=2; if(i%2) m.scale.x=-1; scene.add(m); curtains.push({m,ahead:i<6,k:i%6,dx:(rnd()-0.5)*40,dy:rnd()*5}); }
-function updateCurtains(){ const rise=fork.site===2&&!skyShut?smooth(MTN+2.5,MTN+6.5,party.s):0;   /* stepping onto the mountain trail: the mist comes up behind within a few paces */
+function updateCurtains(){ const rise=fork.site===2&&!skyShut?smooth(BOULDER_S-4,BOULDER_S+1,party.s):0;   /* over the boulder: the mist stays shut behind them, over the hill and the place below it */
   for(const c of curtains){ const on=c.ahead?!skyOpen&&party.s>SKY_A-190:skyShut||rise>0.01; c.m.visible=on; if(!on) continue; c.m.material.opacity=0.62*(c.ahead||skyShut?1:rise);
-    const z=c.ahead?SKY_A+8+c.k*3:skyShut?SKY_B-2-c.k*2.5:MTN-2-c.k*2.5; c.m.position.set(trailX(z)+c.dx,trailY(z)+17+c.dy,z); c.m.material.color.copy(scene.fog.color).lerp(WHITE,0.45); } }
+    const z=c.ahead?SKY_A+8+c.k*3:skyShut?SKY_B-2-c.k*2.5:MTN+53-c.k*2.2; c.m.position.set(trailX(z)+c.dx,trailY(z)+17+c.dy,z); c.m.material.color.copy(scene.fog.color).lerp(WHITE,0.45); } }
 /* the sky garden's own weather: a sea of cloud lying under the ridge, the sun glowing through the haze straight ahead, and mist drifting up the slopes */
 const cloudSea=new THREE.Mesh(new THREE.CircleGeometry(230,48),new THREE.MeshBasicMaterial({color:0xfff6e8})); cloudSea.rotation.x=-Math.PI/2; cloudSea.visible=false; scene.add(cloudSea);
 const sunGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xffe7b0,transparent:true,opacity:0,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); sunGlow.scale.set(520,520,1); sunGlow.visible=false; scene.add(sunGlow);
@@ -3837,7 +3848,7 @@ function frame(now){
   /* the walk, and the strip of forest that travels with it */
   updateParty(dt);
   BRAINS.forEach(b=>updateBrain(b,dt));
-  { const so=party.s>=SKY_A+1, sh=party.s>=SKY_B+1.5, ms=party.s>=MTN+7&&fork.site===2; if(so!==skyOpen||sh!==skyShut||ms!==mtnShut){ skyOpen=so; skyShut=sh; mtnShut=ms; groundRow=forestRow=null; } }   /* deep in the mist: now the sky garden is put in place */
+  { const so=party.s>=SKY_A+1, sh=party.s>=SKY_B+1.5, ms=party.s>=BOULDER_S+1.5&&fork.site===2; if(so!==skyOpen||sh!==skyShut||ms!==mtnShut){ skyOpen=so; skyShut=sh; mtnShut=ms; groundRow=forestRow=null; } }   /* deep in the mist: now the sky garden is put in place */
   const gr=Math.floor(party.s/ROW), fr=Math.floor(party.s/3);
   if(gr!==groundRow){ groundRow=gr; rebuildGround(party.s); }
   if(fr!==forestRow){ forestRow=fr; rebuildForest(party.s); }
@@ -3869,14 +3880,14 @@ function frame(now){
   sun.position.copy(target).addScaledVector(SUN_DIR,110); sun.target.position.copy(target);
 
   /* light and haze: dim and cool down in the gully, bright in the aspens, warm in the autumn woods */
-  const gNow=gateInfo(party.s), gst=gNow.style, gk=deep(party.s), thK=gst==='dim'?gK:0, caveK=gst==='dark'?gK:0, mistK=gst==='mist'?gK:0;
+  const gNow=gateInfo(party.s), gst=gNow.style, gk=deep(party.s), thK=gst==='dim'?gK:0, caveK=gst==='dark'?gK:0, mistK=Math.max(gst==='mist'?gK:0,fork.site===2?hillMistK(party.s):0);
   /* stepping out of a gateway, the light swells gently over a few seconds and settles again; nothing snaps */
   if(revealT>=0){ revealT+=dt; bloom=smooth(0,4,revealT)*(1-smooth(5,14,revealT)); if(revealT>14){ revealT=-1; bloom=0; } }
   /* every place has its own sky (top, horizon haze, ground glow), its own light and its own air; they blend as the girls walk from one to the next */
   let air=lerp(SKIES.home.air,SKIES.deep.air,gk), glw=lerp(SKIES.home.glow,SKIES.deep.glow,gk), shn=lerp(SKIES.home.shine,SKIES.deep.shine,gk), fallK=0, darkK=0, nightK=0;
   for(const k of SKY_KEYS) skyNow[k].copy(SKIES.home[k]).lerp(SKIES.deep[k],gk);
   motes.material.color.copy(MOTE_HOME);
-  for(let i=0;i<5;i++){ const key=i<3?legKey(i):i===3?'mtn':'sky', S=SKIES[key]; if(!S) continue; const q=key==='glow'?smooth(BOUNDS[i]-8,BOUNDS[i],party.s):smooth(BOUNDS[i],BOUNDS[i]+(i===3?30:22),party.s); if(q<=0) continue;   /* (night has fully fallen by the time they step out of the hollow tree; the change happens in the dark inside it) */
+  for(let i=0;i<5;i++){ const key=i<3?legKey(i):i===3?'mtn':'sky', S=SKIES[key]; if(!S) continue; const q=key==='glow'?smooth(BOUNDS[i]-8,BOUNDS[i],party.s):smooth(BOUNDS[i],BOUNDS[i]+(i===3?62:22),party.s); if(q<=0) continue;   /* (night has fully fallen by the time they step out of the hollow tree; the change happens in the dark inside it) */
     for(const k of SKY_KEYS) skyNow[k].lerp(S[k],q); air=lerp(air,S.air,q); glw=lerp(glw,S.glow,q); shn=lerp(shn,S.shine,q);
     fallK=lerp(fallK,S.falls?1:0,q); darkK=lerp(darkK,BIO[key].dark?1:0,q); nightK=lerp(nightK,BIO[key].night?1:0,q); motes.material.color.lerp(S.mote,q); }
   skyNow.mid.lerp(FOG_THICKET,thK*0.92).lerp(FOG_CAVE,caveK*0.96).lerp(FOG_MIST,mistK*0.97); skyNow.top.lerp(FOG_THICKET,thK*0.85).lerp(FOG_CAVE,caveK*0.92).lerp(FOG_MIST,mistK*0.93); skyNow.bot.lerp(FOG_THICKET,thK*0.85).lerp(FOG_CAVE,caveK*0.92).lerp(FOG_MIST,mistK*0.93);   /* inside a gateway: dark all round (or, in the mist, white all round) */

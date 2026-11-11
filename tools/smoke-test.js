@@ -64,11 +64,11 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
     await p.evaluate(m=>window.hikeDebug.walkTo(m),at+41.5); await p.waitForTimeout(2500);
     if(await p.evaluate(()=>window.hikeDebug.stage())!==4) errs.push('the place after rest site '+(i+1)+' did not open up');
     places.push(await p.evaluate(()=>window.hikeDebug.place())); await p.waitForTimeout(1500); }
-  for(const m of [470,503,520,545,571,578,586,590,636,678]){ await p.evaluate(m=>window.hikeDebug.walkTo(m),m); await p.waitForTimeout(1800); }
-  await p.evaluate(()=>window.hikeDebug.walkTo(680));
+  for(const m of [470,503,520,545,556,563,575,600,631,640,650,700,738]){ await p.evaluate(m=>window.hikeDebug.walkTo(m),m); await p.waitForTimeout(1800); }
+  await p.evaluate(()=>window.hikeDebug.walkTo(740));
   await p.waitForFunction(()=>window.hikeDebug.mode()==='summit',null,{timeout:180000}).catch(()=>errs.push('the summit scene did not start'));
   await p.waitForTimeout(4000);
-  const summit=await p.evaluate(()=>window.hikeDebug.mode()==='summit'&&window.hikeDebug.tail()===5);
+  const summit=await p.evaluate(()=>window.hikeDebug.mode()==='summit'&&window.hikeDebug.tail()===7);
   // at the top, the friend from the village turns up and offers a way home; accepting leads to spaghetti night, told to the end
   await p.waitForFunction(()=>!document.getElementById('homeDock').hidden,null,{timeout:90000}).catch(()=>errs.push('the friend never offered a way home'));
   const offer=await p.evaluate(()=>document.getElementById('homeBtn').textContent);
