@@ -2595,19 +2595,19 @@ function updateSummit(dt,rawDt){
     f.g.position.set(2.9,0,-2.5); f.g.scale.setScalar(0.01); summit.scene.add(f.g); setFriendBubble(f);
     hushBubbles(); narrate('But they were not alone up there. Somebody small had followed them, all the way from '+F.village+'.'); playScript(F.summit); speakIn=40;
     BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.queue.push({k:'pose',pose:'idle',dur:1.2},{k:'pose',pose:i?'hop':'wave',dur:3,face:0.9},{k:'pose',pose:'look',dur:8,face:0.9}); }); }
-  if(summit.friend){ const f=summit.friend, u=smooth(0,2.6,summit.t-summit.t1), gone=summit.phase===3?smooth(2.2,4.2,summit.t-summit.goT):0;
-    f.g.position.set(lerp(2.9,1.9,u),gone*2.5,lerp(-2.5,1.3,u)); f.g.scale.setScalar(1.15*smooth(0,0.8,summit.t-summit.t1)); f.g.rotation.y=Math.atan2(-f.g.position.x,-f.g.position.z+0.4)+gone*9;
-    animFolk(f,time,summit.phase===3?1:0.35); }
+  if(summit.friend){ const f=summit.friend, u=smooth(0,2.6,summit.t-summit.t1);
+    f.g.position.set(lerp(2.9,1.9,u),0,lerp(-2.5,1.3,u)); f.g.scale.setScalar(1.15*smooth(0,0.8,summit.t-summit.t1)); f.g.rotation.y=Math.atan2(-f.g.position.x,-f.g.position.z+0.4);
+    animFolk(f,time,summit.phase>=3?1:0.35); }
   if(summit.phase===1&&summit.t>summit.t1+6&&quiet()){ summit.phase=2; speakIn=12; $('homeBtn').textContent=FOLK[summit.friend.key].btn; $('homeDock').hidden=false; }
-  if(summit.phase===3){ const g=smooth(2.2,4.2,summit.t-summit.goT); june.g.position.y+=g*2.5; pip.g.position.y+=g*2.5;   /* up they go */
-    if(summit.t>summit.goT+4.4){ summit.phase=4; enterHome(); } }
+  if(summit.phase>=3&&summit.warp){ summit.warp(summit.t-summit.goT);   /* the way home, each friend's own; it goes on playing while the picture fades, so nobody is ever seen dropping back to the rock */
+    if(summit.phase===3&&summit.t>summit.goT+5.2){ summit.phase=4; enterHome(); } }
   summit.th+=dt*0.075*motion;   /* one slow turn of the whole view every minute and a half */
   const th=summit.th+(camTheta-summit.cam0), aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
   const r=10*zoom*aspectBoost, ph=clamp(0.2+userPhi,-0.2,1.0);
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
   target.set(0,1.3,0); camera.position.copy(target).add(off); camera.lookAt(target);
 }
-function leaveSummit(){ $('homeDock').hidden=true; bubbles[2].head=nobody.head; bubbles[2].root=nobody.g; summit.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); summit.dispose(); summit=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
+function leaveSummit(){ $('homeDock').hidden=true; june.g.scale.setScalar(june.scale); pip.g.scale.setScalar(pip.scale); june.g.rotation.z=pip.g.rotation.z=0; bubbles[2].head=nobody.head; bubbles[2].root=nobody.g; summit.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); summit.dispose(); summit=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
 /* the last stretch: the mountain trail, the mist, the sky garden, the last cave, the top */
 function onTail(what){
   if(what==='trail'){ narrate('Higher still, the path turned to stone and the air grew thin and bright.'); showCaption({t:'The mountain trail',b:'Steep and stony now. A bank of cloud is coming down to meet it.'}); }
@@ -2640,34 +2640,83 @@ function homeScript(){ const k=[0,1,2].map(i=>legKey(i)||['autumn','winter','glo
     [4,'Well, however you managed it, you were right on time. I\'m proud of you both.'],[3,'I think it sounds wonderful. More spaghetti?'],[1,'Yes, please.'],
     [0,'We have to tell Michelle. SHE\'ll believe us.'],[1,'Tomorrow! First thing! And Lumi, too.'],[4,'Good plan. And next time, bring me a photo of this village, hm?']]; }
 function buildHome(){
-  const sc=new THREE.Scene(); sc.background=new THREE.Color(0x2e2026);
-  sc.add(new THREE.HemisphereLight(0xffe6c4,0x6e4c3c,0.72));
-  const lamp=new THREE.PointLight(0xffd9a0,0.95,16,1.6); lamp.position.set(0,2.75,0.1); sc.add(lamp);
+  const sc=new THREE.Scene(); sc.background=new THREE.Color(0x241a22);
+  sc.add(new THREE.HemisphereLight(0xffe6c4,0x6e4c3c,0.74));
+  const lamp=new THREE.PointLight(0xffd9a0,0.95,20,1.5); lamp.position.set(0,2.75,0.1); sc.add(lamp);
   const add=(geo,mat,x,y,z,par)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); (par||sc).add(m); return m; };
   const box=(w,h,d,col,x,y,z,par)=>add(new THREE.BoxGeometry(w,h,d),typeof col==='string'?L(col):col,x,y,z,par);
-  const cyl=(r0,r1,h,col,x,y,z,par)=>add(new THREE.CylinderGeometry(r0,r1,h,18),typeof col==='string'?L(col):col,x,y,z,par);
+  const cyl=(r0,r1,h,col,x,y,z,par)=>add(new THREE.CylinderGeometry(r0,r1,h,typeof par==='number'?par:18),typeof col==='string'?L(col):col,x,y,z,typeof par==='number'?undefined:par);   /* (the last argument is either how many sides, or what to attach it to) */
   const ball=(r,col,x,y,z,par)=>add(new THREE.SphereGeometry(r,12,9),typeof col==='string'?L(col):col,x,y,z,par);
-  /* the room: a wooden floor, a rug, warm walls, a window with the mountain in it, and a lamp over the table */
-  box(11,0.1,8.4,'#b98a5a',0,-0.05,-0.2); cyl(2.9,2.9,0.02,'#d9909c',0,0.012,-0.2); cyl(2.5,2.5,0.022,'#f3c7bd',0,0.014,-0.2);
-  box(11,4.8,0.2,'#fbe9cf',0,2.4,-3.5); box(11,1.1,0.24,'#e8c9a0',0,0.55,-3.48); box(0.2,4.8,8.4,'#f6dfc0',-5.4,2.4,-0.2); box(0.2,4.8,8.4,'#f6dfc0',5.4,2.4,-0.2);
-  { const wx=-2.5, wy=2.55, glass=new THREE.MeshBasicMaterial({color:0x33406e});   /* the window: dusk, the mountain they climbed, the Moon and a star or two */
-    box(2.5,1.9,0.08,'#fff6ec',wx,wy,-3.38); box(2.2,1.6,0.06,glass,wx,wy,-3.35);
-    const mt=add(new THREE.ConeGeometry(0.72,1.0,4),new THREE.MeshBasicMaterial({color:0x1f2a4a}),wx+0.2,wy-0.3,-3.31); mt.scale.z=0.05; mt.rotation.y=Math.PI/4;
-    const sn=add(new THREE.ConeGeometry(0.2,0.28,4),new THREE.MeshBasicMaterial({color:0xe9eef8}),wx+0.2,wy+0.06,-3.3); sn.scale.z=0.05; sn.rotation.y=Math.PI/4;
-    add(new THREE.CircleGeometry(0.16,18),new THREE.MeshBasicMaterial({color:0xfff6dc}),wx-0.6,wy+0.4,-3.31);
-    [[0.7,0.5],[0.9,0.1],[-0.2,0.6],[-0.9,0.0],[0.3,0.66]].forEach(([x,y])=>add(new THREE.CircleGeometry(0.022,6),new THREE.MeshBasicMaterial({color:0xffffff}),wx+x,wy+y,-3.31));
-    box(0.06,1.6,0.07,'#fff6ec',wx,wy,-3.31); box(2.2,0.06,0.07,'#fff6ec',wx,wy,-3.31); box(0.5,2.1,0.1,'#e58fa6',wx-1.42,wy-0.05,-3.3); box(0.5,2.1,0.1,'#e58fa6',wx+1.42,wy-0.05,-3.3); }
-  { box(1.5,1.15,0.07,'#8a5a3c',2.6,2.6,-3.38); box(1.32,0.97,0.06,'#fff6ec',2.6,2.6,-3.35);   /* Dad's map, framed on the wall: the trail, and a cross at the top */
-    const ink=new THREE.MeshBasicMaterial({color:0xd0607a}); [[-0.45,-0.3],[-0.25,-0.18],[-0.05,-0.2],[0.12,-0.05],[0.25,0.1],[0.4,0.27]].forEach(([x,y])=>add(new THREE.CircleGeometry(0.035,8),ink,2.6+x,2.6+y,-3.31)); }
-  cyl(0.012,0.012,1.4,'#3a3340',0,4.1,0.1); { const sh=add(new THREE.ConeGeometry(0.55,0.42,20,1,true),new THREE.MeshBasicMaterial({color:0xffd27a,side:THREE.DoubleSide}),0,3.2,0.1); ball(0.12,new THREE.MeshBasicMaterial({color:0xfff6dc}),0,3.05,0.1); }
-  box(0.36,0.42,0.2,'#4fa3a0',-4.6,0.21,-3.1).rotation.z=0.1; box(0.32,0.38,0.2,'#ffd27a',-4.05,0.19,-3.05).rotation.z=-0.12;   /* two backpacks, put down at last */
-  /* the doorway to the hall, and in the hall a little table with the telephone on it */
-  box(1.7,3.3,0.06,'#4a3640',4.1,1.65,-3.37); box(0.14,3.4,0.12,'#fff6ec',3.2,1.7,-3.34); box(0.14,3.4,0.12,'#fff6ec',5.0,1.7,-3.34); box(1.94,0.14,0.12,'#fff6ec',4.1,3.4,-3.34);
-  cyl(0.42,0.42,0.05,'#a9744a',4.1,0.9,-2.95); cyl(0.05,0.07,0.9,'#8a5a3c',4.1,0.45,-2.95);
-  const phone=new THREE.Group(); phone.position.set(4.1,0.93,-2.95); sc.add(phone);
+  let home_steam=[];
+  /* the room. It is a doll's house of a room: each wall is only there from the inside, so the scene can be turned right round and looked
+     into from any side. Dining table in the middle; kitchen along the right-hand wall; the hall and the telephone through a doorway at the
+     back; stairs up the left-hand wall to the girls' bedroom doors; and a great many things that a family collects. */
+  const HW=5.6, HD=4.3, HH=5.6, ZC=-0.1;   /* half-width, half-depth, height, middle */
+  box(HW*2,0.1,HD*2,'#b98a5a',0,-0.05,ZC); for(let k=-5;k<=5;k++) box(0.03,0.012,HD*2,'#a9794c',k*1.02,0.004,ZC);
+  cyl(2.9,2.9,0.02,'#d9909c',0,0.012,-0.2); cyl(2.5,2.5,0.022,'#f3c7bd',0,0.014,-0.2);
+  const wall=(w,h,col,x,y,z,ry)=>{ const m=add(new THREE.PlaneGeometry(w,h),L(col),x,y,z); m.rotation.y=ry; return m; };
+  const BZ=ZC-HD;   /* the back wall */
+  wall(HW*2,HH,'#fbe9cf',0,HH/2,BZ,0); wall(HW*2,HH,'#f8e4c6',0,HH/2,ZC+HD,Math.PI); wall(HD*2,HH,'#f6dfc0',-HW,HH/2,ZC,Math.PI/2); wall(HD*2,HH,'#f6dfc0',HW,HH/2,ZC,-Math.PI/2);
+  wall(HW*2,1.1,'#e8c9a0',0,0.55,BZ+0.01,0); wall(HD*2,1.1,'#e4c398',-HW+0.01,0.55,ZC,Math.PI/2);
+  const flat=(geo,col,x,y,z)=>add(geo,new THREE.MeshBasicMaterial({color:col}),x,y,z);
+  { const wx=-2.3, wy=2.6, z0=BZ+0.03;   /* the window: night coming on, the mountain they climbed with snow on its top, the Moon beside it and a few stars; all flat shapes, one in front of the next */
+    box(2.6,2.0,0.05,'#fff6ec',wx,wy,z0); flat(new THREE.PlaneGeometry(2.3,1.7),0x2c3a6e,wx,wy,z0+0.03); flat(new THREE.PlaneGeometry(2.3,0.5),0x4a5a96,wx,wy-0.6,z0+0.032);
+    const tri=(pts,col,dz)=>{ const s2=new THREE.Shape(); s2.moveTo(pts[0][0],pts[0][1]); pts.slice(1).forEach(p=>s2.lineTo(p[0],p[1])); s2.closePath(); return flat(new THREE.ShapeGeometry(s2),col,wx,wy,z0+dz); };
+    flat(new THREE.CircleGeometry(0.2,24),0xfff6dc,wx-0.62,wy+0.42,z0+0.034); flat(new THREE.CircleGeometry(0.3,24),0x55669e,wx-0.62,wy+0.42,z0+0.033);
+    [[0.75,0.55],[0.95,0.12],[-0.15,0.66],[-1.0,0.02],[0.3,0.3],[-0.95,0.7]].forEach(([x,y])=>flat(new THREE.CircleGeometry(0.02,6),0xffffff,wx+x,wy+y,z0+0.034));
+    tri([[-0.55,-0.85],[0.3,0.38],[1.15,-0.85]],0x1c2748,0.036); tri([[0.3,0.38],[0.14,0.14],[0.24,0.2],[0.31,0.1],[0.4,0.2],[0.47,0.13]],0xeef2fb,0.038); tri([[-1.15,-0.85],[-0.55,-0.32],[0.1,-0.85]],0x25325a,0.037);
+    box(0.06,1.7,0.03,'#fff6ec',wx,wy,z0+0.055); box(2.3,0.06,0.03,'#fff6ec',wx,wy,z0+0.055); box(2.7,0.1,0.26,'#fff6ec',wx,wy-0.95,z0+0.13);
+    box(0.5,2.2,0.08,'#e58fa6',wx-1.5,wy-0.05,z0+0.08); box(0.5,2.2,0.08,'#e58fa6',wx+1.5,wy-0.05,z0+0.08); cyl(0.03,0.03,3.7,'#8a5a3c',wx,wy+1.1,z0+0.1).rotation.z=Math.PI/2;
+    cyl(0.03,0.02,1.2,'#8a5a3c',wx+0.95,0.75,BZ+0.75,8).rotation.set(0.5,0,0.25); cyl(0.07,0.05,0.9,'#c9a03c',wx+0.95,1.52,BZ+0.55,10).rotation.x=-0.9; }   /* and a telescope, pointed at the Moon */
+  { const mx=2.2, my=2.9; box(1.5,1.15,0.06,'#8a5a3c',mx,my,BZ+0.04); box(1.32,0.97,0.05,'#fff6ec',mx,my,BZ+0.06);   /* Dad's map, framed on the wall */
+    [[-0.45,-0.3],[-0.25,-0.18],[-0.05,-0.2],[0.12,-0.05],[0.25,0.1],[0.4,0.27]].forEach(([x,y])=>flat(new THREE.CircleGeometry(0.035,8),0xd0607a,mx+x,my+y,BZ+0.09)); }
+  cyl(0.012,0.012,HH-3.4,'#3a3340',0,(HH+3.4)/2,0.1); { add(new THREE.ConeGeometry(0.55,0.42,20,1,true),new THREE.MeshBasicMaterial({color:0xffd27a,side:THREE.DoubleSide}),0,3.2,0.1); ball(0.12,new THREE.MeshBasicMaterial({color:0xfff6dc}),0,3.05,0.1); }
+  /* a bookshelf, full */
+  { const bx=0.2; box(1.7,2.7,0.42,'#a9744a',bx,1.35,BZ+0.22); const BK=['#d9534a','#4fa3a0','#ffd27a','#6f8fd0','#e58fa6','#8fbf5f','#b79cff','#fff6ec'];
+    for(let sh=0;sh<4;sh++){ box(1.56,0.5,0.04,'#7a5238',bx,0.42+sh*0.62,BZ+0.42); let x=bx-0.72; for(let k=0;x<bx+0.66&&k<14;k++){ const w=0.07+((sh*7+k*13)%5)*0.018, h=0.32+((sh*5+k*11)%4)*0.04; if((sh+k)%6!==5) box(w,h,0.26,BK[(sh*3+k)%8],x+w/2,0.2+sh*0.62+h/2,BZ+0.36); x+=w+0.012; } }
+    ball(0.17,'#4f8fdc',bx-0.45,2.9,BZ+0.25); cyl(0.05,0.09,0.06,'#8a5a3c',bx-0.45,2.73,BZ+0.25); box(0.3,0.36,0.04,'#ffd27a',bx+0.5,2.9,BZ+0.25).rotation.x=-0.15; }   /* a globe and a photo on top */
+  /* family pictures, a clock, and the girls' drawings pinned up */
+  [[3.2,4.3,0.5,0.6,'#ff8a7a'],[1.2,4.4,0.6,0.45,'#9fd8ff'],[-4.3,4.1,0.55,0.55,'#b79cff'],[-0.6,4.5,0.42,0.5,'#8fbf5f']].forEach(([x,y,w,h,c])=>{ box(w+0.1,h+0.1,0.04,'#8a5a3c',x,y,BZ+0.03); box(w,h,0.03,c,x,y,BZ+0.05); ball(0.09,'#f2c7a5',x,y+0.02,BZ+0.07).scale.z=0.2; });
+  { cyl(0.32,0.32,0.05,'#fff6ec',-4.6,4.6,BZ+0.05,20).rotation.x=Math.PI/2; box(0.03,0.22,0.02,'#3a3340',-4.6,4.68,BZ+0.09); box(0.16,0.03,0.02,'#3a3340',-4.53,4.6,BZ+0.09); }
+  /* the doorway to the hall, with the telephone on its little table, coats on their hooks and boots beneath */
+  const dx=4.2; flat(new THREE.PlaneGeometry(1.7,3.3),0x3a2a34,dx,1.65,BZ+0.02); box(0.14,3.4,0.1,'#fff6ec',dx-0.9,1.7,BZ+0.06); box(0.14,3.4,0.1,'#fff6ec',dx+0.9,1.7,BZ+0.06); box(1.94,0.14,0.1,'#fff6ec',dx,3.4,BZ+0.06);
+  cyl(0.42,0.42,0.05,'#a9744a',dx,0.9,BZ+0.6); cyl(0.05,0.07,0.9,'#8a5a3c',dx,0.45,BZ+0.6);
+  const phone=new THREE.Group(); phone.position.set(dx,0.93,BZ+0.6); sc.add(phone);
   const phM=new THREE.MeshLambertMaterial({color:0xd9534a,emissive:0xffd27a,emissiveIntensity:0});
-  { const b2=box(0.36,0.14,0.26,phM,0,0.07,0,phone), d2=cyl(0.09,0.09,0.02,'#fff6ec',0,0.15,0.03,phone), h2=box(0.42,0.06,0.07,phM,0,0.22,-0.04,phone); ball(0.06,phM,-0.2,0.2,-0.04,phone); ball(0.06,phM,0.2,0.2,-0.04,phone); }
-  const ringGlow=new THREE.PointLight(0xffe7a0,0,5,1.5); ringGlow.position.set(4.1,1.5,-2.6); sc.add(ringGlow);
+  { box(0.36,0.14,0.26,phM,0,0.07,0,phone); cyl(0.09,0.09,0.02,'#fff6ec',0,0.15,0.03,phone); box(0.42,0.06,0.07,phM,0,0.22,-0.04,phone); ball(0.06,phM,-0.2,0.2,-0.04,phone); ball(0.06,phM,0.2,0.2,-0.04,phone); }
+  const ringGlow=new THREE.PointLight(0xffe7a0,0,5,1.5); ringGlow.position.set(dx,1.5,BZ+0.9); sc.add(ringGlow);
+  { box(1.3,0.08,0.1,'#8a5a3c',2.75,2.0,BZ+0.06); [['#d9506e',2.35,0.62],['#4fa0dc',2.8,0.5],['#e58fa6',3.15,0.7]].forEach(([c,x,h])=>{ ball(0.04,'#3a3340',x,2.0,BZ+0.13); const ct=box(0.34,h,0.14,c,x,1.95-h/2,BZ+0.16); ct.rotation.z=(x-2.8)*0.08; });
+    [[2.4,'#d9506e'],[2.62,'#d9506e'],[2.95,'#4fa0dc'],[3.15,'#4fa0dc']].forEach(([x,c])=>{ box(0.16,0.26,0.26,c,x,0.13,BZ+0.35); }); }
+  /* the kitchen, along the right-hand wall: fridge, counter with a sink, the stove with the spaghetti pot still on it, cupboards and pans above */
+  { const kx=HW-0.55; box(1.0,0.9,4.2,'#f3ecdf',kx,0.45,0.1); box(1.08,0.07,4.3,'#c9a37a',kx,0.93,0.1); for(let k=0;k<4;k++){ box(0.03,0.6,0.9,'#e3d8c4',kx-0.51,0.45,-1.5+k*1.05); ball(0.035,'#8a5a3c',kx-0.54,0.62,-1.2+k*1.05); }
+    box(0.9,0.06,0.9,'#3a3340',kx,0.97,-1.3); [[-0.2,-0.2],[0.2,-0.2],[-0.2,0.2],[0.2,0.2]].forEach(([a,b])=>cyl(0.13,0.13,0.02,'#5a5560',kx+a,1.01,-1.3+b,14));   /* the stove */
+    cyl(0.24,0.22,0.3,'#9aa0aa',kx-0.2,1.17,-1.5); cyl(0.2,0.2,0.03,'#f2cf6b',kx-0.2,1.3,-1.5); box(0.3,0.03,0.04,'#3a3340',kx-0.2,1.24,-1.22); const steam=[0,1,2].map(k=>{ const m=ball(0.09,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.5}),kx-0.2,1.5+k*0.25,-1.5); return m; });
+    cyl(0.16,0.16,0.14,'#d9534a',kx+0.2,1.08,-1.1); box(0.9,0.02,0.7,'#b8c2cc',kx,0.975,0.2); box(0.7,0.1,0.5,'#8f9aa6',kx,0.93,0.2); cyl(0.025,0.025,0.34,'#b8c2cc',kx+0.32,1.14,0.2,8); cyl(0.025,0.025,0.2,'#b8c2cc',kx+0.23,1.3,0.2,8).rotation.z=Math.PI/2;   /* the sink */
+    [['#fff6ec',0.9],['#ffd27a',1.05],['#9fd8ff',1.2]].forEach(([c,z])=>cyl(0.1,0.1,0.02,c,kx-0.1,1.0+(z-0.9)*0.1,z,14)); cyl(0.1,0.13,0.2,'#8fbf5f',kx-0.2,1.07,1.75); ball(0.11,'#d9382f',kx+0.1,1.06,1.7); ball(0.1,'#ffd27a',kx+0.25,1.05,1.85); ball(0.1,'#e07a2f',kx+0.12,1.05,1.95);   /* plates drying, a jug, a bowl of fruit */
+    cyl(0.14,0.16,0.22,'#6f8fd0',kx+0.1,1.08,-0.45); cyl(0.03,0.03,0.16,'#6f8fd0',kx-0.08,1.12,-0.45,6).rotation.z=1;   /* the kettle */
+    box(0.5,1.1,4.2,'#f3ecdf',HW-0.3,3.0,0.1); for(let k=0;k<4;k++){ box(0.03,0.95,0.95,'#e3d8c4',HW-0.56,3.0,-1.5+k*1.05); ball(0.035,'#8a5a3c',HW-0.59,2.72,-1.2+k*1.05); }   /* cupboards */
+    box(0.06,0.06,2.4,'#8a5a3c',HW-0.5,2.3,-0.7); [[-1.6,0.2,'#3a3340'],[-1.1,0.16,'#b8734a'],[-0.6,0.22,'#3a3340'],[-0.1,0.14,'#9aa0aa']].forEach(([z,r2,c])=>{ cyl(r2,r2,0.04,c,HW-0.52,2.3-0.16-r2,z,14).rotation.z=Math.PI/2; });   /* pans on a rail */
+    box(1.0,2.2,0.95,'#dfeaf2',kx,1.1,3.3); box(0.03,0.9,0.05,'#9aa0aa',kx-0.52,1.5,3.0); box(0.02,0.02,0.97,'#b8c2cc',kx-0.5,1.45,3.3);   /* the fridge, with magnets and two drawings */
+    [['#d9534a',1.9,3.1],['#ffd27a',1.75,3.5],['#8fbf5f',2.0,3.55],['#b79cff',1.2,3.2]].forEach(([c,y,z])=>ball(0.035,c,kx-0.51,y,z)); box(0.02,0.34,0.28,'#fff6ec',kx-0.51,1.75,3.2).rotation.x=0.08; box(0.02,0.3,0.26,'#ffe1ea',kx-0.51,1.05,3.5).rotation.x=-0.1;
+    home_steam=steam; }
+  /* the stairs, up the left-hand wall to a landing and the two bedroom doors */
+  { const sx=-HW+0.6, N=12, RISE=0.22, RUN=0.36, z0=3.9; for(let k=0;k<N;k++){ box(1.2,RISE*(k+1),RUN,k%2?'#c9925e':'#b98a5a',sx,RISE*(k+1)/2,z0-k*RUN-RUN/2); box(1.0,0.02,RUN*0.7,'#d9534a',sx,RISE*(k+1)+0.012,z0-k*RUN-RUN/2); }
+    const ly=RISE*N, lz1=z0-N*RUN; box(1.2,0.16,lz1-BZ,'#b98a5a',sx,ly-0.08,(lz1+BZ)/2); box(0.1,ly-0.16,0.1,'#8a5a3c',sx+0.5,(ly-0.16)/2,lz1-0.1);
+    for(let k=0;k<=N;k+=2){ cyl(0.03,0.03,0.9,'#fff6ec',sx+0.56,RISE*(k+1)+0.45,z0-k*RUN-RUN/2,6); } const rail=box(0.07,0.07,Math.hypot(N*RUN,N*RISE)+0.2,'#8a5a3c',sx+0.56,ly/2+1.02,z0-N*RUN/2); rail.rotation.x=Math.atan2(N*RISE,N*RUN);
+    for(let z=lz1-0.2;z>BZ+0.3;z-=0.55) cyl(0.03,0.03,0.9,'#fff6ec',sx+0.56,ly+0.45,z,6); box(0.07,0.07,lz1-BZ,'#8a5a3c',sx+0.56,ly+0.92,(lz1+BZ)/2);
+    [[lz1-0.9,'#ff8a7a','#fff3a3'],[lz1-2.6,'#b79cff','#9fd8ff']].forEach(([z,c,c2],i)=>{ const d=box(0.06,1.9,0.95,c,-HW+0.05,ly+0.95,z); ball(0.05,'#ffd27a',-HW+0.1,ly+0.95,z-0.35); box(0.03,0.2,0.5,'#fff6ec',-HW+0.09,ly+1.55,z); ball(0.07,c2,-HW+0.11,ly+1.55,z-0.15+i*0.3); });   /* June's door, and Pip's */
+    box(0.36,0.42,0.2,'#4fa3a0',sx-0.2,ly+0.21,BZ+0.3).rotation.z=0.1; box(0.32,0.38,0.2,'#ffd27a',sx+0.25,ly+0.19,BZ+0.32).rotation.z=-0.12;   /* two backpacks, dropped on the landing */
+    box(0.9,0.5,0.6,'#6f8fd0',sx+0.1,0.25,BZ+0.5); [['#d9534a',-0.2,0.6],['#ffd27a',0.1,0.62],['#8fbf5f',0.35,0.58]].forEach(([c,a,y])=>box(0.2,0.2,0.2,c,sx+0.1+a,y,BZ+0.5).rotation.y=a*2);   /* a toy box under the landing */
+    ball(0.2,'#b98a5a',sx+0.75,0.2,BZ+0.9); ball(0.14,'#b98a5a',sx+0.75,0.47,BZ+0.9); [-1,1].forEach(s=>ball(0.05,'#b98a5a',sx+0.75+s*0.1,0.6,BZ+0.9)); }   /* and the bear */
+  /* an armchair with a blanket, a reading lamp, a basket of yarn, plants, a guitar, a record player, board games, an umbrella stand */
+  { const ax=-2.9, az=3.1; box(1.1,0.45,1.0,'#8fa9c4',ax,0.3,az); box(1.1,0.8,0.25,'#8fa9c4',ax,0.85,az+0.4); [-1,1].forEach(s=>box(0.2,0.3,1.0,'#7f99b4',ax+s*0.55,0.62,az)); box(0.6,0.06,0.7,'#ffd27a',ax+0.15,0.56,az-0.1).rotation.y=0.3;
+    cyl(0.03,0.03,1.7,'#3a3340',ax-0.95,0.85,az+0.3,6); add(new THREE.ConeGeometry(0.26,0.3,14,1,true),new THREE.MeshBasicMaterial({color:0xffe3a0,side:THREE.DoubleSide}),ax-0.95,1.75,az+0.3);
+    cyl(0.26,0.2,0.24,'#c9a37a',ax+1.0,0.12,az+0.2); [['#e58fa6',0.05],['#9fd8ff',-0.1],['#8fbf5f',0.12]].forEach(([c,o],i)=>ball(0.11,c,ax+1.0+o,0.3,az+0.2+(i-1)*0.1)); }
+  [[-1.3,BZ+0.5,0.9],[3.2,3.6,1.3],[-4.9,-0.2+3.9,0]].forEach(([x,z,h],i)=>{ if(!h) return; cyl(0.2,0.15,0.3,'#c9704a',x,0.15,z); for(let k=0;k<5;k++){ const lf=add(blobGeo,L(k%2?'#5d9b4f':'#6aa857'),x+Math.cos(k*1.26)*0.2,0.35+h*0.5+(k%3)*0.12,z+Math.sin(k*1.26)*0.2); lf.scale.set(0.2,h*0.5,0.12); lf.rotation.y=k*1.26; } });
+  { const gx=1.6, gz=BZ+0.3; const gb=ball(0.26,'#c9925e',gx,0.4,gz); gb.scale.set(1,1.25,0.35); const g2=ball(0.19,'#c9925e',gx,0.75,gz); g2.scale.set(1,1,0.35); box(0.07,0.8,0.04,'#7a5238',gx,1.3,gz); cyl(0.07,0.07,0.02,'#3a3340',gx,0.45,gz+0.1,12).rotation.x=Math.PI/2; }
+  { const rx=-0.9, rz=3.6; box(0.8,0.6,0.5,'#a9744a',rx,0.3,rz); box(0.6,0.1,0.44,'#4fa3a0',rx,0.65,rz); cyl(0.19,0.19,0.02,'#2a1c26',rx,0.71,rz,20); cyl(0.05,0.05,0.025,'#d9534a',rx,0.72,rz,10); [['#d9534a',0],['#ffd27a',0.07],['#6f8fd0',0.14]].forEach(([c,y])=>box(0.5,0.06,0.34,c,rx+1.0,0.03+y,rz).rotation.y=y*3); }
+  { cyl(0.16,0.14,0.6,'#6f8fd0',3.3,0.3,BZ+0.3); cyl(0.02,0.02,1.0,'#d9534a',3.26,0.7,BZ+0.3,6).rotation.z=0.12; cyl(0.02,0.02,0.95,'#ffd27a',3.36,0.68,BZ+0.32,6).rotation.z=-0.1; }
+  { const bx=1.9, bz=3.7; box(0.9,0.35,0.5,'#d9b98a',bx,0.17,bz); ball(0.2,'#fff6ec',bx,0.42,bz).scale.y=0.5; ball(0.12,'#b0aea6',bx-0.3,0.45,bz).scale.y=0.6; }   /* and somebody's bed by the wall, for a cat who is out */
 
   /* the table, laid for four, and the chairs */
   const wood='#c9925e', TY=1.06;
@@ -2687,10 +2736,10 @@ function buildHome(){
   /* and at the window, where only the girls think to look: the friend who brought them home */
   /* Every friend the girls have ever brought home is in the house tonight: the one from this hike at the window, the others wherever they
      like to sit. The girls can see them. Mom and Dad cannot. */
-  const now=FOLK[legKey(2)]?legKey(2):'glow', keys=[now].concat(friendsHome().filter(k=>k!==now)), SPOTS=[[-2.05,1.72,-3.3,0.42],[0.42,TY+0.03,0.42,0.3],[2.6,3.2,-3.25,0.34],[-4.3,0.42,-3.05,0.36]];
+  const now=FOLK[legKey(2)]?legKey(2):'glow', keys=[now].concat(friendsHome().filter(k=>k!==now)), SPOTS=[[-1.85,1.76,BZ+0.16,0.4],[0.42,TY+0.03,0.42,0.3],[0.55,2.72,BZ+0.25,0.34],[HW-0.45,0.97,2.55,0.36]];   /* on the window sill, on the table, on top of the bookshelf, on the kitchen counter */
   const pals=keys.map((k,i)=>{ const f=makeFolk(k,SPOTS[i][3]); f.spot=SPOTS[i]; f.g.position.set(f.spot[0],f.spot[1],f.spot[2]); sc.add(f.g); return f; }), pal=pals[0];
-  return {scene:sc,mom,dad,pal,pals,phone,phM,ringGlow,
-    update(t,speaker){ pals.forEach((f,i)=>{ animFolk(f,t,0.6); f.g.rotation.y=Math.sin(t*0.5+i*1.7)*0.5; }); [mom,dad].forEach((a,i)=>{ const ph=i*2.3, talking=speaker===3+i;
+  return {scene:sc,mom,dad,pal,pals,phone,phM,ringGlow,steam:home_steam,
+    update(t,speaker){ home_steam.forEach((m,k)=>{ const u=(t*0.35+k/3)%1; m.position.y=1.42+u*0.9; m.scale.setScalar(0.6+u*1.2); m.material.opacity=0.45*(1-u); }); pals.forEach((f,i)=>{ animFolk(f,t,0.6); f.g.rotation.y=Math.sin(t*0.5+i*1.7)*0.5; }); [mom,dad].forEach((a,i)=>{ const ph=i*2.3, talking=speaker===3+i;
         a.head.rotation.y=(i?0.25:-0.25)*Math.sin(t*0.4+ph)+(speaker===0||speaker===1?(i?-0.35:0.35):0)*0.6;   /* they look at whichever girl is talking */
         a.head.rotation.x=talking?Math.sin(t*5)*0.05:0.04*Math.sin(t*0.7+ph); a.upper.rotation.x=0.06+0.02*Math.sin(t*0.5+ph);
         const bite=Math.pow(Math.max(0,Math.sin(t*0.55+ph)),8); a.armR.rotation.x=-1.05-1.15*bite*(talking?0:1); a.armR.rotation.z=-0.35*bite; }); },   /* and now and then, a forkful */
@@ -2729,18 +2778,54 @@ function updateHome(dt,rawDt){
     if(home.phase===3){ const u=home.t-home.pt; home.pals.forEach((f,i)=>{ const a=u*2.4+i*1.57, k=smooth(0,2.2,u); f.g.position.set(lerp(f.spot[0],Math.sin(a)*1.5,k),lerp(f.spot[1],2.1+Math.sin(u*3+i)*0.2,k),lerp(f.spot[2],-0.6+Math.cos(a)*1.5,k)); f.g.scale.setScalar(lerp(f.spot[3],0.6,k)); });
       home.ringGlow.position.set(0,2.2,-0.6); home.ringGlow.intensity=2.2*smooth(0.5,3.5,u); [june,pip].forEach(g=>{ g.g.position.y+=smooth(2.4,4.4,u)*1.6; });
       if(u>4.6){ home.phase=4; enterMoon(); } } }
-  const th=clamp((camTheta-home.cam0)*0.6,-0.75,0.75)+Math.sin(time*0.09)*0.1*motion, aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
-  const r=6.3*zoom*aspectBoost, ph=clamp(0.2+userPhi,0.04,0.6);
+  const th=(camTheta-home.cam0)+Math.sin(time*0.09)*0.12*motion, aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;   /* drag to turn the whole house round */
+  const r=7.8*zoom*aspectBoost, ph=clamp(0.24+userPhi,0.05,1.15);
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
-  target.set(0,1.4,-0.35); camera.position.copy(target).add(off); camera.lookAt(target);
+  target.set(0,1.5,-0.2); camera.position.copy(target).add(off); camera.lookAt(target);
 }
 function leaveHome(){ $('phoneDock').hidden=true; bubbles[5].head=nobody.head; bubbles[5].root=nobody.g; home.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); june.pack.visible=pip.pack.visible=true;
   bubbles[3].head=bubbles[4].head=nobody.head; bubbles[3].root=bubbles[4].root=nobody.g; home.dispose(); home=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
 /* the friend's offer at the summit, accepted */
-function goHome(){ if(mode!=='summit'||!summit||summit.phase!==2) return; summit.phase=3; summit.goT=summit.t; $('homeDock').hidden=true;
+/* The four ways home. Each builds what it needs on the summit and returns a function that, given the seconds since the girls said yes, puts
+   June, Pip and their friend where that way home has them. (It is called after the girls' own movement each frame, and has the last word.) */
+function makeWarp(key,S){
+  const sc=S.scene, f=S.friend, G=[june.g,pip.g], base=G.map(g=>g.position.clone()), fb=f.g.position.clone(), lit=(c,o)=>new THREE.MeshBasicMaterial(Object.assign({color:c},o||{}));
+  const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); sc.add(m); return m; };
+  if(key==='glow'){   /* a moonbeam comes down out of the sky to their feet; they sit on it and slide away along it, Glim lighting the way */
+    const dir=new THREE.Vector3(-0.42,0.52,-0.74).normalize(), beamM=lit(0xfff6c8,{transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}), beam=add(new THREE.CylinderGeometry(0.42,0.42,160,14,1,true),beamM,0,0,0), coreM=lit(0xfff3b0,{transparent:true,opacity:0,fog:false}), core=add(new THREE.CylinderGeometry(0.1,0.1,160,8),coreM,0,0,0);
+    [beam,core].forEach(m=>{ m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir); m.position.copy(dir).multiplyScalar(79).add(new THREE.Vector3(0,0.2,0.4)); });
+    return u=>{ beamM.opacity=0.28*smooth(0,1.2,u); coreM.opacity=0.55*smooth(0.2,1.4,u); const s=Math.pow(Math.max(0,u-1.9),2)*1.5, on=smooth(1.1,1.9,u);
+      G.forEach((g,i)=>{ g.position.set(lerp(base[i].x,(i?0.28:-0.28),on)+dir.x*(s+i*0.9),lerp(base[i].y,0.2,on)+dir.y*(s+i*0.9),lerp(base[i].z,0.4,on)+dir.z*(s+i*0.9)); g.rotation.y=Math.atan2(dir.x,dir.z); });
+      f.g.position.set(dir.x*(s+2.6),0.5+dir.y*(s+2.6)+0.2*Math.sin(u*6),0.4+dir.z*(s+2.6)); }; }
+  if(key==='giant'){   /* a dandelion seed as tall as a lamp post drifts down; they take hold of the stalk, and the wind does the rest */
+    const seed=new THREE.Group(); sc.add(seed); const stalk=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.05,2.6,7),L('#d9c9a0')); stalk.position.y=1.3; seed.add(stalk);
+    const tuft=new THREE.Group(); tuft.position.y=2.6; seed.add(tuft); for(let k=0;k<22;k++){ const a=k/22*6.283, e=0.25+(k%3)*0.28, sp=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,1.5,4),lit(0xffffff)); sp.position.set(Math.cos(a)*Math.cos(e)*0.75,Math.sin(e)*0.75,Math.sin(a)*Math.cos(e)*0.75); sp.lookAt(0,0,0); sp.rotateX(Math.PI/2); tuft.add(sp);
+      const pf=new THREE.Mesh(new THREE.SphereGeometry(0.09,6,5),lit(0xffffff,{transparent:true,opacity:0.85})); pf.position.copy(sp.position).multiplyScalar(2); tuft.add(pf); }
+    return u=>{ const down=smooth(0,1.7,u), up=Math.pow(Math.max(0,u-2.3),2)*0.3, sway=Math.sin(u*1.4)*0.25*smooth(2.3,3.5,u), sx=sway*3+up*0.5, sy=lerp(9,0.55,down)+up, sz=0.5-up*0.35;
+      seed.position.set(sx,sy,sz); seed.rotation.z=-sway*0.5; tuft.rotation.y=u*0.8; const hold=smooth(1.5,2.2,u);
+      G.forEach((g,i)=>{ g.position.set(lerp(base[i].x,sx+(i?0.36:-0.36),hold),lerp(base[i].y,sy-0.55,hold*smooth(2.2,2.5,u)),lerp(base[i].z,sz,hold)); g.rotation.y=(i?-1:1)*1.2; g.rotation.z=-sway*0.5*hold; });
+      f.g.position.set(sx,sy+2.75,sz); }; }
+  if(key==='pond'){   /* Plip blows a bubble round the two of them; it wobbles, lifts off the rock, and floats away over the edge */
+    const bubM=new THREE.MeshLambertMaterial({color:0xbfe6ff,emissive:0x35608a,transparent:true,opacity:0.3,depthWrite:false}), bub=add(new THREE.SphereGeometry(1,28,20),bubM,0,1.25,0.5), shine=add(new THREE.SphereGeometry(0.22,10,8),lit(0xffffff,{transparent:true,opacity:0.8}),0,0,0); bub.renderOrder=5;
+    return u=>{ const grow=smooth(0.2,1.8,u), up=Math.pow(Math.max(0,u-2.2),2)*0.27, wob=1+0.06*Math.sin(u*7)*grow, cx=up*0.6, cy=1.25+up, cz=0.5-up*0.5, R=2.0*grow;
+      bub.position.set(cx,cy,cz); bub.scale.set(R*wob,R/wob,R*wob); shine.position.set(cx-R*0.5,cy+R*0.55,cz+R*0.55); shine.scale.setScalar(grow); const inK=smooth(1.2,2,u);
+      G.forEach((g,i)=>{ g.position.set(lerp(base[i].x,cx+(i?0.42:-0.42),inK),lerp(base[i].y,cy-0.95+0.08*Math.sin(u*3+i),inK*smooth(2,2.4,u)),lerp(base[i].z,cz,inK)); g.rotation.y=u*0.5*smooth(2.2,3,u)+(i?-0.4:0.4); });
+      f.g.position.set(cx+Math.sin(u*2)*(R+0.5),cy+0.3+0.3*Math.sin(u*3),cz+Math.cos(u*2)*(R+0.5)); }; }
+  /* crystal: Ting rings, and a doorway of crystal grows out of the rock, full of light; they walk through it and are gone */
+  const door=new THREE.Group(); door.position.set(0,0,2.6); sc.add(door); const gm=new THREE.MeshLambertMaterial({color:0xb79cff,emissive:0xb79cff,emissiveIntensity:0.6,flatShading:true});
+  [-1,1].forEach(s2=>{ const c=new THREE.Mesh(new THREE.ConeGeometry(0.34,3.4,5),gm); c.position.set(s2*1.05,1.7,0); c.rotation.z=-s2*0.07; door.add(c); const c2=new THREE.Mesh(new THREE.ConeGeometry(0.2,1.5,5),gm); c2.position.set(s2*1.45,0.75,0.1); c2.rotation.z=-s2*0.3; door.add(c2); });
+  for(let k=0;k<7;k++){ const a=(k/6-0.5)*2.4, c=new THREE.Mesh(new THREE.ConeGeometry(0.14,0.7,5),gm); c.position.set(Math.sin(a)*1.0,2.9+Math.cos(a)*0.5,0); c.rotation.z=-a; door.add(c); }
+  const paneM=lit(0xfff6ff,{transparent:true,opacity:0,side:THREE.DoubleSide,fog:false}), pane=new THREE.Mesh(new THREE.PlaneGeometry(1.7,3),paneM); pane.position.y=1.5; door.add(pane);
+  const flash=new THREE.PointLight(0xd8c8ff,0,14,1.5); flash.position.set(0,1.6,2.2); sc.add(flash); let rung=0;
+  return u=>{ const grow=smooth(0,1.4,u); door.scale.set(1,Math.max(0.01,grow),1); paneM.opacity=0.85*smooth(0.9,1.8,u)*(0.85+0.15*Math.sin(u*9)); flash.intensity=2.2*smooth(1,2,u);
+    if(rung<3&&u>0.3+rung*0.5){ rung++; Music.amb('tap'); }
+    G.forEach((g,i)=>{ const w=smooth(1.9+i*0.7,3.3+i*0.7,u), sx=i?0.25:-0.25; g.position.set(lerp(base[i].x,sx,w),base[i].y,lerp(base[i].z,2.75,w)); g.rotation.y=0; g.scale.setScalar((i?pip.scale:june.scale)*(1-smooth(0.86,1,w))); });   /* each shrinks to nothing as she steps through */
+    const fw=smooth(3.6,4.6,u); f.g.position.set(lerp(fb.x,0,fw),0.3*Math.sin(u*5)*(1-fw),lerp(fb.z,2.75,fw)); f.g.scale.setScalar(1.15*(1-smooth(0.8,1,fw))); }; }
+function goHome(){ if(mode!=='summit'||!summit||summit.phase!==2) return; summit.phase=3; summit.goT=summit.t; $('homeDock').hidden=true; summit.warp=makeWarp(summit.friend.key,summit);
   const F=FOLK[summit.friend.key]; hushBubbles(); playScript([[0,'Yes, please!'],[2,F.go]]); speakIn=30;
   narrate('So they held hands, and shut their eyes, and went home by '+F.ride+'.');
-  BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.queue.push({k:'pose',pose:'hop',dur:1.6,face:0},{k:'pose',pose:'spin',dur:4}); }); }
+  const ride={glow:'sitwave',giant:'wave',pond:'wave',crystal:'idle'}[summit.friend.key];
+  BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.queue.push({k:'pose',pose:'hop',dur:1.3,face:0},{k:'pose',pose:ride,dur:30,face:0}); }); }
 $('homeBtn').addEventListener('click',goHome);
 /* ---------- the secret ending: a party on the Moon ---------- */
 /* When every place on the mountain has been found and all four village friends have come home with the girls (which takes at least four
