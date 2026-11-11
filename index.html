@@ -2460,6 +2460,8 @@ function updateRestBrain(b,dt){
         if(b.actIn<=0&&rest.canAct&&!b.other.cur&&!b.other.queue.length){ planRestAct(b); b.actIn=9+Math.random()*9; } } }
   } else if(st.k==='walk'){ walking=true; if(moveToward(b,st.to[0],st.to[1],st.speed||0.85,dt)<0.04) b.cur=null;
   } else if(st.k==='say'){ sayIf(b,st.text); b.cur=null;
+  } else if(/^sit/.test(st.pose)&&Math.hypot(seat[0]-b.pos.x,seat[1]-b.pos.y)>0.05){   /* a sitting pose is only ever struck on the seat: if she is still on her way back to it, she finishes walking there first (otherwise she would sit down on thin air) */
+    moveToward(b,seat[0],seat[1],0.85,dt); walking=true; b.t=0;
   } else {
     pose=st.pose;
     if(pose==='spin'){ b.face+=dt*4.2; b.faceT=b.face; } else if(st.face!==undefined) b.faceT=st.face;
