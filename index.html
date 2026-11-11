@@ -527,8 +527,8 @@ const hash=(a,b,c)=>{ const v=Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453; retur
      140+    the aspen grove or the autumn woods
      250     a second rest site and a second choice: winter forest or wheat field (after the autumn woods), marsh or alpine rock garden (after the aspens)
      398     a third: moonlit glow-wood or giant garden; upside-down pond or crystal hollow
-     500     whichever it was gives way to the stony mountain trail; at 536 a bank of mist, 15 m deep, and beyond it the sky garden
-     643-655 one last cave, climbing steeply, and then the top of the mountain, which is a scene of its own */
+     500     whichever it was gives way to the stony mountain trail; it bends round a shoulder of the mountain; at 572 a bank of mist, 15 m deep, and beyond it the sky garden
+     679-691 one last cave, climbing steeply, and then the top of the mountain, which is a scene of its own */
 const REST_S=98, REST_C=100, FORK=101, GATE_A=128, GATE_B=140, RIVER_Z=52, GATE_OB=GATE_A+8;
 /* What a rest site is furnished with, measured from the middle of the log (x across, z along the trail). The rest scene is built from this list,
    and so is the rest site the girls walk into on the trail, so what they arrive at is what they then sit down in. Nothing here lies on a path. */
@@ -542,7 +542,8 @@ const REST_KIT={stump:[-4.9,2.9],sign:[0,7.4],
 let choice=0;   /* 0 = not chosen yet, -1 = the thicket path (aspen grove), 1 = the cave path (autumn woods) */
 /* the middle of the trail: two lazy waves, the curve to the right at the river, and the tight bends that wind through the deep woods */
 const x0=s=>7*Math.sin(s*0.021)+3.5*Math.sin(s*0.047+1.3)-12*smooth(40,64,s)+3.2*Math.sin((s-64)*0.224)*smooth(62,72,s)*(1-smooth(88,97,s))
-  +(s>GATE_B+8?wildK(s)*(2.4*Math.sin(s*0.17+0.7)+1.2*Math.sin(s*0.31+2.1)):0);   /* and, all the way up the mountain, the same kind of winding as in the deep woods */
+  +(s>GATE_B+8?wildK(s)*(2.4*Math.sin(s*0.17+0.7)+1.2*Math.sin(s*0.31+2.1)):0)
+  +(s>490?17*Math.sin(Math.PI*smooth(MTN+4,MTN+56,s)):0);   /* the mountain trail swings wide round a shoulder of the mountain, then straightens out for the last stretch to the mist */   /* and, all the way up the mountain, the same kind of winding as in the deep woods */
 /* How wild the trail may be at s: 1 out in the middle of a place, 0 wherever it has to behave (rest sites, gateways, villages, the pond's
    boardwalk, the mist and the sky garden). The bends, the humps and hollows, the gullies and the little canyons all scale by this. */
 function wildK(s){ if(s<GATE_B+10||s>SKY_A-18) return 0; if(s>GB[2]&&picks[2]&&legKey(2)==='pond'&&s<MTN+6) return 0;
@@ -569,7 +570,7 @@ const trailX=s=>x0(s)+choice*spread(s-FORK);       /* the path the girls are on 
    mist, the sky garden, one last cave and the top. Past the first fork there is only ever one trail on the ground: the choice is made in
    the rest scene, and the trail picks up inside whichever gateway was chosen. */
 const SITES=[{rest:REST_C,a:GATE_A,b:GATE_B},{rest:250,a:276,b:288},{rest:398,a:424,b:436}];
-const MTN=500, SKY_A=536, SKY_B=551, TOP_A=643, TOP_B=655;   /* the mist is 15 m deep */
+const MTN=500, SKY_A=572, SKY_B=587, TOP_A=679, TOP_B=691;   /* the mountain trail is 72 m long; the mist is 15 m deep */
 const GA=[GATE_A,276,424,SKY_A,TOP_A], GB=[GATE_B,288,436,SKY_B,TOP_B], BOUNDS=[GATE_B,288,436,MTN,SKY_B];   /* where each gateway starts and ends, and where each new place begins */
 const VILLAGE_Z=466;   /* each of the last four places has a village, here */
 const picks=[0,0,0];   /* what was chosen at each rest site: 1 the left-hand button, -1 the right-hand one */

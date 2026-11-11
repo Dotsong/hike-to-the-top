@@ -64,8 +64,8 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
     await p.evaluate(m=>window.hikeDebug.walkTo(m),at+41.5); await p.waitForTimeout(2500);
     if(await p.evaluate(()=>window.hikeDebug.stage())!==4) errs.push('the place after rest site '+(i+1)+' did not open up');
     places.push(await p.evaluate(()=>window.hikeDebug.place())); await p.waitForTimeout(1500); }
-  for(const m of [470,503,535,542,550,554,600,642,649]){ await p.evaluate(m=>window.hikeDebug.walkTo(m),m); await p.waitForTimeout(1800); }
-  await p.evaluate(()=>window.hikeDebug.walkTo(653.4));
+  for(const m of [470,503,520,545,571,578,586,590,636,678]){ await p.evaluate(m=>window.hikeDebug.walkTo(m),m); await p.waitForTimeout(1800); }
+  await p.evaluate(()=>window.hikeDebug.walkTo(680));
   await p.waitForFunction(()=>window.hikeDebug.mode()==='summit',null,{timeout:180000}).catch(()=>errs.push('the summit scene did not start'));
   await p.waitForTimeout(4000);
   const summit=await p.evaluate(()=>window.hikeDebug.mode()==='summit'&&window.hikeDebug.tail()===5);
