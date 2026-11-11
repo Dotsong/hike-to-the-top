@@ -2193,7 +2193,7 @@ function stopForToday(){ if(mode!=='rest'||!rest||rest.leaving||!state.started) 
   const b={site:fork.site,picks:[picks[0],fork.site>0?picks[1]:0,0]}; let ok=true; try{ localStorage.setItem(MARK_KEY,JSON.stringify(b)); }catch(e){ ok=false; }
   $('stopBtn').hidden=true; hideFork(); hushBubbles(); speakIn=30; narrate(ok?'That was enough mountain for one day. It would still be there tomorrow, and so would the log.':'That was enough mountain for one day.');
   setTimeout(()=>{ if(state.started&&mode==='rest') $('fade').classList.add('on'); },2600); setTimeout(()=>{ if(state.started&&mode==='rest') backToStart(); },3500); }
-function resumeHike(){ const b=loadMark(); if(!b||state.started) return; startHike(true);
+function resumeHike(){ const b=loadMark(); if(!b||state.started) return; try{ localStorage.removeItem(MARK_KEY); }catch(e){} syncResume(); startHike(true);   /* once it has been used, the saved spot is gone: the title card offers it again only after they stop at a rest site again */
   warp('Back on the trail',b.site===0?REST_C-8:SITES[b.site].rest-7,[b.site>0?b.picks[0]:0,b.site>1?b.picks[1]:0,0]);
   showCaption({t:'Back on the trail',b:'Picking up the hike at '+markName(b)+'.'}); setTimeout(()=>{ if(state.started) narrate('Another morning, June and Pip came back to where they had stopped, and carried on.'); },1400); }
 $('stopBtn').addEventListener('click',stopForToday); $('resumeBtn').addEventListener('click',resumeHike);
