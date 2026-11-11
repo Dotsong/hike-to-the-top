@@ -337,14 +337,13 @@ body.is-paused .dad-note{opacity:0}
 /* the narrator: a line of the story at the top of the screen, in the same storybook face as the place names at the bottom left */
 .narrator{position:fixed;z-index:3;left:50%;top:calc(20px + env(safe-area-inset-top, 0px));transform:translate(-50%,-8px);width:min(44rem, calc(100vw - 220px));margin:0;
   text-align:center;text-wrap:balance;font:400 clamp(1.35rem, 3.2vw, 1.85rem)/1.28 var(--display);color:var(--ink);
-  /* a thick dark outline and a soft warm glow. Both are built from shadows sized to the letters (in em), which every phone browser draws
-     the same way: the outline is a ring of hard dark shadows right round each letter, and the glow sits outside that, so it can never
-     wash over the words themselves. */
-  text-shadow:0.07em 0em 0 rgba(34,24,52,.95), -0.07em 0em 0 rgba(34,24,52,.95), 0em 0.07em 0 rgba(34,24,52,.95), 0em -0.07em 0 rgba(34,24,52,.95), 0.05em 0.05em 0 rgba(34,24,52,.95), -0.05em 0.05em 0 rgba(34,24,52,.95), 0.05em -0.05em 0 rgba(34,24,52,.95), -0.05em -0.05em 0 rgba(34,24,52,.95), 0.1em 0em 0 rgba(34,24,52,.95), -0.1em 0em 0 rgba(34,24,52,.95), 0em 0.1em 0 rgba(34,24,52,.95), 0em -0.1em 0 rgba(34,24,52,.95), 0.075em 0.075em 0 rgba(34,24,52,.95), -0.075em 0.075em 0 rgba(34,24,52,.95), 0.075em -0.075em 0 rgba(34,24,52,.95), -0.075em -0.075em 0 rgba(34,24,52,.95), 0 0 .55em rgba(255,226,170,.5), 0 0 1.1em rgba(255,214,150,.3);opacity:0;pointer-events:none;transition:opacity 1.3s ease, transform 1.3s ease}
+  -webkit-text-stroke:5px rgba(34,24,52,.92);paint-order:stroke fill;   /* a thick dark outline, drawn behind the letters, and a soft warm glow round the whole line */
+  text-shadow:0 0 14px rgba(255,226,170,.6), 0 0 30px rgba(255,214,150,.38), 0 2px 5px rgba(10,8,30,.6);opacity:0;pointer-events:none;transition:opacity 1.3s ease, transform 1.3s ease}
 .narrator.show{opacity:1;transform:translate(-50%,0)}
 body.is-paused .narrator{opacity:0}
 @media (max-width:640px){ .narrator{top:calc(86px + env(safe-area-inset-top, 0px));width:calc(100vw - 40px)} }
-@media (max-width:640px){ .narrator{text-shadow:0.07em 0em 0 rgba(34,24,52,.95), -0.07em 0em 0 rgba(34,24,52,.95), 0em 0.07em 0 rgba(34,24,52,.95), 0em -0.07em 0 rgba(34,24,52,.95), 0.05em 0.05em 0 rgba(34,24,52,.95), -0.05em 0.05em 0 rgba(34,24,52,.95), 0.05em -0.05em 0 rgba(34,24,52,.95), -0.05em -0.05em 0 rgba(34,24,52,.95), 0.1em 0em 0 rgba(34,24,52,.95), -0.1em 0em 0 rgba(34,24,52,.95), 0em 0.1em 0 rgba(34,24,52,.95), 0em -0.1em 0 rgba(34,24,52,.95), 0.075em 0.075em 0 rgba(34,24,52,.95), -0.075em 0.075em 0 rgba(34,24,52,.95), 0.075em -0.075em 0 rgba(34,24,52,.95), -0.075em -0.075em 0 rgba(34,24,52,.95), 0 0 .5em rgba(255,226,170,.3)} }   /* on a phone the letters are smaller, so the glow is gentler still */
+/* phones and tablets only: there the stroke and wide glow wash over the small letters, so the outline is a ring of hard shadows sized to the letters and the glow is gentler */
+@media (max-width:640px),(pointer:coarse){ .narrator{-webkit-text-stroke:0;paint-order:normal;text-shadow:0.07em 0em 0 rgba(34,24,52,.95), -0.07em 0em 0 rgba(34,24,52,.95), 0em 0.07em 0 rgba(34,24,52,.95), 0em -0.07em 0 rgba(34,24,52,.95), 0.05em 0.05em 0 rgba(34,24,52,.95), -0.05em 0.05em 0 rgba(34,24,52,.95), 0.05em -0.05em 0 rgba(34,24,52,.95), -0.05em -0.05em 0 rgba(34,24,52,.95), 0.1em 0em 0 rgba(34,24,52,.95), -0.1em 0em 0 rgba(34,24,52,.95), 0em 0.1em 0 rgba(34,24,52,.95), 0em -0.1em 0 rgba(34,24,52,.95), 0.075em 0.075em 0 rgba(34,24,52,.95), -0.075em 0.075em 0 rgba(34,24,52,.95), 0.075em -0.075em 0 rgba(34,24,52,.95), -0.075em -0.075em 0 rgba(34,24,52,.95), 0 0 .5em rgba(255,226,170,.3)} }
 @media (prefers-reduced-motion:reduce){ .narrator{transform:translate(-50%,0);transition:opacity .6s} }
 /* Dad's map: a scroll that unrolls in the middle of the screen while the game is paused */
 .map-scroll{position:fixed;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);width:min(760px,calc(100vw - 40px));display:flex;flex-direction:column;align-items:center;
@@ -400,8 +399,7 @@ body.is-paused .narrator{opacity:0}
 </div>
 
 <div class="controls hud-off" id="controls">
-  <button id="paceBtn" type="button" aria-label="Pace: normal speed. Tap to go faster.">Pace ×1</button>
-  <button id="zoneBtn" type="button">Jump to a place</button>
+  <button id="zoneBtn" type="button">Testing</button>
   <button id="goodnightBtn" type="button">Back to the start</button>
   <button id="bookBtn" type="button">Fact book</button>
   <button id="soundBtn" type="button" aria-pressed="true">Music on</button>
@@ -482,12 +480,15 @@ body.is-paused .narrator{opacity:0}
 
 <div class="book-scrim" id="zoneScrim" hidden>
   <div class="zone-card" role="dialog" aria-modal="true" aria-labelledby="zoneTitle">
-    <h2 id="zoneTitle">Jump to a place</h2>
-    <p>For testing. Each jump lands a few steps before the place, so its arrival plays as it would on the walk.</p>
+    <h2 id="zoneTitle">Testing</h2>
+    <div class="zone-row"><button type="button" id="paceBtn" aria-label="Pace: normal speed. Tap to go faster.">Pace ×1</button><button type="button" id="foundNone">Reset progress</button></div>
+    <p>Reset progress forgets everything saved: the map, the friends and notes found, the endings seen and the fact book.</p>
+    <h3>Jump to a place</h3>
+    <p>Each jump lands a few steps before the place, so its arrival plays as it would on the walk.</p>
     <div id="zoneList"></div>
     <h3>Saved progress (for the secret ending)</h3>
     <p id="foundNow"></p>
-    <div class="zone-row"><button type="button" id="foundAll">Mark everything as found</button><button type="button" id="foundSecret">Mark the secret ending as seen</button><button type="button" id="foundNone">Forget all progress</button></div>
+    <div class="zone-row"><button type="button" id="foundAll">Mark everything as found</button><button type="button" id="foundSecret">Mark the secret ending as seen</button></div>
     <button class="zone-close" id="zoneClose" type="button" aria-label="Close the list">✕</button>
   </div>
 </div>
