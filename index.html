@@ -942,6 +942,7 @@ function plantTree(r,id,x,z,first,s0,fact,ring){
   const tp=near?P.trunkN:P.trunkF, bp=near?P.blobN:P.blobF;
   if(bi<0){ /* an aspen: a slim white trunk and a small golden crown */
     const sc=0.85+hash(r,id,5)*0.4, th=(6.2+2.6*h)*sc, cr=(1.25+0.5*hash(r,id,8))*sc, col=ASPENS[Math.floor(hash(r,id,10)*4)], top=y+th;
+    if(near&&tp.n<tp.cap&&bp.n+3<=bp.cap) swayers.push({ti:tp.n,bi:bp.n,x,y,z,sc,th,cr,ry,ph:h*6.28});   /* near enough to be seen swaying */
     put(tp,x,y,z,0.2*sc,th+0.8,0.2*sc,ry,ASPEN_BARK);
     put(bp,x,top+cr*0.9,z,cr,cr*1.15,cr,ry,col);
     put(bp,x+Math.cos(ry)*cr*0.6,top+cr*0.1,z+Math.sin(ry)*cr*0.6,cr*0.75,cr*0.8,cr*0.75,ry,col);
@@ -1025,7 +1026,7 @@ function drawVillage(key){
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
   POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
-  solids.length=0;
+  solids.length=0; swayers.length=0;
   rowCache.clear();   /* the drawn ground may have moved on (or the paths changed), so measure it afresh */
   const r0=Math.floor((s0-BACK)/3), r1=Math.floor((s0+FWD)/3);
   for(let r=r0;r<=r1;r++){ const z0=r*3, inGate=z0+3>GATE_A-1&&z0<GATE_B+0.5;
@@ -1751,6 +1752,10 @@ const Music=(()=>{
       o.type='sine'; o.frequency.setValueAtTime(392,tt); o.frequency.linearRampToValueAtTime(366,tt+len);
       g.gain.setValueAtTime(0.0001,tt); g.gain.linearRampToValueAtTime(0.06,tt+0.05); g.gain.setValueAtTime(0.06,tt+len-0.06); g.gain.linearRampToValueAtTime(0.0001,tt+len);
       o.connect(g); g.connect(master); g.connect(reverb); o.start(tt); o.stop(tt+len+0.02); }); }
+    if(kind==='honk'){ [0,0.26].forEach((at,i)=>{ const tt=t+at, o=ctx.createOscillator(), lp=ctx.createBiquadFilter(), g=ctx.createGain(), f=i?392:466;   /* a goose, a long way up: two nasal notes */
+      o.type='sawtooth'; o.frequency.setValueAtTime(f*0.94,tt); o.frequency.linearRampToValueAtTime(f,tt+0.06); lp.type='bandpass'; lp.frequency.value=1100; lp.Q.value=2.2;
+      g.gain.setValueAtTime(0.0001,tt); g.gain.linearRampToValueAtTime(0.035,tt+0.03); g.gain.linearRampToValueAtTime(0.0001,tt+0.2);
+      o.connect(lp); lp.connect(g); g.connect(master); g.connect(reverb); o.start(tt); o.stop(tt+0.22); }); }
     if(kind==='chirp'){ for(let i=0;i<4;i++){ const tt=t+i*0.17+Math.random()*0.08, o=ctx.createOscillator(), g=ctx.createGain(), f=2300+Math.random()*900;
       o.type='sine'; o.frequency.setValueAtTime(f,tt); o.frequency.exponentialRampToValueAtTime(f*1.4,tt+0.07);
       g.gain.setValueAtTime(0.0001,tt); g.gain.linearRampToValueAtTime(0.02,tt+0.01); g.gain.exponentialRampToValueAtTime(0.0001,tt+0.11);
@@ -2673,6 +2678,74 @@ function hushBubbles(){ bubbles.forEach(bb=>{bb.t=0;bb.el.classList.remove('show
 /* One at a time, every half a minute or so: birds, a butterfly, a squirrel, a rabbit, a whirl of leaves, a woodpecker, an owl.
    Which ones can turn up depends on where the girls are, and the same thing never happens twice in a row.
    The girls only talk about a visitor once it has actually shown itself. */
+/* ---------- leaves coming down, wisps of wind, and aspens that sway ---------- */
+/* In the autumn woods leaves fall all the time: each one flutters down, lies on the ground a moment, and another sets off from above. Every
+   few seconds a little wisp of wind crosses the trail, drawing a few pale streaks in the air, pushing the falling leaves sideways and lifting
+   the ones on the ground into a skitter. In the aspen grove the same thing happens with yellow leaves, far fewer of them, and no wisps:
+   there the wind shows in the trees themselves, which lean and straighten, one after another, as each breath of it passes through. */
+const FALL_N=120, fallMesh=new THREE.InstancedMesh(leafGeo,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}),FALL_N);
+fallMesh.frustumCulled=false; fallMesh.setColorAt(0,new THREE.Color(0xffffff)); fallMesh.count=0; scene.add(fallMesh);   /* (the color buffer has to be made while the mesh still has its full count) */
+const fallers=[]; for(let i=0;i<FALL_N;i++) fallers.push({x:0,y:-99,z:0,vx:0,vy:0,vz:0,ph:rnd()*6.28,sp:0.55+rnd()*0.6,sc:0.8+rnd()*0.9,rest:0,fresh:true});
+const wisp={t:-1,next:4,dir:1,z:0}, wispBits=[];
+for(let i=0;i<5;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xfff6e4,transparent:true,opacity:0,depthWrite:false})); sp.visible=false; sp.renderOrder=3; scene.add(sp); wispBits.push({sp,o:rnd(),h:0.5+rnd()*2.2,dz:(rnd()-0.5)*9,len:3.5+rnd()*3}); }
+let fallKey='', quakeT=0;   /* quakeT: seconds left of a big breath of wind through the aspens */
+function leafBurst(x,y,z,n){ for(let i=0;i<n&&i<FALL_N;i++){ const f=fallers[i], a=Math.random()*6.28, r=Math.random()*0.6; f.x=x+Math.cos(a)*r; f.z=z+Math.sin(a)*r; f.y=y+0.1+Math.random()*0.4;
+    f.vx=Math.cos(a)*(0.6+Math.random()*1.8); f.vz=Math.sin(a)*(0.6+Math.random()*1.8); f.vy=2.2+Math.random()*2.8; f.rest=0; f.fresh=false; } }
+function updateLeafFall(dt){
+  const s=party.s, key=bioKeyAt(s), on=(key==='autumn'||key==='aspen')?smooth(GATE_B+1,GATE_B+14,s)*(1-smooth(SITES[1].a-9,SITES[1].a-1,s)):0;
+  if(quakeT>0) quakeT-=dt;
+  const n=Math.min(FALL_N,Math.round(FALL_N*on*(key==='autumn'?1:quakeT>0?0.85:0.24))); fallMesh.count=n;
+  if(key!==fallKey&&on>0){ fallKey=key; const pal=key==='aspen'?FALL_ASPEN:FALL_AUTUMN; for(let i=0;i<FALL_N;i++) fallMesh.setColorAt(i,pal[i%pal.length]); fallMesh.instanceColor.needsUpdate=true; fallers.forEach(f=>f.fresh=true); }
+  /* a wisp of wind (autumn woods only) */
+  if(key==='autumn'&&on>0.5&&wisp.t<0){ wisp.next-=dt; if(wisp.next<=0){ wisp.t=0; wisp.dir=Math.random()<0.5?-1:1; wisp.z=s+2+Math.random()*5; wisp.next=4.5+Math.random()*6; Music.amb('rustle'); } }
+  let w=0; if(wisp.t>=0){ wisp.t+=dt; w=Math.sin(Math.PI*Math.min(1,wisp.t/2.4)); if(wisp.t>2.4) wisp.t=-1; }
+  wispBits.forEach(b=>{ const vis=w>0.02; b.sp.visible=vis; if(!vis) return; const u=clamp(wisp.t/2.4+(b.o-0.5)*0.3,0,1), z=wisp.z+b.dz, x=trailX(z)+wisp.dir*(-11+22*u);
+    b.sp.position.set(x,trailY(z)+b.h+Math.sin(u*6+b.o*6)*0.35,z); b.sp.scale.set(b.len,0.16,1); b.sp.material.opacity=0.34*Math.sin(Math.PI*u)*on; });
+  if(!n) return;
+  const cx=trailX(s), wind=w*wisp.dir*3.4+(quakeT>0?1.6*Math.sin(time*1.3):0);
+  for(let i=0;i<n;i++){ const f=fallers[i], gy=trailY(f.z)+0.04;
+    if(f.fresh||f.z<s-14||f.z>s+26||Math.abs(f.x-cx)>19||f.y<gy-3){ f.x=cx+(Math.random()-0.5)*32; f.z=s-10+Math.random()*34; f.y=trailY(f.z)+(f.fresh?Math.random()*9:6+Math.random()*4); f.vx=f.vz=0; f.vy=-f.sp; f.rest=0; f.fresh=false; }
+    const down=f.y<=gy+0.001&&f.vy<=0;
+    if(down){ f.y=gy; f.rest+=dt; if(Math.abs(wind)>1&&Math.abs(f.z-wisp.z)<7){ f.vy=0.8+Math.random()*1.6; f.vx=wind*(0.4+Math.random()*0.5); f.rest=0; }   /* the wisp picks it up again */
+      else if(f.rest>1.2+f.ph*0.4){ f.fresh=false; f.x=cx+(Math.random()-0.5)*32; f.z=s-10+Math.random()*34; f.y=trailY(f.z)+7+Math.random()*4; f.vy=-f.sp; f.rest=0; } }
+    else { f.vy+=(-f.sp-f.vy)*Math.min(1,dt*2.2); f.vx+=(wind-f.vx)*Math.min(1,dt*1.5); f.vz*=1-Math.min(1,dt*1.5);
+      f.x+=(f.vx+Math.sin(time*1.4+f.ph)*0.55)*dt; f.z+=(f.vz+Math.cos(time*1.1+f.ph)*0.4)*dt; f.y+=f.vy*dt; if(f.y<gy) f.y=gy; }
+    if(down) _e.set(0,f.ph,0); else _e.set(time*1.9+f.ph,time*1.3+f.ph*2,0); _q.setFromEuler(_e);
+    _m.compose(_p.set(f.x,f.y,f.z),_q,_s.set(f.sc,f.sc,f.sc*1.6)); fallMesh.setMatrixAt(i,_m); }
+  fallMesh.instanceMatrix.needsUpdate=true;
+}
+/* the aspens near the girls: rebuildForest notes where each one's trunk and three clumps of leaves are, and they are re-posed every frame */
+const swayers=[];
+function updateSway(){ if(!swayers.length) return; const q=quakeT>0?smooth(6,5,quakeT)*smooth(0,1.5,quakeT):0, amp=0.034*(1+2.4*q);   /* a big breath of wind bends them three times as far */
+  for(const a of swayers){ const lx=amp*(Math.sin(time*0.9+a.x*0.13+a.ph*0.3)+0.4*Math.sin(time*2.1+a.ph)), lz=amp*0.4*Math.cos(time*0.6+a.ph), top=a.y+a.th, c=Math.cos(a.ry), sn=Math.sin(a.ry), cr=a.cr;
+    _e.set(lz*0.45,a.ry,-lx*0.45); _q.setFromEuler(_e); _m.compose(_p.set(a.x,a.y,a.z),_q,_s.set(0.2*a.sc,a.th+0.8,0.2*a.sc)); P.trunkN.m.setMatrixAt(a.ti,_m);
+    _e.set(0,a.ry,0); _q.setFromEuler(_e);
+    const blob=(k,ox,oy,oz,sx,sy)=>{ const hh=oy-a.y; _m.compose(_p.set(ox+lx*hh,oy,oz+lz*hh),_q,_s.set(sx,sy,sx)); P.blobN.m.setMatrixAt(a.bi+k,_m); };
+    blob(0,a.x,top+cr*0.9,a.z,cr,cr*1.15); blob(1,a.x+c*cr*0.6,top+cr*0.1,a.z+sn*cr*0.6,cr*0.75,cr*0.8); blob(2,a.x-c*cr*0.55,top+cr*0.45,a.z-sn*cr*0.55,cr*0.7,cr*0.75); }
+  P.trunkN.m.instanceMatrix.needsUpdate=true; P.blobN.m.instanceMatrix.needsUpdate=true; }
+/* ---------- things that only happen in the autumn woods, and things that only happen among the aspens ---------- */
+const deer=new THREE.Group(), hedgehog=new THREE.Group(), acorns=[], pileMesh=new THREE.Group();
+{ const add=(par,geo,col,x,y,z,sx,sy,sz)=>{ const m=new THREE.Mesh(geo,typeof col==='string'?L(col):col); m.position.set(x,y,z); if(sx) m.scale.set(sx,sy,sz); m.castShadow=true; par.add(m); return m; };
+  const S=new THREE.SphereGeometry(1,12,9), dark=new THREE.MeshBasicMaterial({color:0x2a1c26});
+  /* a young deer: slim legs, a long neck, big ears and a white tail (it faces +z) */
+  add(deer,S,'#c9925e',0,0.78,0,0.2,0.22,0.42); add(deer,S,'#f3e3cc',0,0.7,0.02,0.16,0.14,0.36);
+  [[-0.11,0.28],[0.11,0.28],[-0.11,-0.28],[0.11,-0.28]].forEach(([x,z])=>add(deer,new THREE.CylinderGeometry(0.03,0.025,0.62,6),'#b9824e',x,0.31,z));
+  add(deer,new THREE.CylinderGeometry(0.07,0.09,0.4,7),'#c9925e',0,1.05,0.36).rotation.x=0.5;
+  deer.userData.head=new THREE.Group(); deer.userData.head.position.set(0,1.26,0.48); deer.add(deer.userData.head);
+  add(deer.userData.head,S,'#c9925e',0,0,0.04,0.1,0.1,0.15); add(deer.userData.head,S,dark,0,-0.02,0.19,0.03,0.025,0.025);
+  [-1,1].forEach(s=>{ add(deer.userData.head,S,dark,s*0.085,0.03,0.08,0.022,0.022,0.022); const ear=add(deer.userData.head,new THREE.ConeGeometry(0.045,0.16,6),'#c9925e',s*0.09,0.13,-0.03); ear.rotation.z=-s*0.5; });
+  add(deer,S,'#ffffff',0,0.9,-0.42,0.06,0.07,0.05); [[0.08,0.92,-0.1],[-0.1,0.9,0.05],[0.05,0.95,0.15],[-0.06,0.93,-0.22]].forEach(([x,y,z])=>add(deer,S,'#fff6ec',x,y,z,0.025,0.02,0.025));
+  /* a hedgehog, with a leaf stuck to its prickles */
+  add(hedgehog,S,'#7a5238',0,0.13,0,0.17,0.14,0.24); add(hedgehog,new THREE.ConeGeometry(0.08,0.16,8),'#d9b98a',0,0.09,0.27).rotation.x=Math.PI/2; add(hedgehog,S,dark,0,0.09,0.36,0.022,0.022,0.022);
+  [-1,1].forEach(s=>add(hedgehog,S,dark,s*0.05,0.14,0.26,0.017,0.017,0.017));
+  for(let i=0;i<16;i++){ const a=(i%4-1.5)*0.5, r=Math.floor(i/4), sp=add(hedgehog,new THREE.ConeGeometry(0.03,0.13,5),'#4a2e22',Math.sin(a)*0.14,0.2+Math.cos(a)*0.04,0.14-r*0.11); sp.rotation.z=-a*0.9; sp.rotation.x=-0.5; }
+  { const lf=add(hedgehog,new THREE.CircleGeometry(0.09,5),new THREE.MeshLambertMaterial({color:0xe07a2f,side:THREE.DoubleSide}),0.03,0.31,-0.02); lf.rotation.x=-1.2; }
+  for(let i=0;i<3;i++){ const g=new THREE.Group(); add(g,S,'#b98a4a',0,0,0,0.045,0.055,0.045); add(g,S,'#6b4630',0,0.035,0,0.05,0.03,0.05); g.visible=false; scene.add(g); acorns.push(g); }
+  add(pileMesh,S,'#d9783c',0,0.14,0,0.95,0.3,0.85); add(pileMesh,S,'#e8a53a',0.3,0.2,0.1,0.55,0.24,0.5); add(pileMesh,S,'#c9402f',-0.3,0.18,-0.15,0.5,0.22,0.5); add(pileMesh,S,'#e8c24a',0,0.26,-0.05,0.4,0.18,0.4);
+  [deer,hedgehog,pileMesh].forEach(g=>{ g.visible=false; scene.add(g); }); }
+Object.assign(NARR_EVENT,{acorns:'An oak let go of three acorns: one, two, three.',leafpile:'Pip found a heap of leaves that plainly needed jumping in.',geese:'High overhead, a long V of geese went honking south.',
+  hedgehog:'A hedgehog crossed the trail with a leaf stuck to its back, in no hurry at all.',deer:'Between the white trunks stood a young deer, as still as the trees.',
+  quake:'A breath of wind ran through the grove, and ten thousand leaves clapped at once.',eyes:'Pip had the feeling that the grove was watching her. She was not entirely wrong.'});
 const BIRD_LINES=[[['Birds!','They\'re racing us to the top!'],['Did you see that?','They flew right over our heads!'],'Hello, birds!',['Where are they going?','Up the mountain, same as us.']],   /* along the trail, from behind */
   [['Look, birds!','They\'re crossing our trail.'],'So many wings!',['Where do you think they live?','Somewhere with a good view.']],                                                              /* across the trail */
   [['They\'re flying in circles!','They\'re showing off.'],['Round and round and round.','I\'m getting dizzy just watching.'],'They\'re dancing!'],                                              /* circling overhead */
@@ -2683,15 +2756,22 @@ const EVENT_LINES={
   rabbit:[[[1,'A bunny!'],[0,'It\'s showing us the way.']],[[0,'Look, a rabbit.'],[1,'Its tail is a snowball!']],[[1,'Wait for us, bunny!'],[0,'Rabbits never wait.']]],
   swirl:[[[1,'A leaf tornado!'],[0,'A very small one.']],[[0,'The wind is playing with the leaves.'],[1,'I want to play too!']]],
   woodpecker:[[[0,'Hear that knocking?'],[1,'Somebody\'s at the door!'],[0,'It\'s a woodpecker.']],[[1,'Knock knock!'],[0,'Who\'s there?'],[1,'Woodpecker!']]],
-  owl:[[[1,'Was that an owl?'],[0,'In the daytime! It must be talking in its sleep.']],[[0,'Whoo said that?'],[1,'June. No.']]]};
+  owl:[[[1,'Was that an owl?'],[0,'In the daytime! It must be talking in its sleep.']],[[0,'Whoo said that?'],[1,'June. No.']]],
+  acorns:[[[1,'Ow! An acorn bonked me!'],[0,'The tree is throwing snacks at you.']],[[0,'Plop, plop, plop.'],[1,'It\'s raining acorns!'],[0,'Leave some for the squirrels.']]],
+  leafpile:[[[1,'LEAF PILE!'],[0,'Pip, wait... oh, go on then.'],[1,'It\'s the crunchiest one yet!']],[[1,'June, watch this!'],[0,'I\'m watching. I\'m always watching.']]],
+  geese:[[[0,'Geese! They\'re flying south for the winter.'],[1,'Bye, geese! Send a postcard!']],[[1,'They\'re flying in a letter V!'],[0,'V for very far to go.']]],
+  hedgehog:[[[1,'A hedgehog! It\'s wearing a leaf!'],[0,'It\'s getting ready for a long winter nap.']],[[0,'Shh. Look who\'s crossing.'],[1,'After you, Mister Prickles.']]],
+  deer:[[[0,'Pip. Don\'t move. A deer.'],[1,'I\'m not moving. I\'m only whispering.'],[0,'...There it goes.']],[[1,'June, look! It has spots!'],[0,'It\'s a young one. Its mother won\'t be far.']]],
+  quake:[[[1,'The whole grove is shivering!'],[0,'That\'s why they\'re called quaking aspens.']],[[0,'Listen. It sounds like rain.'],[1,'It\'s the leaves! They\'re clapping!']]],
+  eyes:[[[1,'June. The trees have EYES.'],[0,'Those are where their old branches used to be.'],[1,'They\'re all looking at you.']],[[1,'That tree winked at me.'],[0,'Wink back. It\'s only polite.']]]};
 const EVENT_MENU={home:['birds','butterfly','rabbit','woodpecker'],deep:['birds','squirrel','owl','woodpecker','butterfly'],
-  aspen:['birds','butterfly','rabbit','swirl','woodpecker'],autumn:['birds','squirrel','swirl','woodpecker','butterfly'],
+  aspen:['birds','butterfly','rabbit','swirl','deer','quake','eyes','deer','quake'],autumn:['birds','squirrel','swirl','acorns','leafpile','geese','hedgehog','acorns','leafpile','geese','hedgehog'],
   winter:['birds','rabbit','woodpecker','owl'],grass:['birds','butterfly','rabbit'],marsh:['birds','butterfly','owl'],alpine:['birds','butterfly'],mtn:['birds'],
   glow:['owl','butterfly'],giant:['butterfly','birds'],pond:['butterfly','birds'],crystal:[],sky:['butterfly','birds']};
 const EVT={cur:null,inT:18,last:'',lastPat:-1};
 const eventPlace=()=>bioKeyAt(party.s)||(deep(party.s)>0.5?'deep':'home');
 function tell(lines){ if(script.length>2) script.length=2; script.push(...lines); speakIn=10; }   /* like announce, for lines with set speakers */
-function endEvent(){ flock.visible=false; squirrel.visible=false; rabbit.visible=false; flutter.visible=false;
+function endEvent(){ flock.visible=false; squirrel.visible=false; rabbit.visible=false; flutter.visible=false; deer.visible=hedgehog.visible=pileMesh.visible=false; acorns.forEach(a=>a.visible=false);
   if(EVT.cur&&EVT.cur.kind==='swirl'&&gust.t<0) gustMesh.count=0; EVT.cur=null; EVT.inT=26+Math.random()*26; }
 function startEvent(kind){
   const e=EVT.cur={kind,t:0,said:false,cue:false,s0:party.s,place:eventPlace()}; EVT.last=kind;
@@ -2702,6 +2782,14 @@ function startEvent(kind){
     birds.forEach((b,i)=>{ b.g.visible=i<e.n; b.g.position.set(b.home[0]*(loose?1.5:1)+(loose?(Math.random()-0.5)*1.4:0),b.home[1]+(loose?Math.random()*1.1:0),b.home[2]*(loose?0.7:1)); }); }
   else if(kind==='squirrel'){ e.z=party.s+9.5; e.sg=Math.random()<0.5?-1:1; e.d=-7.5*e.sg; e.phase=0; e.wait=0; }
   else if(kind==='rabbit'){ e.s=party.s+5; e.d=2.9; }
+  else if(kind==='acorns'){ e.z=party.s+2.4; e.hit=[false,false,false]; }
+  else if(kind==='leafpile'){ e.z=party.s+6.5; e.d=2.7; e.burst=false; const hd=heading(e.z);
+    pipB.queue.length=0; pipB.queue.push({k:'walk',to:pt(e.z-0.5,e.d-0.2),speed:1.9},{k:'pose',pose:'hop',dur:1.7,face:hd,pile:true},{k:'pose',pose:'spin',dur:1.3});
+    juneB.queue.length=0; juneB.queue.push({k:'pose',pose:'idle',dur:1.5},{k:'pose',pose:'look',dur:4.5,face:hd+0.9}); }
+  else if(kind==='geese'){ e.n=birds.length; e.honks=0; birds.forEach(b=>{ b.g.visible=true; b.g.position.set(b.home[0]*1.7,b.home[1]*0.3,b.home[2]*1.5); }); }
+  else if(kind==='hedgehog'){ e.z=party.s+6.2; e.sg=Math.random()<0.5?-1:1; e.d=-5.5*e.sg; }
+  else if(kind==='deer'){ e.z=party.s+8.5; e.d=-5.8; e.phase=0; e.run=0; deer.scale.setScalar(1.25); }
+  else if(kind==='quake'){ quakeT=6; Music.gust(); Music.amb('rustle'); }
   else if(kind==='swirl'){ if(gust.t>=0){ EVT.cur=null; EVT.inT=6; narr.q.pop(); return; } const pal=e.place==='aspen'?FALL_ASPEN:FALL_AUTUMN; e.z=party.s+7.5; e.bits=[];
     for(let i=0;i<60;i++){ e.bits.push({a:Math.random()*6.283,r:0.3+Math.random()*1.5,h:Math.random()*3.2,w:3+Math.random()*3,sc:0.8+Math.random()*0.9}); gustMesh.setColorAt(i,pal[Math.floor(Math.random()*pal.length)]); }
     gustMesh.instanceColor.needsUpdate=true; gustMesh.count=60; }
@@ -2748,6 +2836,32 @@ function updateEvents(dt){
     if(!e.said&&t>2){ e.said=true; tell(nextLine('ev-swirl',EVENT_LINES.swirl)); } if(t>T) endEvent(); }
   else if(e.kind==='woodpecker'){ if(!e.cue){ e.cue=true; Music.sfx('knock'); } if(!e.again&&t>2.4){ e.again=true; Music.sfx('knock'); }
     if(!e.said&&t>1.1){ e.said=true; tell(nextLine('ev-woodpecker',EVENT_LINES.woodpecker)); } if(t>5.5) endEvent(); }
+  else if(e.kind==='acorns'){ /* three acorns come down one after another just ahead of the girls, bounce and roll */
+    acorns.forEach((a,i)=>{ const tt=t-0.4-i*0.55, x=trailX(e.z)+(i-1)*0.5+0.3, gy=trailY(e.z)+0.05; a.visible=tt>0; if(tt<=0) return;
+      const fall=Math.sqrt(2*7/9.5); let y; if(tt<fall) y=7-0.5*9.5*tt*tt; else { const u=tt-fall; y=Math.max(0,1.6*u-0.5*9.5*u*u)+Math.max(0,0.5*(u-0.34)-0.5*9.5*(u-0.34)*(u-0.34))*(u>0.34?1:0); if(!e.hit[i]){ e.hit[i]=true; Music.amb('tap'); } }
+      a.position.set(x+Math.max(0,tt-fall)*0.25*(i-1),gy+y,e.z+i*0.35); a.rotation.set(tt*7,0,tt*5); });
+    if(!e.said&&t>1.6){ e.said=true; tell(nextLine('ev-acorns',EVENT_LINES.acorns)); } if(t>8) endEvent(); }
+  else if(e.kind==='leafpile'){ /* a heap of leaves beside the trail; Pip runs and jumps in, and it goes everywhere */
+    const x=trailX(e.z)+e.d, y=groundY(x,e.z); pileMesh.visible=true; pileMesh.position.set(x,y,e.z); const flat=e.burst?smooth(0,0.5,t-e.bt):0; pileMesh.scale.set(0.8*(1+0.35*flat),0.8*(1-0.6*flat),0.8*(1+0.35*flat));
+    if(!e.said&&t>0.6){ e.said=true; tell(nextLine('ev-leafpile',EVENT_LINES.leafpile)); }
+    if(!e.burst&&pipB.cur&&pipB.cur.pile&&pipB.t>0.35){ e.burst=true; e.bt=t; leafBurst(x,y+0.2,e.z,50); Music.amb('rustle'); }
+    if(t>12||e.burst&&t>e.bt+5) endEvent(); }
+  else if(e.kind==='geese'){ /* a long V, high up and unhurried, crossing the trail on a slant */
+    const lat=-46+t*5.2, z=party.s+12+lat*0.35, x=px+lat, y=py+13.5+Math.sin(t*0.5)*0.4; flock.visible=true; flock.position.set(x,y,z); flock.rotation.y=Math.atan2(1,0.35);
+    birds.forEach(b=>{ const f=Math.sin(time*5+b.ph)*0.55; b.wl.rotation.z=f; b.wr.rotation.z=-f; });
+    if(e.honks<3&&t>2.5+e.honks*2.2){ e.honks++; Music.sfx('honk'); }
+    if(!e.said&&lat>8){ e.said=true; tell(nextLine('ev-geese',EVENT_LINES.geese)); } if(lat>48) endEvent(); }
+  else if(e.kind==='hedgehog'){ /* trundles straight across the trail, and stops once to sniff */
+    const stop=Math.abs(e.d)<0.35&&!e.sniffed; if(stop){ e.wait=(e.wait||0)+dt; if(e.wait>1.6) e.sniffed=true; } else e.d+=e.sg*dt*0.95;
+    const x=trailX(e.z)+e.d; hedgehog.visible=true; hedgehog.position.set(x,groundY(x,e.z)+Math.abs(Math.sin(t*9))*0.015,e.z); hedgehog.rotation.set(0,heading(e.z)+e.sg*1.57+(stop?Math.sin(t*5)*0.3:Math.sin(t*9)*0.08),0);
+    if(!e.said&&t>1.8){ e.said=true; tell(nextLine('ev-hedgehog',EVENT_LINES.hedgehog)); } if(Math.abs(e.d)>6.5&&e.sniffed||t>16) endEvent(); }
+  else if(e.kind==='deer'){ /* stands among the trunks watching the girls come, ears turning; when they get close it bounds away into the grove */
+    if(e.phase===0&&(party.s>e.z-4.5||t>9)) e.phase=1; if(e.phase===1){ e.run+=dt; e.d-=dt*(2+e.run*3.5); e.z+=dt*(1.5+e.run*2); }
+    const x=trailX(e.z)+e.d, hop=e.phase?Math.abs(Math.sin(e.run*5.5))*0.55:0; deer.visible=true; deer.position.set(x,groundY(x,e.z)+hop,e.z);
+    deer.rotation.set(e.phase?-0.25*Math.cos(e.run*5.5):0,e.phase?Math.atan2(-1,0.6):Math.atan2(px-x,party.s-e.z),0); deer.userData.head.rotation.set(e.phase?0:Math.sin(t*0.9)*0.12,e.phase?0:Math.sin(t*0.6)*0.3,0);
+    if(!e.said&&t>1.5){ e.said=true; tell(nextLine('ev-deer',EVENT_LINES.deer)); } if(e.phase&&e.run>3.2||t>16) endEvent(); }
+  else if(e.kind==='quake'){ if(!e.again&&t>1.6){ e.again=true; Music.amb('rustle'); } if(!e.said&&t>1.4){ e.said=true; tell(nextLine('ev-quake',EVENT_LINES.quake)); } if(t>7) endEvent(); }
+  else if(e.kind==='eyes'){ if(!e.said&&t>0.8){ e.said=true; tell(nextLine('ev-eyes',EVENT_LINES.eyes)); pipB.queue.push({k:'pose',pose:'point',dur:3,face:heading(party.s)-1.2}); } if(t>8) endEvent(); }
   else if(e.kind==='owl'){ if(!e.cue){ e.cue=true; Music.sfx('hoot'); } if(!e.again&&t>3.4){ e.again=true; Music.sfx('hoot'); }
     if(!e.said&&t>1.6){ e.said=true; tell(nextLine('ev-owl',EVENT_LINES.owl)); } if(t>6.5) endEvent(); }
 }
@@ -3080,7 +3194,7 @@ function frame(now){
   const gr=Math.floor(party.s/ROW), fr=Math.floor(party.s/3);
   if(gr!==groundRow){ groundRow=gr; rebuildGround(party.s); }
   if(fr!==forestRow){ forestRow=fr; rebuildForest(party.s); }
-  updateEvents(dt); updateChirps(dt); updateGust(dt);
+  updateEvents(dt); updateChirps(dt); updateGust(dt); updateLeafFall(dt); updateSway();
   peak.position.set(-140,trailY(party.s)-10,party.s+640); peak.visible=party.s<SKY_A;
 
   /* camera: it circles the point the girls are strolling along with */

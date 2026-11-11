@@ -46,7 +46,7 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   const revealed=await p.evaluate(()=>window.hikeDebug.stage()===4);
   if(!revealed) errs.push('the new forest did not open up after the gateway');
   // every kind of visitor gets a turn (all four bird flights included)
-  for(const k of ROUTE==='LLL'?['birds','birds','birds','birds','butterfly','squirrel','rabbit','swirl','woodpecker','owl']:['birds','butterfly']){
+  for(const k of ROUTE==='LLL'?['birds','birds','birds','birds','butterfly','squirrel','rabbit','swirl','woodpecker','owl','acorns','leafpile','geese','hedgehog']:ROUTE[0]==='R'?['birds','deer','quake','eyes']:['birds','butterfly','acorns','leafpile']){
     await p.evaluate(k=>window.hikeDebug.event(k),k); await p.waitForTimeout(900);
     if(await p.evaluate(()=>window.hikeDebug.eventNow())!==k) errs.push('the '+k+' event did not start'); }
   // the second and third rest sites: each offers the two gateways that come next on this track; then the mountain trail, the mist,
