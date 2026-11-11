@@ -577,11 +577,11 @@ function optionsAt(i){ return i===0?['autumn','aspen']:i===1?(choice>0?['winter'
 const legKey=i=>picks[i]?optionsAt(i)[picks[i]>0?0:1]:null;
 /* The sky garden is not there at all until the girls are well inside the mist: until then the mountain trail simply runs on into a bank of
    cloud, with nothing beyond it. (The game's frame loop flips this as they walk in, when the mist is too thick to see the change.) */
-let skyOpen=false, skyShut=false;   /* skyShut: the girls are out on the ridge, and the cloud has closed behind them over everything lower down */
+let skyOpen=false, skyShut=false, mtnShut=false;   /* mtnShut: they are out on the mountain trail, and mist has closed over the place they came from */   /* skyShut: the girls are out on the ridge, and the cloud has closed behind them over everything lower down */
 function bioKeyAt(z){ if(z>SKY_B) return skyOpen?'sky':'mtn'; if(z>MTN) return 'mtn'; for(let i=2;i>=0;i--) if(z>SITES[i].b){ const k=legKey(i); if(k) return k; } return null; }   /* the name of the place at z (null in the home woods) */
 function boundAt(z){ let b=-1e9; for(let i=0;i<5;i++) if(z>BOUNDS[i]) b=BOUNDS[i]; return b; }
 const prevKeyAt=z=>bioKeyAt(boundAt(z)-0.01);
-const newK=z=>{ const b=boundAt(z); return smooth(0,b===MTN?26:7,z-b); };   /* how much of the place at z has taken over from the one before */
+const newK=z=>{ const b=boundAt(z); return smooth(0,b===MTN?9:7,z-b); };   /* how much of the place at z has taken over from the one before */
 const FLATS={grass:0.4,marsh:0.14,alpine:0.7,mtn:0.8,pond:0.03,crystal:0.8,sky:0.45};   /* how hilly the land beside the trail is in each place (1 where not listed) */
 function landK(z){ const b=boundAt(z); if(b<0) return 1; const k=FLATS[bioKeyAt(z)], p=FLATS[prevKeyAt(z)]; return lerp(p===undefined?1:p,k===undefined?1:k,smooth(0,25,z-b)); }
 const GATE_KIND={winter:'dim',grass:'dim',marsh:'dim',alpine:'dark',glow:'dark',giant:'dim',pond:'dim',crystal:'dark'};   /* leafy tunnels are dim, rock and hollow trees are dark */
@@ -761,7 +761,7 @@ function rebuildGround(s0){
   const r0=Math.floor((s0-BACK)/ROW);
   for(let i=0;i<NR;i++){ const r=r0+i, z=r*ROW;
     const [xl,xr,wl,wr]=fillRow(z);
-    const g=deep(z)*0.85, bp=bioK(z), nb=BIO[bioKeyAt(z)], pb=BIO[prevKeyAt(z)], nk=newK(z), fogQ=!skyOpen?smooth(SKY_B+2,SKY_B+12,z):skyShut?1-smooth(SKY_B-6,SKY_B-1.5,z):0, tyRow=trailY(z);   /* beyond the cloud bank the ground is only more cloud */
+    const g=deep(z)*0.85, bp=bioK(z), nb=BIO[bioKeyAt(z)], pb=BIO[prevKeyAt(z)], nk=newK(z), fogQ=Math.max(!skyOpen?smooth(SKY_B+2,SKY_B+12,z):skyShut?1-smooth(SKY_B-6,SKY_B-1.5,z):0,mtnShut?1-smooth(MTN-9,MTN-4,z):0), tyRow=trailY(z);   /* beyond the cloud bank the ground is only more cloud */
     const only=choice&&z>GATE_B-3?(Math.abs(trailX(z)-xl)<Math.abs(trailX(z)-xr)?-1:1):0;   /* past the gateways only the chosen path is a path; the other is just forest floor */
     for(let j=0;j<NC;j++){ const x=rowX[j], k=(i*NC+j)*3, a=only<0?Math.abs(x-xl)/wl:only>0?Math.abs(x-xr)/wr:Math.min(Math.abs(x-xl)/wl,Math.abs(x-xr)/wr);
       gPos[k]=x; gPos[k+1]=groundY(x,z); gPos[k+2]=z;
@@ -1040,7 +1040,7 @@ const densAt=z=>0.3+0.7*smooth(-0.5,0.4,Math.sin(z*0.083+1.3)+0.6*Math.sin(z*0.0
 function plantTree(r,id,x,z,first,s0,fact,ring){
   if(wet(x,z)||!ring&&restDist(x,z)<12.4||homeDist(x,z)<8.5||inVillage(x,z)) return;
   if(!ring&&z>GATE_B+20&&hash(r,id,17)>densAt(z)) return;   /* thick groves and open glades take turns along the trail */
-  { const nk=hash(r,id,12)<newK(z)?bioKeyAt(z):prevKeyAt(z), NB=BIO[nk];   /* further up the mountain, each place draws its own kind of tree (see BIO) */
+  { const nk=hash(r,id,12)<newK(z)||mtnShut&&z>MTN?bioKeyAt(z):prevKeyAt(z), NB=BIO[nk];   /* (once the mist has closed behind them on the mountain trail, none of the last place's trees are left standing on it) */   /* further up the mountain, each place draws its own kind of tree (see BIO) */
     if(NB&&NB.tree){ if(!ring&&NB.keep!==undefined&&hash(r,id,16)>NB.keep) return;
       const near=Math.abs(z-s0)<38&&Math.abs(x-trailX(z))<24; if(Math.abs(x-trailX(z))<3) solids.push({x,z,r:0.7});
       NB.tree({x,y:treeBase(x,z,0.6),z,h:hash(r,id,4),ry:hash(r,id,6)*6.28,tp:near?P.trunkN:P.trunkF,bp:near?P.blobN:P.blobF,cp:near?P.coneN:P.coneF,n:k=>hash(r,id,k)}); return; } }
@@ -1139,7 +1139,7 @@ function rebuildForest(s0){
   const r0=Math.floor((s0-BACK)/3), r1=Math.floor((s0+FWD)/3);
   for(let r=r0;r<=r1;r++){ const z0=r*3, inGate=z0+3>GATE_A-1&&z0<GATE_B+0.5;
     if(!skyOpen&&z0>SKY_B+6) continue;   /* nothing of the sky garden, or of anything past it, exists yet */
-    if(skyShut&&z0+3<=SKY_B-1) continue;    /* and from the ridge, nothing of the mountain below exists any more */
+    if(skyShut&&z0+3<=SKY_B-1||mtnShut&&z0+3<=MTN-4) continue;    /* and from the ridge, nothing of the mountain below exists any more */
     for(const side of [-1,1]){ const dp=deep(z0+1.5), bands=side<0||dp>0.5?BANDS_UP:BANDS_DOWN, q=side*10;   /* in the deep woods the trees close in on both sides */
       const edge=z=>{ paths(z); return side<0?pL:pR; };   /* things on the left grow beside the left path, things on the right beside the right one */
       /* trees */
@@ -1608,7 +1608,7 @@ const folk={key:null,list:[]};
 function syncFolk(){ const key=legKey(2); if(key===folk.key) return; folk.list.forEach(dropFolk); folk.list=[]; folk.key=key; if(!FOLK[key]) return;
   folk.list=VILLAGERS.map(([dz,lat,sc])=>{ const f=makeFolk(key,sc); f.z=VILLAGE_Z+dz; f.lat=lat; f.g.visible=false; scene.add(f.g); return f; }); }
 { const before=onRoute; onRoute=()=>{ before(); syncFolk(); }; }
-function updateVillagers(){ if(!folk.list.length) return; const near=Math.abs(party.s-VILLAGE_Z)<110&&!skyShut, px=trailX(party.s), pz=party.s;
+function updateVillagers(){ if(!folk.list.length) return; const near=Math.abs(party.s-VILLAGE_Z)<110&&!skyShut&&!mtnShut, px=trailX(party.s), pz=party.s;
   for(const f of folk.list){ f.g.visible=near; if(!near) continue; const x=trailX(f.z)+f.lat, d=Math.hypot(px-x,pz-f.z), k=smooth(9,4,d);
     f.g.position.set(x,groundY(x,f.z),f.z); f.g.rotation.y=d<18?Math.atan2(px-x,pz-f.z):f.ph+Math.sin(time*0.3+f.ph)*0.8; animFolk(f,time,k); } }
 /* whoever is doing the talking (the villager on the path, or the friend at the summit) gets the third speech bubble */
@@ -3740,8 +3740,9 @@ const curtainTex=alphaTex(128,(u,v)=>{ const top=0.84+0.07*Math.sin(u*19)+0.05*M
 const curtainGeo=new THREE.PlaneGeometry(460,110), curtains=[];   /* wide and tall enough, and reaching far enough down the slopes, that nothing shows round, over or under them */
 for(let i=0;i<12;i++){ const m=new THREE.Mesh(curtainGeo,new THREE.MeshBasicMaterial({color:0xffffff,map:curtainTex,transparent:true,opacity:0.62,depthWrite:false,side:THREE.DoubleSide}));
   m.visible=false; m.renderOrder=2; if(i%2) m.scale.x=-1; scene.add(m); curtains.push({m,ahead:i<6,k:i%6,dx:(rnd()-0.5)*40,dy:rnd()*5}); }
-function updateCurtains(){ for(const c of curtains){ const on=c.ahead?!skyOpen&&party.s>SKY_A-190:skyShut; c.m.visible=on; if(!on) continue;
-    const z=c.ahead?SKY_A+8+c.k*3:SKY_B-2-c.k*2.5; c.m.position.set(trailX(z)+c.dx,trailY(z)+17+c.dy,z); c.m.material.color.copy(scene.fog.color).lerp(WHITE,0.45); } }
+function updateCurtains(){ const rise=fork.site===2&&!skyShut?smooth(MTN+2.5,MTN+6.5,party.s):0;   /* stepping onto the mountain trail: the mist comes up behind within a few paces */
+  for(const c of curtains){ const on=c.ahead?!skyOpen&&party.s>SKY_A-190:skyShut||rise>0.01; c.m.visible=on; if(!on) continue; c.m.material.opacity=0.62*(c.ahead||skyShut?1:rise);
+    const z=c.ahead?SKY_A+8+c.k*3:skyShut?SKY_B-2-c.k*2.5:MTN-2-c.k*2.5; c.m.position.set(trailX(z)+c.dx,trailY(z)+17+c.dy,z); c.m.material.color.copy(scene.fog.color).lerp(WHITE,0.45); } }
 /* the sky garden's own weather: a sea of cloud lying under the ridge, the sun glowing through the haze straight ahead, and mist drifting up the slopes */
 const cloudSea=new THREE.Mesh(new THREE.CircleGeometry(230,48),new THREE.MeshBasicMaterial({color:0xfff6e8})); cloudSea.rotation.x=-Math.PI/2; cloudSea.visible=false; scene.add(cloudSea);
 const sunGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xffe7b0,transparent:true,opacity:0,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); sunGlow.scale.set(520,520,1); sunGlow.visible=false; scene.add(sunGlow);
@@ -3835,7 +3836,7 @@ function frame(now){
   /* the walk, and the strip of forest that travels with it */
   updateParty(dt);
   BRAINS.forEach(b=>updateBrain(b,dt));
-  { const so=party.s>=SKY_A+1, sh=party.s>=SKY_B+1.5; if(so!==skyOpen||sh!==skyShut){ skyOpen=so; skyShut=sh; groundRow=forestRow=null; } }   /* deep in the mist: now the sky garden is put in place */
+  { const so=party.s>=SKY_A+1, sh=party.s>=SKY_B+1.5, ms=party.s>=MTN+7&&fork.site===2; if(so!==skyOpen||sh!==skyShut||ms!==mtnShut){ skyOpen=so; skyShut=sh; mtnShut=ms; groundRow=forestRow=null; } }   /* deep in the mist: now the sky garden is put in place */
   const gr=Math.floor(party.s/ROW), fr=Math.floor(party.s/3);
   if(gr!==groundRow){ groundRow=gr; rebuildGround(party.s); }
   if(fr!==forestRow){ forestRow=fr; rebuildForest(party.s); }
