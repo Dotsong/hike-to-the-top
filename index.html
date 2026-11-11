@@ -437,6 +437,9 @@ body.is-paused .narrator{opacity:0}
   <button class="map-sheet" id="mapSheet" type="button" tabindex="-1" aria-label="Dad's map of the trail. Tap to roll it up."><svg id="mapSvg" viewBox="0 0 720 428" role="img" aria-label="A hand-drawn map of the trail"></svg></button>
   <div class="map-rod"></div>
 </div>
+<div class="fork-dock" id="endDock" hidden>
+  <button class="primary" id="nightBtn" type="button">Good Night</button>
+</div>
 <div class="fork-dock" id="phoneDock" hidden>
   <span class="fork-q">The telephone is ringing!</span>
   <button id="phoneBtn" type="button">Answer the telephone</button>
@@ -463,6 +466,9 @@ body.is-paused .narrator{opacity:0}
     <h2 id="zoneTitle">Jump to a place</h2>
     <p>For testing. Each jump lands a few steps before the place, so its arrival plays as it would on the walk.</p>
     <div id="zoneList"></div>
+    <h3>Saved progress (for the secret ending)</h3>
+    <p id="foundNow"></p>
+    <div class="zone-row"><button type="button" id="foundAll">Mark everything as found</button><button type="button" id="foundNone">Forget all progress</button></div>
     <button class="zone-close" id="zoneClose" type="button" aria-label="Close the list">✕</button>
   </div>
 </div>
@@ -1950,7 +1956,9 @@ const Music=(()=>{
 const state={started:false};
 let capTimer=0;
 const capEl=$('caption');
-function showCaption(c){ $('capTitle').textContent=c.t; $('capBody').textContent=c.b; capEl.classList.add('show'); clearTimeout(capTimer); capTimer=setTimeout(()=>capEl.classList.remove('show'),10000); }
+function showCaption(c,hold){ $('capTitle').textContent=c.t; $('capBody').textContent=c.b; capEl.classList.add('show'); clearTimeout(capTimer); if(!hold) capTimer=setTimeout(()=>capEl.classList.remove('show'),10000); }
+/* The End: its words stay up for as long as anyone likes, with a Good Night button underneath that goes back to the title page */
+function theEnd(body){ showCaption({t:'The End',b:body},true); $('endDock').hidden=false; }
 const fmtDist=m=>m<1000?Math.round(m)+' m':(m/1000).toFixed(1)+' km';
 let wakeLock=null;
 async function keepAwake(){ try{ if(navigator.wakeLock) wakeLock=await navigator.wakeLock.request('screen'); }catch(e){} }
@@ -2081,7 +2089,7 @@ function startHike(){
   setTimeout(()=>{ if(state.started) showCaption({t:'The edge of the woods',b:'Trees on one side, open meadow on the other. There is no hurry at all.'}); },2600);
 }
 function backToStart(){
-  if(bookOpen) closeBook(); $('zoneScrim').hidden=true; autoPaused=false; setPaused(false);
+  if(bookOpen) closeBook(); $('zoneScrim').hidden=true; $('endDock').hidden=true; autoPaused=false; setPaused(false);
   restToken++; $('fade').classList.remove('on'); hushNarrator();
   state.started=false; hushBubbles(); capEl.classList.remove('show'); $('pauseBtn').hidden=true;
   ['alt','controls'].forEach(id=>$(id).classList.add('hud-off'));
@@ -2090,7 +2098,7 @@ function backToStart(){
   const intro=$('intro'); intro.hidden=false; requestAnimationFrame(()=>intro.classList.remove('gone'));
 }
 function resetHike(){
-  if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); if(mode==='moon') leaveMoon(); if(mode==='cave') leaveCave(); forceSecret=false; $('homeDock').hidden=true; $('phoneDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
+  if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); if(mode==='moon') leaveMoon(); if(mode==='cave') leaveCave(); forceSecret=false; $('homeDock').hidden=true; $('phoneDock').hidden=true; $('endDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
   clearPrints(); fork.village=false; choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
 }
@@ -2120,7 +2128,7 @@ function warp(name,s,p,tail){
 }
 function openZones(){ if(!state.started) return; if(bookOpen) closeBook(); if(!paused){ autoPaused=true; setPaused(true); }
   $('zoneList').innerHTML=zoneList().map(([h,zs],gi)=>`<h3>${h}</h3><div class="zone-row">${zs.map((z,i)=>`<button type="button" data-z="${gi},${i}">${z[0]}</button>`).join('')}</div>`).join('');
-  $('zoneScrim').hidden=false; $('pausedBanner').classList.remove('show'); setTimeout(()=>{ try{ $('zoneClose').focus({preventScroll:true}); }catch(e){} },60); }
+  showFound(); $('zoneScrim').hidden=false; $('pausedBanner').classList.remove('show'); setTimeout(()=>{ try{ $('zoneClose').focus({preventScroll:true}); }catch(e){} },60); }
 function closeZones(){ if($('zoneScrim').hidden) return; $('zoneScrim').hidden=true; if(autoPaused){ autoPaused=false; setPaused(false); } else $('pausedBanner').classList.toggle('show',paused); }
 $('zoneBtn').addEventListener('click',openZones);
 $('zoneClose').addEventListener('click',closeZones);
@@ -2625,7 +2633,12 @@ let home=null;
 const SAVE_KEY='trail-to-the-top-found', ALL_PLACES=['aspen','autumn','winter','grass','marsh','alpine','glow','giant','pond','crystal'], ALL_FRIENDS=['glow','giant','pond','crystal'];
 let saved={places:[],friends:[]}, forceSecret=false;
 try{ const j=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(j&&Array.isArray(j.places)&&Array.isArray(j.friends)) saved={places:j.places.filter(k=>ALL_PLACES.includes(k)),friends:j.friends.filter(k=>ALL_FRIENDS.includes(k))}; }catch(e){}
-function remember(kind,key){ if(!key||saved[kind].includes(key)) return; saved[kind].push(key); try{ localStorage.setItem(SAVE_KEY,JSON.stringify(saved)); }catch(e){} }
+function storeFound(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(saved)); return true; }catch(e){ return false; } }
+function showFound(){ const el=$('foundNow'); if(el) el.textContent=`Places found: ${saved.places.length} of 10. Friends brought home: ${saved.friends.length} of 4.`+(secretReady()?' The secret ending is unlocked: finish any hike and the telephone will ring.':''); }
+/* for testing: set every flag the secret ending needs, or clear them all */
+$('foundAll').addEventListener('click',()=>{ saved={places:ALL_PLACES.slice(),friends:ALL_FRIENDS.slice()}; const ok=storeFound(); showFound(); if(!ok) $('foundNow').textContent+=' (This browser would not save it, so it lasts only until the page is closed.)'; });
+$('foundNone').addEventListener('click',()=>{ saved={places:[],friends:[]}; storeFound(); showFound(); });
+function remember(kind,key){ if(!key||!(kind==='places'?ALL_PLACES:ALL_FRIENDS).includes(key)||saved[kind].includes(key)) return; saved[kind].push(key); storeFound(); }   /* written to the browser's storage the moment it happens */
 const friendsHome=()=>forceSecret?ALL_FRIENDS.slice():ALL_FRIENDS.filter(k=>saved.friends.includes(k));
 const secretReady=()=>forceSecret||ALL_PLACES.every(k=>saved.places.includes(k))&&ALL_FRIENDS.every(k=>saved.friends.includes(k));
 const PLACE_SAID={aspen:'an aspen grove, all white and gold',autumn:'the autumn woods, where it rained leaves',winter:'a forest full of SNOW',grass:'a wheat field that never ends',marsh:'a marsh with a wooden path over it',
@@ -2671,6 +2684,35 @@ function buildHome(){
   { const mx=2.2, my=2.9; box(1.5,1.15,0.06,'#8a5a3c',mx,my,BZ+0.04); box(1.32,0.97,0.05,'#fff6ec',mx,my,BZ+0.06);   /* Dad's map, framed on the wall */
     [[-0.45,-0.3],[-0.25,-0.18],[-0.05,-0.2],[0.12,-0.05],[0.25,0.1],[0.4,0.27]].forEach(([x,y])=>flat(new THREE.CircleGeometry(0.035,8),0xd0607a,mx+x,my+y,BZ+0.09)); }
   cyl(0.012,0.012,HH-3.4,'#3a3340',0,(HH+3.4)/2,0.1); { add(new THREE.ConeGeometry(0.55,0.42,20,1,true),new THREE.MeshBasicMaterial({color:0xffd27a,side:THREE.DoubleSide}),0,3.2,0.1); ball(0.12,new THREE.MeshBasicMaterial({color:0xfff6dc}),0,3.05,0.1); }
+  /* The fourth wall (the one the room is usually seen through) is covered in framed pictures: the family, the girls, Michelle, the house,
+     the mountain, and two that Mom and Dad take for drawings: June and Pip with Lumi on the Moon, and their treehouse flying under its balloons. */
+  { const FZ=ZC+HD-0.03, SK={mom:'#f2c7a5',dad:'#c99372',june:'#f2c7a5',pip:'#c99372',lumi:'#e6e2f5',mich:'#8a5a3c'}, HR={mom:'#4a2e22',dad:'#d9783c',june:'#4a2e22',pip:'#d9783c',lumi:'#f6f3ff',mich:'#2a1c26'};
+    const pic=(x,y,w,h,bg,draw,frame)=>{ const g=new THREE.Group(); g.position.set(x,y,FZ); g.rotation.y=Math.PI; sc.add(g); let z=0.05;
+      const put2=(geo,col,px2,py2)=>{ const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:col})); m.position.set(px2,py2,z); z+=0.002; g.add(m); return m; };
+      const fr=new THREE.Mesh(new THREE.PlaneGeometry(w+0.14,h+0.14),L(frame||'#8a5a3c')); fr.position.z=0.045; g.add(fr);   /* (flat, and only there from inside the room, like the wall it hangs on) */ put2(new THREE.PlaneGeometry(w,h),bg,0,0);
+      const P2={rect:(px2,py2,rw,rh,c)=>put2(new THREE.PlaneGeometry(rw,rh),c,px2,py2),dot:(px2,py2,r2,c)=>put2(new THREE.CircleGeometry(r2,18),c,px2,py2),
+        tri:(pts,c)=>{ const sh=new THREE.Shape(); sh.moveTo(pts[0][0],pts[0][1]); pts.slice(1).forEach(p=>sh.lineTo(p[0],p[1])); sh.closePath(); return put2(new THREE.ShapeGeometry(sh),c,0,0); },
+        who:(k,px2,py2,r2,dress)=>{ if(dress) P2.tri([[px2-r2*1.2,py2-r2*2.6],[px2,py2-r2*0.6],[px2+r2*1.2,py2-r2*2.6]],dress); P2.dot(px2,py2+r2*0.25,r2*1.12,HR[k]); P2.dot(px2,py2,r2,SK[k]);
+          if(k==='june'){ P2.dot(px2-r2*1.15,py2-r2*0.1,r2*0.45,HR[k]); P2.dot(px2+r2*1.15,py2-r2*0.1,r2*0.45,HR[k]); } if(k==='pip'||k==='lumi') P2.dot(px2,py2+r2*1.25,r2*0.5,HR[k]); if(k==='mom') P2.rect(px2,py2-r2*0.9,r2*2.5,r2*1.4,HR[k]).position.z-=0.0045;
+          P2.dot(px2-r2*0.35,py2,r2*0.1,'#2a1c26'); P2.dot(px2+r2*0.35,py2,r2*0.1,'#2a1c26'); if(k==='dad'){ P2.dot(px2-r2*0.35,py2,r2*0.24,'#2e2433').material.wireframe=true; P2.dot(px2+r2*0.35,py2,r2*0.24,'#2e2433').material.wireframe=true; } } };
+      draw(P2,w,h); };
+    const night=0x26335f, day=0x9fd0f0;
+    pic(0,3.25,2.0,1.35,0xffe9cf,(p)=>{ p.rect(0,-0.55,2,0.25,'#8fbf5f'); p.who('mom',-0.62,0.12,0.2,'#e58fa6'); p.who('dad',0.6,0.16,0.2,'#6f8fd0'); p.who('june',-0.15,-0.1,0.16,'#ff8a7a'); p.who('pip',0.2,-0.18,0.14,'#b79cff'); },'#c9a03c');   /* all four of them, in the middle */
+    pic(-2.3,3.4,1.5,1.2,night,(p)=>{ p.dot(0,-1.05,1.0,'#c9cbd8'); p.dot(-0.45,-0.42,0.09,'#a9abbc'); p.dot(0.5,-0.5,0.07,'#a9abbc'); p.dot(0.55,0.4,0.14,'#4f8fdc'); [[-0.6,0.45],[-0.2,0.5],[0.25,0.3],[-0.5,0.1]].forEach(([a,b])=>p.dot(a,b,0.015,'#ffffff'));
+      p.who('june',-0.34,0.02,0.13,'#ff8a7a'); p.who('lumi',0,0.08,0.14,'#c9d2f0'); p.who('pip',0.33,-0.02,0.12,'#b79cff'); },'#b79cff');                                                              /* June and Pip with Lumi, on the Moon */
+    pic(2.35,3.35,1.5,1.3,night,(p)=>{ p.dot(-0.5,0.42,0.13,'#fff6dc'); [[0.5,0.5],[0.1,0.55],[-0.1,0.2],[0.6,0.1]].forEach(([a,b])=>p.dot(a,b,0.015,'#ffffff')); p.rect(0,-0.58,1.5,0.14,'#1f3f44');
+      [['#ff8a7a',-0.22,0.3],['#ffd27a',0.02,0.42],['#9fd8ff',0.26,0.3],['#b79cff',-0.06,0.22],['#8ff5d6',0.16,0.18]].forEach(([c,a,b])=>{ p.rect(a*0.5+0.03,b/2-0.12,0.008,b+0.2,'#fff6ec').rotation.z=-a*0.6; p.dot(a,b,0.11,c); });
+      p.rect(0.03,-0.22,0.42,0.3,'#b98a5a'); p.tri([[-0.24,-0.07],[0.03,0.1],[0.3,-0.07]],'#c96a55'); p.rect(0.03,-0.24,0.1,0.12,'#ffe3a0'); p.rect(0.03,-0.4,0.6,0.05,'#8a5a3c'); p.dot(-0.1,-0.3,0.035,SK.june); p.dot(0.16,-0.31,0.03,SK.pip); },'#4fa3a0');   /* the treehouse, flying under its balloons */
+    pic(-4.1,3.5,1.0,1.2,0xffe1ea,(p)=>p.who('june',0,0.05,0.26,'#ff8a7a')); pic(4.1,3.5,1.0,1.2,0xe6dcff,(p)=>p.who('pip',0,0,0.25,'#b79cff'));                                                 /* June; Pip */
+    pic(-3.9,1.75,1.2,0.95,day,(p)=>{ p.rect(0,-0.33,1.2,0.3,'#8fbf5f'); p.who('june',-0.25,0,0.14,'#ff8a7a'); p.who('mich',0.05,0,0.14,'#ffd27a'); p.who('pip',0.34,-0.05,0.12,'#b79cff'); },'#d9534a');   /* the girls with Michelle */
+    pic(-2.2,1.85,1.1,0.9,0xfff6ec,(p)=>{ p.who('mom',-0.2,0.02,0.17,'#fff6ec'); p.who('dad',0.2,0.05,0.17,'#3b3550'); p.dot(0,-0.3,0.06,'#e58fa6'); },'#c9a03c');                                  /* Mom and Dad on their wedding day */
+    pic(-0.75,1.8,0.9,0.9,day,(p)=>{ p.rect(0,-0.3,0.9,0.3,'#8fbf5f'); p.rect(0,-0.08,0.5,0.34,'#f6ead8'); p.tri([[-0.32,0.09],[0,0.32],[0.32,0.09]],'#c96a55'); p.rect(0,-0.16,0.1,0.18,'#8a5a3c'); p.dot(0.28,0.3,0.07,'#fff3a3'); });   /* the house */
+    pic(0.6,1.8,1.0,0.9,day,(p)=>{ p.tri([[-0.5,-0.45],[0,0.32],[0.5,-0.45]],'#8fa0a8'); p.tri([[0,0.32],[-0.1,0.16],[0,0.2],[0.1,0.16]],'#ffffff'); p.rect(0,-0.4,1.0,0.1,'#6aa857'); p.rect(0.0,0.36,0.01,0.1,'#3a2540'); p.tri([[0,0.41],[0.08,0.38],[0,0.35]],'#d0607a'); });   /* the mountain */
+    pic(2.0,1.8,1.0,0.9,0xfff3a3,(p)=>{ p.who('pip',0,0.02,0.2,'#ffe1ea'); p.dot(0.2,-0.2,0.05,'#ffffff'); },'#e58fa6');                                                                             /* Pip as a baby */
+    pic(3.6,1.8,1.3,0.95,0xdff0d8,(p)=>{ p.who('dad',-0.3,0.08,0.16,'#6f8fd0'); p.who('june',0.12,-0.05,0.13,'#ff8a7a'); p.rect(0.42,-0.12,0.26,0.2,'#f6ead0'); p.rect(0.42,-0.12,0.18,0.01,'#d0607a'); },'#6f8fd0');   /* Dad showing June his map */
+    pic(-4.6,4.75,0.8,0.6,0xffd27a,(p)=>{ p.dot(0,0,0.2,'#d9783c'); p.tri([[-0.17,0.1],[-0.12,0.3],[-0.03,0.17]],'#d9783c'); p.tri([[0.17,0.1],[0.12,0.3],[0.03,0.17]],'#d9783c'); p.dot(-0.07,0.02,0.025,'#2a1c26'); p.dot(0.07,0.02,0.025,'#2a1c26'); });   /* the cat */
+    pic(4.6,4.8,0.8,0.6,0xbfe3ff,(p)=>{ p.who('mom',-0.12,0,0.14,'#e58fa6'); p.who('pip',0.15,-0.04,0.11,'#b79cff'); }); pic(-1.3,4.75,1.0,0.6,0xffe9cf,(p)=>{ p.who('june',-0.25,0,0.11,'#ff8a7a'); p.who('pip',0,0,0.1,'#b79cff'); p.who('dad',0.27,0.02,0.12,'#6f8fd0'); });
+    pic(1.3,4.75,1.0,0.6,0xe6f1d8,(p)=>{ p.rect(0,-0.2,1,0.2,'#8fbf5f'); p.who('june',-0.2,0.02,0.11,'#ff8a7a'); p.who('pip',0.2,0,0.1,'#b79cff'); p.dot(0,0.2,0.05,'#ffd27a'); }); }
   /* a bookshelf, full */
   { const bx=0.2; box(1.7,2.7,0.42,'#a9744a',bx,1.35,BZ+0.22); const BK=['#d9534a','#4fa3a0','#ffd27a','#6f8fd0','#e58fa6','#8fbf5f','#b79cff','#fff6ec'];
     for(let sh=0;sh<4;sh++){ box(1.56,0.5,0.04,'#7a5238',bx,0.42+sh*0.62,BZ+0.42); let x=bx-0.72; for(let k=0;x<bx+0.66&&k<14;k++){ const w=0.07+((sh*7+k*13)%5)*0.018, h=0.32+((sh*5+k*11)%4)*0.04; if((sh+k)%6!==5) box(w,h,0.26,BK[(sh*3+k)%8],x+w/2,0.2+sh*0.62+h/2,BZ+0.36); x+=w+0.012; } }
@@ -2680,11 +2722,12 @@ function buildHome(){
   { cyl(0.32,0.32,0.05,'#fff6ec',-4.6,4.6,BZ+0.05,20).rotation.x=Math.PI/2; box(0.03,0.22,0.02,'#3a3340',-4.6,4.68,BZ+0.09); box(0.16,0.03,0.02,'#3a3340',-4.53,4.6,BZ+0.09); }
   /* the doorway to the hall, with the telephone on its little table, coats on their hooks and boots beneath */
   const dx=4.2; flat(new THREE.PlaneGeometry(1.7,3.3),0x3a2a34,dx,1.65,BZ+0.02); box(0.14,3.4,0.1,'#fff6ec',dx-0.9,1.7,BZ+0.06); box(0.14,3.4,0.1,'#fff6ec',dx+0.9,1.7,BZ+0.06); box(1.94,0.14,0.1,'#fff6ec',dx,3.4,BZ+0.06);
-  cyl(0.42,0.42,0.05,'#a9744a',dx,0.9,BZ+0.6); cyl(0.05,0.07,0.9,'#8a5a3c',dx,0.45,BZ+0.6);
-  const phone=new THREE.Group(); phone.position.set(dx,0.93,BZ+0.6); sc.add(phone);
+  const px=HW-0.5, pz=BZ+1.25;   /* the telephone stands on its own little table in the corner beside the hall door, not in the doorway */
+  cyl(0.36,0.36,0.05,'#a9744a',px,0.9,pz); cyl(0.05,0.07,0.9,'#8a5a3c',px,0.45,pz); cyl(0.2,0.2,0.03,'#8a5a3c',px,0.015,pz);
+  const phone=new THREE.Group(); phone.position.set(px,0.93,pz); phone.rotation.y=-0.7; sc.add(phone);
   const phM=new THREE.MeshLambertMaterial({color:0xd9534a,emissive:0xffd27a,emissiveIntensity:0});
   { box(0.36,0.14,0.26,phM,0,0.07,0,phone); cyl(0.09,0.09,0.02,'#fff6ec',0,0.15,0.03,phone); box(0.42,0.06,0.07,phM,0,0.22,-0.04,phone); ball(0.06,phM,-0.2,0.2,-0.04,phone); ball(0.06,phM,0.2,0.2,-0.04,phone); }
-  const ringGlow=new THREE.PointLight(0xffe7a0,0,5,1.5); ringGlow.position.set(dx,1.5,BZ+0.9); sc.add(ringGlow);
+  const ringGlow=new THREE.PointLight(0xffe7a0,0,5,1.5); ringGlow.position.set(px-0.5,1.5,pz+0.4); sc.add(ringGlow);
   { box(1.3,0.08,0.1,'#8a5a3c',2.75,2.0,BZ+0.06); [['#d9506e',2.35,0.62],['#4fa0dc',2.8,0.5],['#e58fa6',3.15,0.7]].forEach(([c,x,h])=>{ ball(0.04,'#3a3340',x,2.0,BZ+0.13); const ct=box(0.34,h,0.14,c,x,1.95-h/2,BZ+0.16); ct.rotation.z=(x-2.8)*0.08; });
     [[2.4,'#d9506e'],[2.62,'#d9506e'],[2.95,'#4fa0dc'],[3.15,'#4fa0dc']].forEach(([x,c])=>{ box(0.16,0.26,0.26,c,x,0.13,BZ+0.35); }); }
   /* the kitchen, along the right-hand wall: fridge, counter with a sink, the stove with the spaghetti pot still on it, cupboards and pans above */
@@ -2768,10 +2811,10 @@ function enterHome(){
 function updateHome(dt,rawDt){
   home.t+=dt; BRAINS.forEach(b=>updateHomeBrain(b,dt)); home.update(time,curLine?curLine.w:-1);
   if(!home.done&&home.t>12&&quiet()){ home.done=true; speakIn=14;
-    if(secretReady()){ home.phase=1; narrate('And then, out in the hallway, the telephone began to ring. Only two people at the table heard it.'); Music.sfx('ring'); $('phoneDock').hidden=false; }
+    if(secretReady()){ home.phase=1; narrate('And then, in the corner by the hall door, the telephone began to ring. Only two people at the table heard it.'); Music.sfx('ring'); $('phoneDock').hidden=false; }
     else { const nf=friendsHome().length, np=ALL_PLACES.filter(k=>saved.places.includes(k)).length;
       narrate('Dad smiled, and went on eating. He did not look at the window. If he had, he would have seen someone small there, waving.');
-      showCaption({t:'The End',b:`Friends who have come home with you: ${nf} of 4. Places found on the mountain: ${np} of 10.`}); } }
+      theEnd(`Friends who have come home with you: ${nf} of 4. Places found on the mountain: ${np} of 10.`); } }
   if(home.phase===1){ const k=0.5+0.5*Math.sin(time*14); home.phM.emissiveIntensity=k*0.9; home.ringGlow.intensity=k*1.3; home.phone.rotation.z=Math.sin(time*40)*0.05; if(Math.floor(time/2.6)!==Math.floor((time-dt)/2.6)) Music.sfx('ring'); }
   else if(home.phase>=2){ home.phM.emissiveIntensity=0.25; home.ringGlow.intensity=0.5; home.phone.rotation.z=0; bubbles[5].head=home.phone; bubbles[5].root=home.phone;
     if(home.phase===2&&home.t>home.pt+6&&quiet()){ home.phase=3; home.pt=home.t; narrate('So Glim and Dot and Plip and Ting joined hands, more or less, and the dining room filled up with light.'); Music.gust(); }
@@ -2894,7 +2937,7 @@ function enterMoon(){
 function updateMoon(dt,rawDt){
   moonS.t+=dt; BRAINS.forEach(b=>{ updateSummitBrain(b,dt); }); moonS.update(time,curLine?curLine.w:-1);
   [june,pip].forEach((g,i)=>{ g.g.position.y+=Math.abs(Math.sin(time*1.2+i*1.4))*0.3; });   /* a floaty, moon-sized bounce */
-  if(!moonS.done&&moonS.t>14&&quiet()){ moonS.done=true; speakIn=10; narrate('They danced until the Earth came up. And in the morning, the very first thing they did was tell Michelle.'); showCaption({t:'The End',b:'The secret ending. You found every place on the mountain. Thank you for hiking with June and Pip.'}); }
+  if(!moonS.done&&moonS.t>14&&quiet()){ moonS.done=true; speakIn=10; narrate('They danced until the Earth came up. And in the morning, the very first thing they did was tell Michelle.'); theEnd('The secret ending. You found every place on the mountain. Thank you for hiking with June and Pip.'); }
   moonS.th+=dt*0.05*motion; const th=moonS.th+(camTheta-moonS.cam0), aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
   const r=11.5*zoom*aspectBoost, ph=clamp(0.2+userPhi,0.03,1.0);
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
@@ -3035,6 +3078,7 @@ $('mapSheet').addEventListener('click',()=>{ mapHidden=true; syncMap(); });
 $('beginBtn').addEventListener('click',startHike);
 $('splashBtn').addEventListener('click',()=>{ const sp=$('splash'); sp.classList.add('gone'); setTimeout(()=>{ sp.hidden=true; $('beginBtn').focus({preventScroll:true}); },1250); });
 $('goodnightBtn').addEventListener('click',backToStart);
+$('nightBtn').addEventListener('click',backToStart);
 
 /* ---------- camera controls ---------- */
 /* camTheta is measured from the way the trail is heading, so the view keeps its angle as the trail bends */

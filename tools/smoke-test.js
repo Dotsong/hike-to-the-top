@@ -91,6 +91,17 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   await p.waitForFunction(()=>!document.getElementById('phoneDock').hidden,null,{timeout:120000}).catch(()=>errs.push('the telephone never rang'));
   await p.evaluate(()=>document.getElementById('phoneBtn').click());
   const secret=await p.waitForFunction(()=>window.hikeDebug.mode()==='moon'&&window.hikeDebug.moonDone(),null,{timeout:150000}).then(()=>true).catch(()=>{ errs.push('the party on the Moon never happened'); return false; });
+  // The End holds, with a Good Night button that goes back to the title page; progress is in storage and survives a reload; the testing buttons set and clear it
+  if(await p.evaluate(()=>document.getElementById('endDock').hidden||!document.getElementById('caption').classList.contains('show'))) errs.push('The End did not hold with its Good Night button');
+  await p.evaluate(()=>document.getElementById('nightBtn').click()); await p.waitForTimeout(1600);
+  const before=await p.evaluate(()=>window.hikeDebug.saved()); await p.reload(); await p.waitForTimeout(900);
+  if(await p.evaluate(()=>window.hikeDebug.saved())!==before||before.length<30) errs.push('progress was not kept across a reload: '+before);
+  await p.evaluate(()=>document.getElementById('foundAll').click()); await p.reload(); await p.waitForTimeout(900);
+  if(!await p.evaluate(()=>{ const j=JSON.parse(window.hikeDebug.saved()); return j.places.length===10&&j.friends.length===4; })) errs.push('"Mark everything as found" did not stick');
+  await p.evaluate(()=>document.getElementById('foundNone').click());
+  if(await p.evaluate(()=>window.hikeDebug.saved())!=='{"places":[],"friends":[]}') errs.push('"Forget all progress" did not clear it');
+  await p.evaluate(b=>{ localStorage.setItem('trail-to-the-top-found',b); },before).catch(()=>{}); await p.reload(); await p.waitForTimeout(900);
+  await p.click('#splashBtn'); await p.waitForTimeout(1500); await p.click('#beginBtn'); await p.waitForTimeout(2500);
   await p.evaluate(()=>document.getElementById('goodnightBtn').click()); await p.waitForTimeout(1600);
   const backToStart=await p.evaluate(()=>!document.getElementById('intro').hidden);
   console.log({route:ROUTE,hikeStarted:true,bookOpen,mapOpen,restScene,forkChosen,revealed,places:places.join(' > '),summit,offer,dinner,zones:zones&&zoneNames.length,secret,found:await p.evaluate(()=>window.hikeDebug.saved()).catch(()=>''),backToStart});
