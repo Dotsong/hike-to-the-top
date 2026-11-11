@@ -523,7 +523,10 @@ const GA=[GATE_A,276,424,SKY_A,TOP_A], GB=[GATE_B,288,436,SKY_B,TOP_B], BOUNDS=[
 const picks=[0,0,0];   /* what was chosen at each rest site: 1 the left-hand button, -1 the right-hand one */
 function optionsAt(i){ return i===0?['autumn','aspen']:i===1?(choice>0?['winter','grass']:['marsh','alpine']):(choice>0?['glow','giant']:['pond','crystal']); }   /* [left, right] */
 const legKey=i=>picks[i]?optionsAt(i)[picks[i]>0?0:1]:null;
-function bioKeyAt(z){ if(z>SKY_B) return 'sky'; if(z>MTN) return 'mtn'; for(let i=2;i>=0;i--) if(z>SITES[i].b){ const k=legKey(i); if(k) return k; } return null; }   /* the name of the place at z (null in the home woods) */
+/* The sky garden is not there at all until the girls are well inside the mist: until then the mountain trail simply runs on into a bank of
+   cloud, with nothing beyond it. (The game's frame loop flips this as they walk in, when the mist is too thick to see the change.) */
+let skyOpen=false;
+function bioKeyAt(z){ if(z>SKY_B) return skyOpen?'sky':'mtn'; if(z>MTN) return 'mtn'; for(let i=2;i>=0;i--) if(z>SITES[i].b){ const k=legKey(i); if(k) return k; } return null; }   /* the name of the place at z (null in the home woods) */
 function boundAt(z){ let b=-1e9; for(let i=0;i<5;i++) if(z>BOUNDS[i]) b=BOUNDS[i]; return b; }
 const prevKeyAt=z=>bioKeyAt(boundAt(z)-0.01);
 const newK=z=>{ const b=boundAt(z); return smooth(0,b===MTN?26:7,z-b); };   /* how much of the place at z has taken over from the one before */
@@ -583,6 +586,8 @@ function groundY(x,z){
   const walls=(d<0?11:6)*(1-Math.exp(-e*0.03));                         /* the deep forest: banks on both sides */
   const bumps=(Math.sin(x*0.13+z*0.11)*Math.sin(z*0.07-x*0.05)*1.3+Math.sin(x*0.31-z*0.23)*0.35)*smooth(FLAT,10,a);
   let y=ty+(lerp(open,walls,g)+bumps)*landK(z);
+  if(skyOpen&&z>SKY_B-4){ const q=smooth(SKY_B-4,SKY_B+6,z);   /* the sky garden's ridge: a few metres of crest, then a long fall on both sides, all the way to the last cave and past it */
+    if(q>0) y=lerp(y,ty-34*(1-Math.exp(-e*0.055))+bumps*0.55-0.3*smooth(0,1.5,e),q); }
   if(d>0){ const rv=riverAt(x,z); if(rv>0) y=lerp(y,riverY(z)-0.7,rv); }               /* the river bed */
   const rc=restDist(x,z); if(rc<15) y=lerp(trailY(SITES[restI].rest),y,smooth(10.5,15,rc));        /* the rest site is a level round clearing */
   const hd=homeDist(x,z); if(hd<9) y=lerp(trailY(HOME_Z),y,smooth(4,9,hd));              /* and so is the little yard round the house */
@@ -592,7 +597,8 @@ function groundY(x,z){
 const OB_FROM=68, OB_STEP=13;
 function obstacle(k){ if(k<0) return null; const s=OB_FROM+k*OB_STEP+hash(k,3,91)*6;
   if(Math.abs(s-REST_C)<12||s>FORK-4&&s<GATE_B+8||Math.abs(s-SITES[1].rest)<12||Math.abs(s-SITES[2].rest)<12||s>TOP_A-10) return null;
-  for(let i=1;i<4;i++) if(s>GA[i]-6&&s<GB[i]+8) return null;
+  for(let i=1;i<3;i++) if(s>GA[i]-6&&s<GB[i]+8) return null;
+  if(s>SKY_A-6) return null;   /* and nothing lies across the path along the ridge */
   return {s,side:hash(k,5,92)<0.5?-1:1,log:hash(k,7,93)<0.45}; }
 function dodge(s){ let sh=0; const k0=Math.floor((s-OB_FROM)/OB_STEP);   /* how far to step aside at this point on the trail */
   for(let k=k0-1;k<=k0+1;k++){ const o=obstacle(k); if(o&&!o.log) sh-=o.side*1.45*Math.exp(-Math.pow((s-o.s)/2.3,2)); }
@@ -665,7 +671,7 @@ groundGeo.setAttribute('color',new THREE.BufferAttribute(gCol,3));
 { const idx=[]; for(let i=0;i<NR-1;i++) for(let j=0;j<NC-1;j++){ const a=i*NC+j, b=a+1, c=a+NC, d=c+1; idx.push(a,c,b,b,c,d); } groundGeo.setIndex(idx); }
 const ground=new THREE.Mesh(groundGeo,new THREE.MeshLambertMaterial({vertexColors:true}));
 ground.frustumCulled=false; ground.receiveShadow=true; scene.add(ground);
-const DIRT=[0.76,0.6,0.42], FLOOR_A=[0.44,0.62,0.33], FLOOR_B=[0.34,0.52,0.29], FLOOR_GULLY=[0.27,0.44,0.29], FLOOR_ASPEN=[0.58,0.69,0.36], FLOOR_AUTUMN=[0.63,0.47,0.27], RIVERBED=[0.5,0.52,0.44], RIDGE=[0.5,0.51,0.48], CLEARING=[0.42,0.6,0.33];
+const DIRT=[0.76,0.6,0.42], FLOOR_A=[0.44,0.62,0.33], FLOOR_B=[0.34,0.52,0.29], FLOOR_GULLY=[0.27,0.44,0.29], FLOOR_ASPEN=[0.58,0.69,0.36], FLOOR_AUTUMN=[0.63,0.47,0.27], RIVERBED=[0.5,0.52,0.44], RIDGE=[0.5,0.51,0.48], CLEARING=[0.42,0.6,0.33], CLIFF=[0.5,0.45,0.39];
 /* where the columns of the row at z stand (left in rowX). Returns the two path centres and how much each path is stretched. */
 function fillRow(z){
   /* where a path runs at an angle, stretch the columns beside it so it stays the same width across */
@@ -694,7 +700,7 @@ function rebuildGround(s0){
   const r0=Math.floor((s0-BACK)/ROW);
   for(let i=0;i<NR;i++){ const r=r0+i, z=r*ROW;
     const [xl,xr,wl,wr]=fillRow(z);
-    const g=deep(z)*0.85, bp=bioK(z), nb=BIO[bioKeyAt(z)], pb=BIO[prevKeyAt(z)], nk=newK(z);
+    const g=deep(z)*0.85, bp=bioK(z), nb=BIO[bioKeyAt(z)], pb=BIO[prevKeyAt(z)], nk=newK(z), fogQ=skyOpen?0:smooth(SKY_B+2,SKY_B+12,z), tyRow=trailY(z);   /* beyond the cloud bank the ground is only more cloud */
     const only=choice&&z>GATE_B-3?(Math.abs(trailX(z)-xl)<Math.abs(trailX(z)-xr)?-1:1):0;   /* past the gateways only the chosen path is a path; the other is just forest floor */
     for(let j=0;j<NC;j++){ const x=rowX[j], k=(i*NC+j)*3, a=only<0?Math.abs(x-xl)/wl:only>0?Math.abs(x-xr)/wr:Math.min(Math.abs(x-xl)/wl,Math.abs(x-xr)/wr);
       gPos[k]=x; gPos[k+1]=groundY(x,z); gPos[k+2]=z;
@@ -705,10 +711,11 @@ function rebuildGround(s0){
         if(bi) floor=lerp(floor,tint[c]*(0.9+f*0.2),bp);
         if(pb&&pb.floor){ floor=pb.floor[c]*(0.9+f*0.2); dirt=pb.dirt[c]*(0.93+n*0.1); }   /* further up, every place has ground of its own color */
         if(nb&&nb.floor){ floor=lerp(floor,nb.floor[c]*(0.9+f*0.2),nk); dirt=lerp(dirt,nb.dirt[c]*(0.93+n*0.1),nk); }
+        if(nb&&nb.cliff&&nk>0.3){ const dp=tyRow-gPos[k+1]; floor=lerp(lerp(floor,CLIFF[c]*(0.82+n*0.36),smooth(1.2,5,dp)*(0.55+0.45*f)),0.97,smooth(9.5,13,dp)); }   /* grass on the crest, bare rock on the slopes, cloud below */
         if(rc<13&&!(nb&&nb.floor)) floor=lerp(CLEARING[c]*(0.9+f*0.2),floor,smooth(9.5,13,rc));   /* grass in the clearing, as in the rest scene */
         if(rv>0) floor=lerp(floor,RIVERBED[c],smooth(0.2,0.8,rv));
         if(rg>0) floor=lerp(floor,RIDGE[c]*(0.9+n*0.2),smooth(0.3,2.2,rg));
-        gCol[k+c]=lerp(dirt,floor,t); } } }
+        gCol[k+c]=lerp(lerp(dirt,floor,t),0.96,fogQ); } } }
   groundGeo.attributes.position.needsUpdate=true; groundGeo.attributes.color.needsUpdate=true; groundGeo.computeVertexNormals();
 }
 
@@ -760,6 +767,7 @@ const pal=a=>a.map(C), pk=(a,h)=>a[Math.floor(h*a.length)%a.length];
 const GLOWS=pal(['#8ff5d6','#9fd8ff','#c6a8ff','#fff3a3']), GEMS=pal(['#8fe8ff','#ff9ee0','#b79cff','#e8fbff']), BLOOM=pal(['#ffc6dc','#ffffff','#ffd9a0','#ffb3c8']);
 const NIGHT=pal(['#1f3f44','#1a3540','#24484a']), CAPS_BIG=pal(['#d9534a','#e8a060','#b79cff','#ff9eb5']), BLADES=pal(['#5d9b4f','#6aa857','#79b05a']);
 const MEADOW=pal(['#7fb85a','#9cc968','#c9c95a','#6aa857']), PASTEL=pal(['#9fe0d0','#c6b8ff','#ffc6dc','#bfe3ff']), GREYS=pal(['#9a9a94','#8b8f8a','#b0aea6']);
+const CRAGS=pal(['#8d857a','#7b746c','#a09787','#6f6a66']), PLANKS=pal(['#9c8468','#8f7a60','#7d6a54','#a89074']);
 const BIO={
   winter:{floor:[0.9,0.93,0.97],dirt:[0.8,0.85,0.92],mote:'#ffffff',falls:1,air:'snow',
     tree(T){ if(T.n(21)<0.7){ const sc=0.8+T.h*0.6, rr=2.3*sc; put(T.tp,T.x,T.y,T.z,0.28*sc,2,0.28*sc,T.ry,BARKS[0]);   /* a pine with snow on every tier */
@@ -836,14 +844,25 @@ const BIO={
     narr:['Inside the mountain, the rocks had been quietly growing jewels for a million years.','When Pip tapped one, the whole hollow hummed.'],
     reveal:{t:'The crystal hollow',b:'A cavern inside the mountain, full of crystals that glow and chime.',narr:'The cave opened into a hollow where the mountain kept its treasure.',lines:[[1,'It\'s a cave full of JEWELS.'],[0,'Crystals. Hundreds and hundreds of them.'],[1,'I\'m going to ring every single one.']]},
     gate:{kind:'arch',rock:['#6a6878','#7d7b8c','#5a586a'],glow:'#8fe8ff',label:'Into the crystal cave',say:'into that cave with the sparkle in it',sub:'A dark cave mouth, with something glittering far inside.',narr:'They chose the cave, because it winked at them.',enter:[[0,'Flashlights on!'],[1,'Something\'s sparkling in there!']]}},
-  sky:{floor:[0.62,0.8,0.52],dirt:[0.86,0.8,0.68],flat:0.45,keep:0.5,mote:'#ffd9ea',falls:1,air:'petals',fall:pal(['#ffc6dc','#ffffff','#ffb3c8','#ffd9a0']),
-    tree(T){ if(Math.abs(T.x-trailX(T.z))>9){ put(T.bp,T.x,T.y+0.3,T.z,4.5+T.h*2,1.8,3.6+T.h*2,T.ry,WHITE); put(T.bp,T.x+2.6,T.y+0.9,T.z+1,2.6,1.3,2.4,0,WHITE); return; }   /* out at the edges: banks of cloud */
-      const th=3+T.h*1.6, col=pk(BLOOM,T.n(21)); put(T.tp,T.x,T.y,T.z,0.2,th,0.2,T.ry,BARKS[0]); put(T.bp,T.x,T.y+th+0.9,T.z,1.9,1.4,1.9,T.ry,col); put(T.bp,T.x+1.1,T.y+th+0.3,T.z+0.4,1.2,0.9,1.2,0,col); put(T.bp,T.x-1,T.y+th+0.5,T.z-0.5,1.2,0.9,1.2,0,col); },   /* a tree in blossom */
-    props(R){ if(R.n(30)<0.85){ const p=R.at(1.7+R.n(31)*4.5,32), col=pk(BLOOM,R.n(33)); for(let k=0;k<8;k++) put(P.petal,p.x+(R.n(34+k)-0.5)*1.6,p.y+0.12,p.z+(R.n(44+k)-0.5)*1.6,1.1,1.1,1.1,0,k%3?col:pk(PETALS,R.n(54+k))); }   /* flower beds */
-      for(let j=0;j<2;j++){ const p=R.at(9+R.n(60+j)*16,62+j); put(P.bush,p.x,p.y-0.2,p.z,4+R.n(64+j)*2,1.6,3.4+R.n(66+j)*2,R.n(68+j)*6,WHITE); } },                                 /* cloud lying on the ground like snow */
-    lines:[['We\'re ABOVE the clouds.','They look like the softest bed in the world.'],'The flowers go all the way to the edge.',['Can I pick one for Mom?','Just one. The garden is watching.'],['Michelle is never going to believe this.','We\'ll bring her a petal.']],
-    narr:['Someone had planted a garden where only the sky could see it.','On either side of the path, the clouds lay as still as snow.'],
-    reveal:{t:'The sky garden',b:'A garden above the clouds, in blossom from edge to edge.',narr:'The mist thinned, and the mountain trail turned into a garden with clouds for a fence.',lines:[[1,'June... are those CLOUDS? Down THERE?'],[0,'We climbed right through them. It\'s a garden in the sky.'],[1,'It smells like every flower at once.']]},
+  /* the sky garden: a narrow path of planks along the very spine of the mountain, grass and rock and small flowers to either side of it,
+     and then nothing but cloud, falling away on both sides (groundY cuts the ridge; cloudSea, below, fills what is under it) */
+  sky:{floor:[0.47,0.62,0.33],dirt:[0.5,0.41,0.31],cliff:true,mote:'#fff6dc',air:'mist',fall:pal(['#ffffff','#fff3da','#ffe9ea']),
+    tree(T){ const lat=Math.abs(T.x-trailX(T.z)); if(lat<11){ if(T.n(21)<0.4){ const sz=0.7+T.h*0.9; put(P.rock,T.x,T.y+sz*0.4,T.z,sz*1.3,sz*0.8,sz,T.ry,pk(CRAGS,T.n(22))); } return; }   /* a crag on the shoulder of the ridge */
+      const y=trailY(T.z)-9-Math.min(lat,60)*0.07-T.n(23)*3, w=7+T.h*6;                                                                                                              /* further out: heaps of cloud, lower and lower */
+      put(T.bp,T.x,y,T.z,w,2.4+T.n(24)*1.6,w*0.8,T.ry,WHITE); put(T.bp,T.x+w*0.5,y+1.3,T.z+2,w*0.55,2,w*0.5,0,WHITE); },
+    props(R){ const tilt=z=>-Math.atan(trailY(z+0.5)-trailY(z-0.5));
+      if(R.side<0&&R.z0>SKY_B+3&&R.z0<TOP_A-9){                                                                                    /* the boardwalk, plank by plank, with a post-and-rail fence along one side */
+        for(let k=0;k<4;k++){ const z=R.z0+k*0.75, x=trailX(z); put(P.log,x,trailY(z)+0.045,z,2.3+R.n(90+k)*0.22,0.13,1.24,(R.n(94+k)-0.5)*0.07,pk(PLANKS,R.n(98+k)),tilt(z)); }
+        for(let k=0;k<2;k++){ const z=R.z0+k*1.5, x=trailX(z)-1.36; put(P.trunkF,x,trailY(z)-0.1,z,0.075,1.1,0.075,0,PLANKS[2]); }
+        { const z=R.z0+1.5; put(P.log,trailX(z)-1.36,trailY(z)+0.86,z,3.06,0.085,0.085,Math.PI/2,PLANKS[1],tilt(z)); put(P.log,trailX(z)-1.36,trailY(z)+0.5,z,3.06,0.065,0.065,Math.PI/2,PLANKS[1],tilt(z)); } }
+      for(let j=0;j<6;j++){ const p=R.at(1.9+R.n(30+j)*3.4,36+j), hh=0.3+R.n(42+j)*0.4; put(P.coneF,p.x,p.y,p.z,0.16,hh,0.16,0,pk(MEADOW,R.n(48+j))); }                      /* tufts of grass on the crest */
+      for(let j=0;j<2;j++){ if(R.n(54+j)>0.7) continue; const p=R.at(2.5+R.n(56+j)*3.6,58+j), sz=0.35+R.n(60+j)*0.75; put(P.rock,p.x,p.y+sz*0.25,p.z,sz*1.3,sz*0.75,sz,R.n(62+j)*6,pk(CRAGS,R.n(64+j))); }   /* rocks breaking through it */
+      if(R.n(66)<0.55){ const p=R.at(1.9+R.n(67)*1.8,68), col=pk(BLOOM,R.n(69)); for(let k=0;k<6;k++) put(P.petal,p.x+(R.n(70+k)-0.5)*0.9,p.y+0.12,p.z+(R.n(76+k)-0.5)*0.9,1,1,1,0,k%3?col:pk(PETALS,R.n(82+k))); }   /* and the garden itself: small flowers between the rocks */
+      for(let j=0;j<3;j++){ const d=11+R.n(84+j)*30, z=R.z0+R.n(86+j)*3, x=trailX(z)+R.side*d, w=5+R.n(88+j)*5;                                             /* cloud lapping at the slopes */
+        put(P.blobF,x,trailY(z)-8.5-d*0.1-R.n(102+j)*2,z,w,1.9+R.n(104+j)*1.4,w*0.75,R.n(106+j)*6,WHITE); } },
+    lines:[['We\'re ABOVE the clouds.','They look like the softest bed in the world.'],['Don\'t look down.','I\'m looking down. It\'s all fluffy!'],'The sun is right there. I could almost touch it.',['Can I pick one flower for Mom?','Just one. From the path side.'],['Michelle is never going to believe this.','We\'ll bring her a petal.']],
+    narr:['Someone had laid a path of planks where only the sky could see it.','On either side the clouds rolled away like a slow white sea.','Small flowers grew between the rocks, as if the mountain kept a garden up here just for itself.'],
+    reveal:{t:'The sky garden',b:'A narrow path along the spine of the mountain, with the clouds falling away on both sides.',narr:'The mist thinned, and there was the path: a ribbon of planks along the very top of the world, with nothing but cloud on either side.',lines:[[1,'June... are those CLOUDS? Down THERE?'],[0,'We climbed right through them. Hold the rail, Pip.'],[1,'I\'m walking on top of the sky!']]},
     gate:{kind:'mist',label:'Into the mist',enter:[[0,'Stay close. The mist is thick here.'],[1,'I can\'t see my own feet!']]}},
   aspen:{gate:{kind:'tunnel',cols:['#3f7a4a','#35703f','#4a8552']}},
   autumn:{gate:{kind:'arch',rock:['#8b8f8a','#9a9a94','#7d807c'],glow:'#8ff5d6'}}
@@ -944,6 +963,15 @@ function plantTree(r,id,x,z,first,s0,fact,ring){
     if(fact) spots.pine.push({x,y:y+th+H*0.35,z});
   }
 }
+/* The bank of cloud the mountain trail walks into. Great soft heaps of it stand either side of the trail through the mist, piled three high,
+   and stay there afterwards as the sky garden's near wall. Until the girls are inside the mist there is also a wall of it right across the
+   trail a little further on, so that from no angle, and from no place lower down, can anything beyond be seen. */
+function fogBank(r,z0){ const back=!skyOpen&&z0>=SKY_B+4, side=z0<SKY_B-3; if(!back&&!side) return;
+  for(let k=-12;k<=12;k++){ const id=400+k, lat=k*7+(hash(r,id,1)-0.5)*4; if(!back&&Math.abs(lat)<13) continue;   /* the trail itself, and room for the camera, stay clear */
+    const z=z0+hash(r,id,2)*3, x=trailX(z)+lat, y=floorY(x,z);
+    put(P.blobF,x,y+2.4,z,6.5+hash(r,id,3)*3,4.6+hash(r,id,4)*2,5.5+hash(r,id,5)*2,0,WHITE);
+    put(P.blobF,x+(hash(r,id,6)-0.5)*5,y+8.5+hash(r,id,7)*2.5,z,7+hash(r,id,8)*3,5+hash(r,id,9)*2,6,0,WHITE);
+    put(P.blobF,x+(hash(r,id,10)-0.5)*5,y+15+hash(r,id,11)*3,z,6+hash(r,id,12)*3,4.5,5.5,0,WHITE); } }
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
   POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
@@ -951,6 +979,8 @@ function rebuildForest(s0){
   rowCache.clear();   /* the drawn ground may have moved on (or the paths changed), so measure it afresh */
   const r0=Math.floor((s0-BACK)/3), r1=Math.floor((s0+FWD)/3);
   for(let r=r0;r<=r1;r++){ const z0=r*3, inGate=z0+3>GATE_A-1&&z0<GATE_B+0.5;
+    if(z0>=SKY_A-3&&z0<SKY_B+18) fogBank(r,z0);
+    if(!skyOpen&&z0>SKY_B+6) continue;   /* nothing of the sky garden, or of anything past it, exists yet */
     for(const side of [-1,1]){ const dp=deep(z0+1.5), bands=side<0||dp>0.5?BANDS_UP:BANDS_DOWN, q=side*10;   /* in the deep woods the trees close in on both sides */
       const edge=z=>{ paths(z); return side<0?pL:pR; };   /* things on the left grow beside the left path, things on the right beside the right one */
       /* trees */
@@ -2098,7 +2128,7 @@ function chooseTrail(c){
 }
 /* back to the trail. c is the path that was picked (0 when the hike is simply being reset). */
 function leaveRest(c){
-  rest.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); june.pack.visible=pip.pack.visible=true;
+  rest.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); june.pack.visible=pip.pack.visible=true;
   rest.dispose(); rest=null; mode='trail'; landY=groundY; hideFork(); zoom=1; userPhi=0;
   if(!c) return;
   /* the trail picks up with the girls already inside their gateway */
@@ -2207,7 +2237,7 @@ function updateSummit(dt,rawDt){
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
   target.set(0,1.3,0); camera.position.copy(target).add(off); camera.lookAt(target);
 }
-function leaveSummit(){ summit.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); summit.dispose(); summit=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
+function leaveSummit(){ summit.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); summit.dispose(); summit=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
 /* the last stretch: the mountain trail, the mist, the sky garden, the last cave, the top */
 function onTail(what){
   if(what==='trail'){ narrate('Higher still, the path turned to stone and the air grew thin and bright.'); if(!BIO[prevKeyAt(party.s)].coat){ playScript([[0,'Brr. The wind is cold up here. Parkas on, Pip!'],[1,'Hood down. I want to see EVERYTHING.']]); speakIn=14; } showCaption({t:'The mountain trail',b:'Steep and stony now. A bank of cloud is coming down to meet it.'}); }
@@ -2223,7 +2253,7 @@ function onTail(what){
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -2713,10 +2743,31 @@ Object.assign(SKIES,{
   giant:  {top:C('#3f9fe8'),mid:C('#e3f4c8'),bot:C('#a8d47a'),hemi:C('#fbffe0'),sun:C('#fff4c8'),air:0.011, glow:0.84,shine:0.9},    /* sunny and green-gold, as it looks from down in the grass */
   pond:   {top:C('#7fb4e8'),mid:C('#d8e8f8'),bot:C('#9fc0e8'),hemi:C('#eef4ff'),sun:C('#ffffff'),air:0.012, glow:0.86,shine:0.7},    /* sky above and sky below */
   crystal:{top:C('#141024'),mid:C('#2a2440'),bot:C('#1c1830'),hemi:C('#b8a8ff'),sun:C('#cfd8ff'),air:0.03,  glow:0.52,shine:0.15},   /* inside the mountain */
-  sky:    {top:C('#2a6fdc'),mid:C('#dfe9fb'),bot:C('#f6d9e6'),hemi:C('#fff6ee'),sun:C('#fff0d0'),air:0.0055,glow:0.76,shine:0.92}}); /* above the clouds */
+  sky:    {top:C('#46597f'),mid:C('#f6d3a0'),bot:C('#fff0d4'),hemi:C('#ffe8c6'),sun:C('#ffd08c'),air:0.0085,glow:0.72,shine:0.9}}); /* above the clouds: a low gold sun in the haze ahead */
 SKIES.aspen.mote=MOTE_ASPEN; SKIES.autumn.mote=MOTE_AUTUMN; SKIES.aspen.falls=SKIES.autumn.falls=1;
 for(const k in SKIES){ const B=BIO[k]; if(B&&B.mote){ SKIES[k].mote=C(B.mote); SKIES[k].falls=B.falls||0; } }
 const FOG_MIST=C('#f3f5f7'); let moteFall=0;
+/* the sky garden's own weather: a sea of cloud lying under the ridge, the sun glowing through the haze straight ahead, and mist drifting up the slopes */
+const cloudSea=new THREE.Mesh(new THREE.CircleGeometry(230,48),new THREE.MeshBasicMaterial({color:0xfff6e8})); cloudSea.rotation.x=-Math.PI/2; cloudSea.visible=false; scene.add(cloudSea);
+const sunGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xffe7b0,transparent:true,opacity:0,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); sunGlow.scale.set(520,520,1); sunGlow.visible=false; scene.add(sunGlow);
+const sunCore=new THREE.Mesh(new THREE.SphereGeometry(30,24,16),new THREE.MeshBasicMaterial({color:0xfffbe6,transparent:true,opacity:0,fog:false})); sunCore.visible=false; scene.add(sunCore);
+const skyMist=[]; for(let i=0;i<18;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xfff8ec,transparent:true,opacity:0,depthWrite:false})); sp.visible=false; sp.renderOrder=1; scene.add(sp);
+  skyMist.push({sp,z:rnd()*90,side:i%2?1:-1,lat:3.2+rnd()*13,w:9+rnd()*9,ph:rnd()*6,sp0:0.5+rnd()*0.7}); }
+/* and a few heavy clouds high overhead, dark underneath and lit gold along their edges, for the sun to shine out from under */
+const highClouds=new THREE.Group(); highClouds.visible=false; scene.add(highClouds);
+{ const hm=new THREE.MeshLambertMaterial({color:0x9a92a4,emissive:0x2c2634,fog:false});
+  for(let i=0;i<16;i++){ const m=new THREE.Mesh(blobGeo,hm); m.position.set((rnd()-0.5)*1500,230+rnd()*170,420+rnd()*900); m.scale.set(150+rnd()*170,34+rnd()*26,90+rnd()*90); highClouds.add(m); } }
+function updateSkyWeather(s,mistK){
+  const k=skyOpen?smooth(SKY_B-6,SKY_B+8,s):0, on=k>0.01;
+  cloudSea.visible=sunGlow.visible=sunCore.visible=highClouds.visible=on; skyMist.forEach(m=>m.sp.visible=on); if(!on) return;
+  cloudSea.position.set(trailX(s),trailY(s)-12.5,s);
+  highClouds.position.copy(camera.position);
+  sunGlow.position.set(camera.position.x-90,camera.position.y+72,camera.position.z+900); sunCore.position.copy(sunGlow.position);
+  sunGlow.material.opacity=0.9*k*(1-0.5*mistK); sunCore.material.opacity=0.95*k*(1-0.7*mistK);
+  skyMist.forEach(m=>{ const z=s-28+((m.z+time*m.sp0)%90+90)%90, x=trailX(z)+m.side*(m.lat+Math.sin(time*0.13+m.ph)*1.5);
+    m.sp.position.set(x,trailY(z)-0.6-m.lat*0.32+Math.sin(time*0.2+m.ph)*0.5,z); m.sp.scale.set(m.w,m.w*0.34,1);
+    m.sp.material.opacity=0.3*k*smooth(3,9,m.sp.position.distanceTo(camera.position))*(0.75+0.25*Math.sin(time*0.3+m.ph)); });
+}
 const altValue=$('altValue');
 let revealT=-1, lookBack=1, hikeT=0, frameNo=0, riverHeard=0, bloom=0, last=performance.now(), time=0, lastAltText='', camHd=heading(0), swayK=0, groundRow=null, forestRow=null;
 /* Footprints in the snow. In the winter forest each girl leaves a trail of small prints, left, right, left, pressed into the snow where she
@@ -2740,6 +2791,26 @@ function updatePrints(){
     L0.x+=ux*step*n; L0.z+=uz*step*n;
     if(made){ printMesh.count=Math.min(prints.n,PRINTS); printMesh.instanceMatrix.needsUpdate=true; } });
 }
+/* Breath you can see. Wherever it is cold enough for a parka, each girl breathes out a small puff of mist every few seconds; in the winter
+   forest, where it is coldest, the puffs are bigger, thicker, last longer and come in pairs. Each puff leaves her mouth the way she is facing,
+   drifts up and forward, swells and fades. */
+const breathG=new THREE.Group(), puffs=[], _bv=new THREE.Vector3();
+for(let i=0;i<16;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xdfeafb,transparent:true,opacity:0,depthWrite:false})); sp.visible=false; sp.renderOrder=4; breathG.add(sp); puffs.push({sp,t:0,life:0}); }
+const breathIn=[0.8,1.9];
+function puff(girl,b,big,late){ const p=puffs.find(q=>q.life<=0); if(!p) return;
+  girl.head.getWorldPosition(_bv); const sc=girl.scale, fx=Math.sin(b.face), fz=Math.cos(b.face);
+  p.x=_bv.x+fx*0.24*sc; p.y=_bv.y+0.12*sc; p.z=_bv.z+fz*0.24*sc; p.vx=fx*(0.3+Math.random()*0.15); p.vz=fz*(0.3+Math.random()*0.15); p.vy=0.1+Math.random()*0.08;
+  p.t=-late; p.life=big?2:1.35; p.s0=(big?0.16:0.1)*sc; p.s1=(big?0.72:0.36)*sc; p.o=big?0.8:0.5; }
+function updateBreath(dt){
+  const sc=june.g.parent; if(sc&&breathG.parent!==sc) sc.add(breathG);   /* the puffs live in whichever scene the girls are in */
+  const lvl=june.parka.mode;   /* 0 warm, 1 cold, 2 the winter forest */
+  if(lvl>0&&state.started) [june,pip].forEach((g,i)=>{ breathIn[i]-=dt; if(breathIn[i]>0) return; const b=BRAINS[i];
+    puff(g,b,lvl>1,0); if(lvl>1) puff(g,b,true,0.22); breathIn[i]=(lvl>1?2.3:3.3)+Math.random()*0.9; });
+  for(const p of puffs){ if(p.life<=0) continue; p.t+=dt; if(p.t<0) continue; const u=p.t/p.life;
+    if(u>=1){ p.life=0; p.sp.visible=false; continue; }
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.z+=p.vz*dt; p.vx*=1-1.4*dt; p.vz*=1-1.4*dt;
+    const sz=lerp(p.s0,p.s1,Math.sqrt(u)); p.sp.visible=true; p.sp.position.set(p.x,p.y,p.z); p.sp.scale.set(sz,sz,1); p.sp.material.opacity=p.o*Math.min(1,u*8)*(1-u)*(1-u); }
+}
 /* Pace, for testing: 1 is the real thing; 2, 4 and 8 run everything that much faster. The extra time is taken in ordinary-sized steps,
    so nothing behaves differently, it just happens sooner. (The fades between scenes still take their usual second.) */
 let pace=1;
@@ -2752,7 +2823,7 @@ $('paceBtn').addEventListener('click',()=>setPace(pace>=8?1:pace*2));
 function frame(now){
   const rawDt=Math.min(0.05,(now-last)/1000); last=now; idle+=rawDt;
   const dt=paused?0:rawDt; time+=dt;
-  updateAmbient(dt); updateOutfit(rawDt);
+  updateAmbient(dt); updateOutfit(rawDt); updateBreath(dt);
   if(!paused) for(let k=1;k<pace;k++) simStep(rawDt);   /* a faster pace (for testing): the walk, the talk and the story take extra steps between pictures */
 
   if(mode==='rest') updateRest(dt,rawDt);   /* the rest site is its own scene; the trail is not touched while it runs */
@@ -2761,6 +2832,7 @@ function frame(now){
   /* the walk, and the strip of forest that travels with it */
   updateParty(dt);
   BRAINS.forEach(b=>updateBrain(b,dt));
+  { const so=party.s>=SKY_A+3; if(so!==skyOpen){ skyOpen=so; groundRow=forestRow=null; } }   /* deep in the mist: now the sky garden is put in place */
   const gr=Math.floor(party.s/ROW), fr=Math.floor(party.s/3);
   if(gr!==groundRow){ groundRow=gr; rebuildGround(party.s); }
   if(fr!==forestRow){ forestRow=fr; rebuildForest(party.s); }
@@ -2812,6 +2884,7 @@ function frame(now){
   { const nk=nightK*(1-caveK)*(1-thK); moon.visible=stars.visible=nk>0.02; moon.material.opacity=nk; stars.material.opacity=nk*0.9;
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK;
+  updateSkyWeather(party.s,mistK);
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
