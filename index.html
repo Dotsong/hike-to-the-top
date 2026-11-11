@@ -1917,9 +1917,9 @@ const Music=(()=>{
     pond:{bell:0.4,harp:0.8,glass:0.45},             /* watery harp */
     crystal:{bell:0.7,glass:1,drone:0.3},            /* all chimes */
     mtn:{bell:0.25,glass:0.45,choir:0.32,drone:0.9,flute:0.25,myst:1},   /* ethereal and mysterious */
-    sky:{bell:0.35,harp:1,choir:0.55,strings:0.35,men:1,sky:1},               /* harps and a full choir */
+    sky:{bell:0.35,harp:1,choir:0.55,strings:0.35,men:1,cello:1,sky:1},               /* harps and a full choir */
     cave:{bell:0.15,glass:0.3,drone:0.8,myst:1}};
-  const LAYERS=['bell','harp','choir','flute','glass','wood','strings','drone','men','myst','sky'], mix={}, tgt={}; LAYERS.forEach(l=>{ mix[l]=tgt[l]=l==='bell'?1:0; });
+  const LAYERS=['bell','harp','choir','flute','glass','wood','strings','drone','men','cello','myst','sky'], mix={}, tgt={}; LAYERS.forEach(l=>{ mix[l]=tgt[l]=l==='bell'?1:0; });
   let rise=0, riseT=0, arpI=0, harpBus, choirBus, strBus, menBus, menLevel=0, moodNow='home';
   function mood(a,b,k,r,m){ const A=MOODS[a]||MOODS.home, B=MOODS[b]||A; k=k||0; LAYERS.forEach(l=>{ tgt[l]=(A[l]||0)*(1-k)+(B[l]||0)*k; }); riseT=r||0; menLevel=m||0; moodNow=a+(k>0?'>'+b+':'+k.toFixed(2):'')+(r?' rise '+r.toFixed(2):''); }
   const mtof=m=>440*Math.pow(2,(m-69)/12);
@@ -2011,6 +2011,20 @@ const Music=(()=>{
       const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=4.4+Math.random()*1.2; vg.gain.value=9; vib.connect(vg); vib.start(t0); vib.stop(t0+dur+3.6);
       [-8,8].forEach(det=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=det; vg.connect(o.detune); o.connect(src); o.start(t0); o.stop(t0+dur+3.6); });
       F.forEach((fq,j)=>{ const bp=ctx.createBiquadFilter(), bg=ctx.createGain(); bp.type='bandpass'; bp.frequency.value=fq; bp.Q.value=5; bg.gain.value=G[j]*2.4; src.connect(bp); bp.connect(bg); bg.connect(g); }); }); }
+  /* The sky garden's own melody, for cello with a double bass an octave beneath it: one long phrase to each of the four chords, rising through
+     the first three and coming home over the last. [note, beats] */
+  const SKY_TUNE=[[[52,4],[55,4],[60,6],[59,2]],[[62,6],[59,2],[55,8]],[[57,4],[60,4],[64,6],[62,2]],[[60,6],[57,2],[55,4],[53,4]]];
+  /* a bowed string playing a whole phrase in one breath: the pitch slides a little from note to note, each note leans in, and the waver comes late */
+  function bowed(phrase,t,shift,amp,cut){ let at=t; const total=phrase.reduce((n,p)=>n+p[1],0)*BEAT, g=ctx.createGain(), lp=ctx.createBiquadFilter(), body=ctx.createBiquadFilter();
+    lp.type='lowpass'; lp.frequency.value=cut; lp.Q.value=0.8; body.type='peaking'; body.frequency.value=cut*0.22; body.Q.value=1.2; body.gain.value=5; g.connect(body); body.connect(lp); lp.connect(strBus);
+    const os=[-4,4].map(det=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.detune.value=det; o.connect(g); o.start(t); o.stop(t+total+0.9); return o; });
+    const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=5.3; vg.gain.value=0; vib.connect(vg); os.forEach(o=>vg.connect(o.detune)); vib.start(t); vib.stop(t+total+0.9);
+    g.gain.setValueAtTime(0.0001,t);
+    phrase.forEach(([m,beats],i)=>{ const f=mtof(m+shift), d=beats*BEAT;
+      os.forEach(o=>{ if(i) o.frequency.exponentialRampToValueAtTime(f,at+0.09); else o.frequency.setValueAtTime(f,at); o.frequency.setValueAtTime(f,at+d-0.02); });
+      g.gain.linearRampToValueAtTime(amp*0.55,at+0.07); g.gain.linearRampToValueAtTime(amp,at+Math.min(0.5,d*0.4)); g.gain.setValueAtTime(amp,at+d-0.12); g.gain.linearRampToValueAtTime(amp*0.5,at+d);   /* a new bow stroke */
+      vg.gain.setValueAtTime(0,at+0.05); vg.gain.linearRampToValueAtTime(11,at+Math.min(0.9,d*0.6)); vg.gain.setValueAtTime(11,at+d-0.05); at+=d; });
+    g.gain.linearRampToValueAtTime(0.0001,at+0.7); }
   /* the men: a low chorus an octave under everything, darker and rounder ("oh") */
   function men(c,t,dur,amp){ const seen={}, vs=[c.bass+12,c.notes[0]-12,c.notes[1]-12,c.notes[2]-12].filter(m=>!seen[m]&&(seen[m]=1)), F=[430,820,2450], G=[1,0.45,0.1];
     vs.forEach((m,i)=>{ const f=mtof(m), t0=t+i*0.17, g=ctx.createGain(), src=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1900; env(g,t0,2.8,0.022*amp,Math.max(0.1,dur-3),3.4); g.connect(lp); lp.connect(menBus);
@@ -2030,6 +2044,7 @@ const Music=(()=>{
       if(mix.strings>0.05) cur.notes.forEach(n=>strings(n+12,t,dur-0.4,0.011*mix.strings*(1+1.6*rise)));
       if(mix.choir>0.05) choir(cur.notes,t,dur,mix.choir,rise);
       if(mix.men>0.05) men(cur,t,dur,mix.men);
+      if(grand&&mix.cello>0.3){ const ph=SKY_TUNE[(chordIdx-1)%4], a=mix.cello*(1+0.7*rise); bowed(ph,t,0,0.03*a,1500); bowed(ph,t,-12,0.034*a,650); }   /* cello, and the bass an octave below */
       if(grand&&rise>0.3) for(let i=0;i<8;i++) harp(SCALE[i+(chordIdx%2)],t+i*0.07,0.02+0.02*rise);   /* a sweep up the harp to open each bar */
     }
     if(grand&&rise>0.6&&pos%8===0) drum(t,0.05+0.07*rise);
