@@ -2888,7 +2888,7 @@ function enterHome(){
     if(mode==='summit') leaveSummit(); if(mode==='rest') leaveRest(0);
     if(!forceSecret) remember('friends',legKey(2)); home=buildHome(); Object.assign(home,{t:0,done:false,cam0:camTheta,phase:0,pt:0});
     scene.remove(june.g,pip.g); home.scene.add(june.g,pip.g); june.pack.visible=pip.pack.visible=false; setTorches(0); endEvent();
-    mode='home'; landY=()=>0.2; zoom=1; userPhi=0;
+    mode='home'; landY=()=>0.2; zoom=0.62; userPhi=0;   /* dinner opens close in on the table (0.5 is as close as the camera goes) */
     BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(i?0.6:-0.6,-1.12); b.face=b.faceT=0; b.actIn=2+i*2.5; });
     bubbles[3].head=home.mom.head; bubbles[3].root=home.mom.g; bubbles[4].head=home.dad.head; bubbles[4].root=home.dad.g;
     hushBubbles(); hushNarrator(); playScript(homeScript()); speakIn=30;
