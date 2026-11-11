@@ -314,6 +314,7 @@ body.is-paused .dad-note{opacity:0}
 
 .fade{position:fixed;inset:0;z-index:9;background:#05051a;opacity:0;pointer-events:none;transition:opacity .9s ease}
 .fade.on{opacity:1}
+.fade.white{background:#fffdf4}   /* stepping out of the last cave into daylight */
 .hud-off{opacity:0;pointer-events:none}
 
 @media (max-width:520px){
@@ -1862,7 +1863,7 @@ function updateBrain(b,dt){
   } else {
     pose=st.pose;
     if(pose==='spin'){ b.face+=dt*4.2; b.faceT=b.face; } else if(st.face!==undefined) b.faceT=st.face;
-    if(st.talk&&!st.said&&b.t>0.5){ st.said=true; if(POSE_LINES[pose]&&Math.random()<0.6) sayIf(b,nextLine('pose-'+pose,POSE_LINES[pose])); }
+    if(st.talk&&!st.said&&b.t>0.5){ st.said=true; if(POSE_LINES[pose]&&Math.random()<0.6){ const l=lineFor('pose-'+pose,POSE_LINES[pose]); if(l) sayIf(b,l); } }
     if(b.t>=st.dur) b.cur=null;
   }
   b.duck=duckAt(b.pos.y);
@@ -2135,6 +2136,14 @@ const Music=(()=>{
     else if(kind==='rustle'){ let at=0; for(let i=0;i<2+Math.floor(Math.random()*3);i++){ const len=0.09+Math.random()*0.16; hiss(at,len,0.05,2600+Math.random()*1800,0.9); at+=len*0.7+Math.random()*0.12; } }   /* something small in the undergrowth */
     else if(kind==='drip'){ const f=1300+Math.random()*500; tone(f,f*0.5,0,0.06,0.024); if(Math.random()<0.6) tone(f*1.25,f*0.7,0.11+Math.random()*0.1,0.05,0.014); }   /* water dropping off a leaf */
     else if(kind==='tap'){ const n=2+Math.floor(Math.random()*3); for(let i=0;i<n;i++) tone(900,480,i*0.13,0.035,0.022,'triangle'); }   /* a branch knocking, or a nut coming down */
+    else if(kind==='thunk'){ tone(170,70,0,0.13,0.05); hiss(0,0.08,0.02,900,0.8); }                                                   /* something small landing */
+    else if(kind==='thump'){ hiss(0,0.55,0.035,420,0.6); tone(120,60,0.05,0.2,0.045); }                                                /* snow sliding off a branch */
+    else if(kind==='splash'){ hiss(0,0.28,0.03,1900,0.7); tone(520,210,0,0.1,0.022); tone(900,500,0.09,0.08,0.012); }
+    else if(kind==='croak'){ const f=150+Math.random()*60, n=3+Math.floor(Math.random()*3); for(let i=0;i<n;i++){ tone(f,f*0.8,i*0.24,0.13,0.022,'triangle'); tone(f*2.02,f*1.7,i*0.24,0.1,0.008,'triangle'); } }
+    else if(kind==='chime'){ [[1568,0],[2093,0.28],[2637,0.6],[1976,1.05]].forEach(([f,at])=>{ tone(f,f,at,1.9,0.016); tone(f*2.76,f*2.76,at,0.7,0.003); }); }
+    else if(kind==='whistle'){ const f=2500+Math.random()*300; tone(f,f*1.32,0,0.17,0.02); tone(f,f*1.32,0.34,0.17,0.02); }              /* a marmot */
+    else if(kind==='bell'){ [0,1.7,3.4].forEach(at=>{ tone(392,390,at,2.4,0.026); tone(784,782,at,1.5,0.009); tone(1180,1176,at,0.8,0.004); }); }   /* a church bell, a long way down */
+    else if(kind==='hawk'){ const f=2900+Math.random()*200; tone(f,f*0.72,0,0.75,0.015); }
   }
   /* browsers only allow sound after a touch or click, so the first one anywhere wakes the music up */
   let silentEl=null;
@@ -2580,7 +2589,7 @@ function updateRestBrain(b,dt){
   } else {
     pose=st.pose;
     if(pose==='spin'){ b.face+=dt*4.2; b.faceT=b.face; } else if(st.face!==undefined) b.faceT=st.face;
-    if(st.talk&&!st.said&&b.t>0.5){ st.said=true; if(POSE_LINES[pose]&&Math.random()<0.6) sayIf(b,nextLine('pose-'+pose,POSE_LINES[pose])); }
+    if(st.talk&&!st.said&&b.t>0.5){ st.said=true; if(POSE_LINES[pose]&&Math.random()<0.6){ const l=lineFor('pose-'+pose,POSE_LINES[pose]); if(l) sayIf(b,l); } }
     if(b.t>=st.dur) b.cur=null;
   }
   finishBrain(b,pose,walking,dt);
@@ -2679,12 +2688,17 @@ function onReveal(){
    the patchwork of every place on the mountain, a sea of cloud in the valleys, and a ring of far mountains on every side.
    The camera circles slowly on its own, and can be dragged right round. */
 let summit=null;
+/* the last stair: where it runs (x, z from the foot to the ridge), how steep the face is, and how high the ground is anywhere on it */
+const STAIR={zt:-5.3,zb:-19,slope:0.72,path:[[-4.6,-19],[4.6,-16.6],[-4.6,-14.2],[4.6,-11.8],[-4.6,-9.4],[1.6,-6.9],[0.2,-5.2]]};
+const stairY=(x,z)=>z>=STAIR.zt?0:Math.round((z-STAIR.zt)*STAIR.slope/0.1)*0.1;
+const stairX=z=>{ const P=STAIR.path; for(let i=0;i<P.length-1;i++) if(z>=P[i][1]&&z<=P[i+1][1]) return lerp(P[i][0],P[i+1][0],(z-P[i][1])/(P[i+1][1]-P[i][1])); return 0; };
+const STAIR_SAY=[null,[[1,'More stairs?!'],[0,'The last ones. And look: flags! Somebody has been up here before us.'],[1,'They left us decorations!']],null,[[1,'I can\'t see the top.'],[0,'It\'s just over that ridge. Don\'t look down.'],[1,'...I looked down.']],null,[[0,'Last one. Ready?'],[1,'Ready!']]];
 const SUMMIT_SCRIPT=[[1,'WE DID IT! We\'re at the TOP!'],[0,'The very top. Pip, look. You can see everything.'],[1,'I can see our house! It\'s smaller than a crumb.'],[0,'And the river, and the woods, and the whole way we came.'],[1,'Hi, Mom! Hi, Dad! Hi, Michelle! Hi, Lumi!']];
 const SUMMIT_LINES=[['It goes all the way round!','That\'s what a top is, Pip.'],['Which one is our house?','The crumb next to the green crumb.'],'I\'m taller than a mountain!',['Can we have the last snack now?','Snack number nine. You earned it.'],
   ['Michelle is never going to believe this.','We\'ll bring her up next time.'],'The clouds look like a bed for giants.',['Do you think Lumi can see us?','We\'re closer to the Moon than we\'ve ever been on foot.'],['I\'m not tired at all.','You said that at the bottom.']];
 function buildSummit(){
   let sd=9191; const r=()=>{ sd=(sd*16807)%2147483647; return (sd-1)/2147483646; };
-  const sc=new THREE.Scene(); sc.fog=new THREE.FogExp2(0xffeedd,0.00085);
+  const sc=new THREE.Scene(), boxGeo=new THREE.BoxGeometry(1,1,1), planeGeo=new THREE.PlaneGeometry(1,1); sc.fog=new THREE.FogExp2(0xffeedd,0.00085);
   const sk=makeSky('#2a6fdc','#ffe4bd','#f6caa2',2600); sc.add(sk);
   sc.add(new THREE.HemisphereLight(0xfff4e2,0x8f8272,0.82));
   const sn=new THREE.DirectionalLight(0xffe0ad,0.95); sn.position.set(-60,40,30); sn.castShadow=true; sn.shadow.mapSize.set(2048,2048); sn.shadow.bias=-0.0005; sn.shadow.normalBias=0.035;
@@ -2694,8 +2708,37 @@ function buildSummit(){
   const rock=(x,y,z,sx,sy,sz)=>{ const m=new THREE.Mesh(rockGeo,L(tones[Math.floor(r()*4)])); m.position.set(x,y,z); m.scale.set(sx,sy,sz); m.rotation.set(r()*6,r()*6,r()*6); m.castShadow=true; m.receiveShadow=true; sc.add(m); return m; };
   /* the peak: a flat place to stand, ringed with boulders, and the mountain's shoulders falling away below */
   { const top=new THREE.Mesh(new THREE.CylinderGeometry(5.4,8,3,20),L('#a39f96')); top.position.y=-1.5; top.receiveShadow=true; sc.add(top); }
-  for(let i=0;i<18;i++){ const a=i/18*6.28+r()*0.3, rr=6.4+r()*2.2; rock(Math.sin(a)*rr,-2.6-r()*2,Math.cos(a)*rr,2.4+r()*1.6,1.6+r()*1.2,2.2+r()*1.4); }
-  for(let i=0;i<26;i++){ const a=r()*6.28, rr=10+r()*16; rock(Math.sin(a)*rr,-7-rr*0.9-r()*4,Math.cos(a)*rr,5+r()*5,4+r()*3,5+r()*5); }
+  for(let i=0;i<18;i++){ const a=i/18*6.28+r()*0.3, rr=6.4+r()*2.2, q=[r(),r(),r(),r()]; if(Math.cos(a)*rr<-3.2&&Math.abs(Math.sin(a)*rr)<11) continue;   /* (none where the last stair comes up) */
+    rock(Math.sin(a)*rr,-2.6-q[0]*2,Math.cos(a)*rr,2.4+q[1]*1.6,1.6+q[2]*1.2,2.2+q[3]*1.4); }
+  for(let i=0;i<26;i++){ const a=r()*6.28, rr=10+r()*16, q=[r(),r(),r(),r()]; if(Math.cos(a)*rr<-4&&Math.abs(Math.sin(a)*rr)<15) continue;
+    rock(Math.sin(a)*rr,-7-rr*0.9-q[0]*4,Math.cos(a)*rr,5+q[1]*5,4+q[2]*3,5+q[3]*5); }
+  /* The last stair. The cave lets the girls out some way below the top, on a bare face of the mountain, and a stair of flat stones climbs it
+     in switchbacks to a ridge with the summit just out of sight behind it. Climbers before them have strung the turns with prayer flags
+     and left pennants and route wands along the way. */
+  const flags=[];
+  { const SL=STAIR.slope, th=Math.atan(SL), face=new THREE.Mesh(new THREE.BoxGeometry(46,1.2,34),L('#8f8c85')); face.rotation.x=-th;
+    face.position.set(0,-17*Math.sin(th)-0.72*Math.cos(th),STAIR.zt-17*Math.cos(th)+0.72*Math.sin(th)); face.receiveShadow=true; sc.add(face);
+    const slab=(x,z,w,d,ry,col)=>{ const m=new THREE.Mesh(boxGeo,L(col)); m.scale.set(w,0.2,d); m.position.set(x,stairY(x,z)-0.1,z); m.rotation.y=ry; m.receiveShadow=true; m.castShadow=true; sc.add(m); };
+    const P=STAIR.path; for(let i=0;i<P.length-1;i++){ const a=P[i], b=P[i+1], len=Math.hypot(b[0]-a[0],b[1]-a[1]), n=Math.max(2,Math.round(len/0.56)), ry=Math.atan2(b[0]-a[0],b[1]-a[1]);
+      for(let k=0;k<=n;k++){ const u=k/n; slab(lerp(a[0],b[0],u)+(r()-0.5)*0.12,lerp(a[1],b[1],u),1.75+r()*0.3,0.62,ry,['#b9b4a8','#aaa69c','#c2bdb0','#a09c93'][Math.floor(r()*4)]); } }
+    for(let i=1;i<P.length-2;i++){ const c=P[i]; slab(c[0]+(c[0]>0?0.5:-0.5),c[1],2.6,2.2,r()*0.4,'#b3aea3'); }                                   /* a landing at every turn */
+    for(let i=0;i<46;i++){ const sd=i%2?1:-1, z=STAIR.zb-6+r()*(STAIR.zt-STAIR.zb+6), x=sd*(6.6+r()*9), sz=0.8+r()*1.9; rock(x,stairY(x,z)+sz*0.25-0.2,z,sz*1.2,sz*0.8,sz); }   /* boulders either side of the stair */
+    for(let i=0;i<14;i++){ const z=STAIR.zb+r()*(STAIR.zt-STAIR.zb), x=(r()-0.5)*9, sz=0.25+r()*0.3; if(Math.abs(x-stairX(z))<1.6) continue; rock(x,stairY(x,z)+sz*0.2,z,sz*1.3,sz*0.7,sz); }
+    for(let i=0;i<16;i++){ const sd=i%2?1:-1, x=sd*(1.9+(i>>1)*1.25+r()*0.5), sz=1.3+r()*0.9; rock(x,0.15+r()*0.5,STAIR.zt-0.5-r()*0.8,sz*1.1,sz,sz*0.9); }   /* the ridge: it hides the top until the very last step */
+    { const m=P[0], arch=new THREE.Mesh(boxGeo,new THREE.MeshBasicMaterial({color:0x0b0a10})); arch.scale.set(2.3,2.7,1.2); arch.position.set(m[0]-1.4,stairY(m[0],m[1])+1.2,m[1]-0.5); arch.rotation.y=0.9; sc.add(arch);   /* the mouth of the cave they came out of */
+      [[-2.9,0.2,1.9],[-3.3,-1.2,1.6],[-1.7,-0.2,2.9]].forEach(([dx,dz,hh])=>rock(m[0]+dx,stairY(m[0],m[1])+hh*0.55,m[1]+dz-0.6,1.3,hh,1.4)); }
+    /* prayer flags: strings of small squares, blue white red green yellow, sagging between two poles across each turn of the stair */
+    const PRAY=['#3f7fd0','#f6f3ea','#d9443a','#3f9a55','#f0c63a'], pole=(x,z,h)=>{ const m=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.045,h,6),L('#6e5a48')); m.position.set(x,stairY(x,z)+h/2-0.1,z); m.castShadow=true; sc.add(m); return stairY(x,z)+h-0.15; };
+    const string=(x0,z0,x1,z1,h)=>{ const y0=pole(x0,z0,h), y1=pole(x1,z1,h), n=Math.max(8,Math.round(Math.hypot(x1-x0,z1-z0)/0.42)), ry=Math.atan2(x1-x0,z1-z0)+Math.PI/2;
+      for(let k=1;k<n;k++){ const u=k/n, m=new THREE.Mesh(planeGeo,L(PRAY[k%5],{side:THREE.DoubleSide})); m.scale.set(0.3,0.36,1); m.position.set(lerp(x0,x1,u),lerp(y0,y1,u)-0.75*Math.sin(Math.PI*u)-0.2,lerp(z0,z1,u)); m.rotation.y=ry; sc.add(m); flags.push({m,ry,ph:r()*6,k:0.5}); }
+      const ln=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,1,4),L('#4a4038')); ln.position.set((x0+x1)/2,(y0+y1)/2-0.38,(z0+z1)/2); ln.scale.y=Math.hypot(x1-x0,z1-z0,y1-y0); ln.lookAt(x1,y1-0.38,z1); ln.rotateX(Math.PI/2); sc.add(ln); };
+    for(let i=1;i<P.length-2;i++){ const c=P[i], sd=c[0]>0?1:-1; string(c[0]+sd*1.6,c[1]-1.5,c[0]+sd*2.2,c[1]+1.9,2.3); if(i%2) string(c[0]+sd*1.9,c[1]+1.2,c[0]-sd*5.5,c[1]+2.6,2.5); }
+    string(-3.4,STAIR.zt-1.3,3.6,STAIR.zt-1.1,2.9);   /* and one right across the top of the stair, to walk under */
+    /* climbers' pennants on tall poles, and little orange wands marking the route */
+    const tri=new THREE.Shape(); tri.moveTo(0,0); tri.lineTo(0.95,-0.26); tri.lineTo(0,-0.54); tri.closePath(); const triGeo=new THREE.ShapeGeometry(tri);
+    [[5.9,-17.2,'#ff8a3d'],[-5.8,-12.6,'#e4405f'],[5.7,-9.6,'#3fb7c9'],[-3.2,-6.6,'#f0c63a']].forEach(([x,z,c])=>{ const top=pole(x,z,3.1), m=new THREE.Mesh(triGeo,L(c,{side:THREE.DoubleSide})); m.position.set(x+0.03,top+0.1,z); sc.add(m); flags.push({m,ry:0,ph:r()*6,k:0.9}); });
+    for(let i=0;i<P.length-1;i++){ const a=P[i], b=P[i+1]; for(const u of [0.3,0.7]){ const x=lerp(a[0],b[0],u), z=lerp(a[1],b[1],u)+1.15, top=pole(x,z,1.15), m=new THREE.Mesh(planeGeo,L('#ff7a2a',{side:THREE.DoubleSide})); m.scale.set(0.2,0.14,1); m.position.set(x+0.11,top,z); sc.add(m); flags.push({m,ry:0,ph:r()*6,k:0.7}); } }
+  }
   for(let i=0;i<7;i++){ const a=r()*6.28, rr=3.6+r()*1.6, m=new THREE.Mesh(blobGeo,L('#fbfdff')); m.position.set(Math.sin(a)*rr,0.02,Math.cos(a)*rr); m.scale.set(0.9+r(),0.07,0.7+r()*0.8); m.receiveShadow=true; sc.add(m); }   /* old snow */
   /* a cairn, and a flag for whoever got here */
   for(let k=0;k<5;k++){ const m=rock(2.4,0.16+k*0.27,-1.8,0.42-k*0.06,0.17,0.38-k*0.05); m.rotation.set(0,r()*6,0); }
@@ -2723,7 +2766,8 @@ function buildSummit(){
   for(let i=0;i<90;i++){ const a=r()*6.28, d=70+Math.pow(r(),1.4)*780, m=new THREE.Mesh(blobGeo,cm); m.position.set(Math.sin(a)*d,-46-r()*34,Math.cos(a)*d); m.scale.set(20+r()*46,5+r()*7,16+r()*34); cloudG.add(m); }
   const SHARED=new Set([rockGeo,blobGeo,coneGeo]);
   return {scene:sc,
-    update(dt,t){ sk.position.copy(camera.position); cloudG.rotation.y=t*0.004; flag.rotation.y=Math.sin(t*3.1)*0.3; },
+    update(dt,t){ sk.position.copy(camera.position); cloudG.rotation.y=t*0.004; flag.rotation.y=Math.sin(t*3.1)*0.3;
+      for(const f of flags) f.m.rotation.y=f.ry+Math.sin(t*(2.6+f.k)+f.ph)*0.38*f.k+Math.sin(t*7.3+f.ph*2)*0.08; },   /* every flag flutters */
     dispose(){ if(sn.shadow.map) sn.shadow.map.dispose(); sc.traverse(o=>{ if(o.geometry&&!SHARED.has(o.geometry)) o.geometry.dispose(); if(o.material) o.material.dispose(); }); } };
 }
 function updateSummitBrain(b,dt){
@@ -2832,25 +2876,39 @@ function updateCave(dt,rawDt){
 }
 function leaveCave(){ caveS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); caveS.dispose(); caveS=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; setTorches(0); }
 function enterSummit(){
-  const tok=++restToken; $('fade').classList.add('on');
-  setTimeout(()=>{ if(tok!==restToken||!state.started) return;
+  const tok=++restToken, fd=$('fade'), white=mode==='cave'; fd.classList.toggle('white',white); fd.classList.add('on');   /* out of the cave the picture goes to white, not black: daylight */
+  setTimeout(()=>{ if(tok!==restToken||!state.started){ fd.classList.remove('white'); return; }
     if(mode==='cave') leaveCave();
-    if(!saved.top){ saved.top=true; storeFound(); }
-    summit=buildSummit(); Object.assign(summit,{th:0.4,cam0:camTheta,t:0,phase:0,friend:null,goT:0});
+    summit=buildSummit(); Object.assign(summit,{th:Math.PI,cam0:camTheta,t:0,t0:0,phase:-1,leg:0,friend:null,goT:0,cam:new THREE.Vector3(),blend:0});
     scene.remove(june.g,pip.g); summit.scene.add(june.g,pip.g); setTorches(0); endEvent();
-    mode='summit'; landY=()=>0; zoom=1; userPhi=0;
-    BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(i?0.8:-0.7,i?0.2:0.6); b.face=b.faceT=0; b.actIn=6+i*3;
-      b.queue.push({k:'pose',pose:i?'hop':'wave',dur:3.2,face:0},{k:'pose',pose:'look',dur:5,face:i?0.6:-0.5}); });
-    hushBubbles(); playScript(SUMMIT_SCRIPT); speakIn=8;
-    narrate('And there it was: the whole world, all the way round, with two sisters standing on top of it.');
-    showCaption({t:'The top of the mountain',b:'Every place they walked through is down there somewhere. So is home.'});
-    $('fade').classList.remove('on'); },950);
+    mode='summit'; landY=stairY; zoom=1; userPhi=0;
+    const P=STAIR.path, hd=Math.atan2(P[1][0]-P[0][0],P[1][1]-P[0][1]);
+    BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(P[0][0]-i*0.9,P[0][1]-i*0.25); b.face=b.faceT=hd; b.actIn=99; b.queue.push({k:'pose',pose:i?'look':'idle',dur:2.6+i*0.5,face:hd}); });
+    hushBubbles(); speakIn=99;
+    narrate('Outside, the light was so bright that for a moment there was nothing but white. Then there were steps: stone ones, going up the bare side of the mountain, this way and that.');
+    showCaption({t:'The last stair',b:'Flat stones zigzagging up bare rock, strung with flags by everyone who came this way before.'});
+    fd.classList.remove('on'); setTimeout(()=>fd.classList.remove('white'),1100); },950);
 }
+/* the top itself: over the ridge, and there is nowhere higher to go */
+function reachTop(){ const S=summit; S.phase=0; S.t0=S.t; S.th=Math.PI; S.cam0=camTheta; landY=()=>0;
+  if(!saved.top){ saved.top=true; storeFound(); }
+  BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.actIn=6+i*3; b.queue.push({k:'walk',to:[i?0.8:-0.7,i?0.2:0.6],speed:1.1},{k:'pose',pose:i?'hop':'wave',dur:3.2,face:0},{k:'pose',pose:'look',dur:5,face:i?0.6:-0.5}); });
+  hushBubbles(); playScript(SUMMIT_SCRIPT); speakIn=8; Music.gust();
+  narrate('And there it was: the whole world, all the way round, with two sisters standing on top of it.');
+  showCaption({t:'The top of the mountain',b:'Every place they walked through is down there somewhere. So is home.'}); }
+/* climbing the stair: one leg at a time, June ahead and Pip at her heels, with a word at some of the turns */
+function updateStair(dt,rawDt){ const S=summit, P=STAIR.path, J=juneB, Pp=pipB;
+  if(!J.cur&&!J.queue.length&&!Pp.cur&&!Pp.queue.length){
+    if(S.leg>=P.length-1){ reachTop(); return; }
+    const say=STAIR_SAY[S.leg]; if(say&&quiet()&&!S['said'+S.leg]){ S['said'+S.leg]=1; playScript(say); const hd=Math.atan2(P[S.leg+1][0]-P[S.leg][0],P[S.leg+1][1]-P[S.leg][1]); J.queue.push({k:'pose',pose:'point',dur:2.4,face:hd}); Pp.queue.push({k:'pose',pose:'look',dur:2.4,face:hd}); return; }
+    const a=P[S.leg], b=P[S.leg+1], len=Math.hypot(b[0]-a[0],b[1]-a[1]), ux=(b[0]-a[0])/len, uz=(b[1]-a[1])/len; S.leg++;
+    J.queue.push({k:'walk',to:[b[0],b[1]],speed:1.05}); Pp.queue.push({k:'walk',to:[b[0]-ux*0.95+uz*0.25,b[1]-uz*0.95-ux*0.25],speed:1.08}); } }
 function updateSummit(dt,rawDt){
   summit.t+=dt; BRAINS.forEach(b=>updateSummitBrain(b,dt)); summit.update(dt,time);
   /* When the girls have had their look round, it turns out they were followed: the friend they made in the village pops up from behind the
      cairn, and offers them a way home. A button appears; when it is pressed they are whisked off to the last scene. */
-  if(summit.phase===0&&summit.t>11&&quiet()){ summit.phase=1; summit.t1=summit.t; const key=FOLK[legKey(2)]?legKey(2):'glow', f=summit.friend=makeFolk(key,1.15), F=FOLK[key];
+  if(summit.phase<0) updateStair(dt,rawDt);
+  if(summit.phase===0&&summit.t>summit.t0+11&&quiet()){ summit.phase=1; summit.t1=summit.t; const key=FOLK[legKey(2)]?legKey(2):'glow', f=summit.friend=makeFolk(key,1.15), F=FOLK[key];
     f.g.position.set(2.9,0,-2.5); f.g.scale.setScalar(0.01); summit.scene.add(f.g); setFriendBubble(f);
     hushBubbles(); narrate('But they were not alone up there. Somebody small had followed them, all the way from '+F.village+'.'); playScript(F.summit); speakIn=40;
     BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.queue.push({k:'pose',pose:'idle',dur:1.2},{k:'pose',pose:i?'hop':'wave',dur:3,face:0.9},{k:'pose',pose:'look',dur:8,face:0.9}); }); }
@@ -2860,11 +2918,16 @@ function updateSummit(dt,rawDt){
   if(summit.phase===1&&summit.t>summit.t1+6&&quiet()){ summit.phase=2; speakIn=12; $('homeBtn').textContent=FOLK[summit.friend.key].btn; $('homeDock').hidden=false; }
   if(summit.phase>=3&&summit.warp){ summit.warp(summit.t-summit.goT);   /* the way home, each friend's own; it goes on playing while the picture fades, so nobody is ever seen dropping back to the rock */
     if(summit.phase===3&&summit.t>summit.goT+5.2){ summit.phase=4; enterHome(); } }
-  summit.th+=dt*0.075*motion;   /* one slow turn of the whole view every minute and a half */
-  const th=summit.th+(camTheta-summit.cam0), aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
-  const r=10*zoom*aspectBoost, ph=clamp(0.2+userPhi,-0.2,1.0);
-  off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
-  target.set(0,1.3,0); camera.position.copy(target).add(off); camera.lookAt(target);
+  const aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1, S=summit;
+  /* On the stair the camera keeps to much the same spot, down the slope from the girls and a little below them, looking up: all it can see
+     beyond them is rock, flags and sky, and the top stays hidden behind the ridge. It drifts only enough to keep them in the picture. */
+  const gx=(june.g.position.x+pip.g.position.x)/2, gy=(june.g.position.y+pip.g.position.y)/2, gz=(june.g.position.z+pip.g.position.z)/2;
+  const sw=clamp((camTheta-S.cam0)*0.6,-0.7,0.7), back=7.6*zoom*aspectBoost;
+  chase.set(gx*0.35+Math.sin(sw)*back*0.6+1.2,gy-0.55+userPhi*2,gz-Math.cos(sw)*back); if(S.t<0.2||S.cam.lengthSq()===0) S.cam.copy(chase); else if(S.phase<0) S.cam.lerp(chase,1-Math.exp(-1.5*rawDt));
+  if(S.phase>=0){ S.blend=Math.min(1,S.blend+rawDt/3.2); S.th+=dt*0.075*motion*S.blend; }   /* at the top it lets go: up and over, and into one slow turn of the whole view every minute and a half */
+  const th=S.th+(camTheta-S.cam0), r=10*zoom*aspectBoost, ph=clamp(0.2+userPhi,-0.2,1.0), k=S.blend*S.blend*(3-2*S.blend);
+  off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r); look.set(0,1.3,0);
+  target.set(gx,gy+1.25,gz).lerp(look,k); camera.position.copy(look).add(off).lerp(S.cam,1-k); camera.lookAt(target);
 }
 function leaveSummit(){ $('homeDock').hidden=true; june.g.scale.setScalar(june.scale); pip.g.scale.setScalar(pip.scale); june.g.rotation.z=pip.g.rotation.z=0; bubbles[2].head=nobody.head; bubbles[2].root=nobody.g; summit.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); summit.dispose(); summit=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
 /* the last stretch: the mountain trail, the mist, the sky garden, the last cave, the top */
@@ -3307,7 +3370,7 @@ function leaveFalls(){ fallsS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={music:()=>Music.moodNow(),musicLevel:only=>Music.level(only),musicMood:(a,b,k,r,m)=>{ window.__moodLock=a?[a,b,k,r,m]:null; },known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={lineOk:(tx,p)=>fitsHere(tx,p),menu:p=>(EVENT_MENU[p]||[]).join(','),summitPhase:()=>summit?summit.phase+':'+summit.leg:'',music:()=>Music.moodNow(),musicLevel:only=>Music.level(only),musicMood:(a,b,k,r,m)=>{ window.__moodLock=a?[a,b,k,r,m]:null; },known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -3480,6 +3543,16 @@ const POSE_LINES={scoop:['A perfect acorn!','This leaf is as big as my face.','A
   look:['I can see so far!','The treetops go on forever.'],point:['Look at that one!','A woodpecker hole!','Something moved up there!'],
   sitsip:['Best water ever.','Ahh.'],sitlook:['I can see a nest up there!','The trees are SO tall.'],sitpoint:['Look, a butterfly!','Is that a squirrel?'],sitwave:['Hello, forest!'],
   spin:['Twirl!','Hiking twirl!'],wave:['Keep up, Pip!','This way!'],hop:['Boing!','I\'m not tired at all!']};
+/* Things the girls say anywhere still have to fit where they are: nobody admires the treetops in a wheat field, or the sunshine in a cave.
+   Each rule is a pattern and the places where a line containing it makes sense; a line is used only where every rule it trips allows. */
+const LINE_RULES=[[/\btrees?\b|treetop|branch|\bnest\b|woodpecker|squirrel|forest|\bbears?\b|\bstick\b|\bmoss\b|\blog\b/i,['home','deep','aspen','autumn','winter','glow','pond']],
+  [/\bleaf\b|\bleaves\b|acorn|crunchy/i,['home','deep','aspen','autumn']],[/\bpine/i,['home','deep','winter']],
+  [/\bsun\b|sunbeam|sunshine/i,['home','deep','aspen','autumn','winter','grass','marsh','alpine','giant','pond','mtn','sky']],
+  [/\bbirds?\b|butterfly|see so far/i,['home','deep','aspen','autumn','winter','grass','marsh','alpine','giant','pond','mtn','sky','glow']],
+  [/thicket|the cave\?|\bmist\b|pick the cave/i,['deep']],[/beetle|\bant\b|mushroom/i,['home','deep','aspen','autumn','grass','marsh','giant','glow','pond']]];
+const lineText=l=>Array.isArray(l)?l.map(x=>Array.isArray(x)?x[x.length-1]:x).join(' '):l;
+const fitsHere=(l,place)=>{ const tx=lineText(l); return LINE_RULES.every(([re,ok])=>!re.test(tx)||ok.includes(place)); };
+function lineFor(key,src){ const p=eventPlace(), ok=src.filter(l=>fitsHere(l,p)); return ok.length?nextLine(key+'@'+p,ok):null; }   /* (a deck of its own for each place, since each place keeps a different set) */
 const REST_LINES=['The mist tickles my nose.',['The thicket or the cave?','They both look like secrets.'],'The sunbeams look like slides.',['It\'s so quiet here.','Even my shoes are whispering.'],
   ['Dad\'s map just says "you choose" right here.','Thanks, Dad.'],'I could stay in this spot all day.',['Do you think Michelle would pick the cave?','Michelle would pick both.'],
   ['Pass the trail mix.','You ate all the chocolate ones!'],['My feet are happy.','My feet are asleep.'],'I could live here. In a hammock.',['A butterfly landed on my backpack!','It wants a snack too.'],
@@ -3577,7 +3650,7 @@ function forkMemory(){ const O=optionsAt(fork.site), been=O.map(k=>known.places.
   if(been[0]||been[1]) return [[0,'Last time we went '+way(O[been[0]?0:1])+'.'],[1,'So the other way is brand new!']];
   return []; }
 function chatter(){
-  if(mode==='rest'){ if(rest.phase===2||rest.phase===4) speak(nextLine('rest',REST_LINES)); return; }
+  if(mode==='rest'){ if(rest.phase===2||rest.phase===4){ const l=lineFor('rest',REST_LINES); if(l) speak(l); } return; }
   if(mode==='summit'){ speak(nextLine('summit',SUMMIT_LINES)); return; }
   if(mode==='home'){ if(home.phase<1) speak(nextLine('home',HOME_LINES)); return; }
   if(mode==='moon'){ speak(nextLine('moon',MOON_LINES)); return; }
@@ -3585,7 +3658,7 @@ function chatter(){
   if(knowLine()) return;   /* something they learned on an earlier hike */
   { const k=bioKeyAt(party.s), ls=k==='aspen'?ASPEN_LINES:k==='autumn'?AUTUMN_LINES:BIO[k]&&BIO[k].lines;   /* things to say about wherever they are */
     if(ls&&gateK(party.s)<0.2&&Math.random()<(BIO[k].tree?0.75:0.5)){ speak(nextLine(k,ls)); return; } }
-  speak(nextLine('trail',TRAIL_LINES));
+  { const l=lineFor('trail',TRAIL_LINES); if(l) speak(l); }
 }
 const hp=new THREE.Vector3();
 function updateSpeech(dt){
@@ -3701,6 +3774,36 @@ const EVENT_MENU={home:['birds','butterfly','rabbit','woodpecker'],deep:['birds'
   aspen:['birds','butterfly','rabbit','swirl','deer','quake','eyes','deer','quake'],autumn:['birds','squirrel','swirl','acorns','leafpile','geese','hedgehog','acorns','leafpile','geese','hedgehog'],
   winter:['birds','rabbit','woodpecker','owl'],grass:['birds','butterfly','rabbit'],marsh:['birds','butterfly','owl'],alpine:['birds','butterfly'],mtn:['birds'],
   glow:['owl','butterfly'],giant:['butterfly','birds'],pond:['butterfly','birds'],crystal:[],sky:['butterfly','birds']};
+/* Small happenings, of the same family as the birds overhead and the woodpecker: something is heard or glimpsed, the narrator mentions it, and
+   the girls have a word about it. Each belongs only to the places where it could really happen. 'snd' is the sound it makes (rep: how many
+   times), 'bird' sends one bird across (1) or circling (2), 'act' is what Pip does about it. */
+const SMALL={
+  cuckoo:{at:['home','deep','aspen','autumn'],snd:'cuckoo',narr:'Somewhere far off, a cuckoo said its own name, twice.',lines:[[[1,'Cuck-oo!'],[0,'It\'s telling everyone who it is.']],[[0,'Hear the cuckoo?'],[1,'It only knows one word.']]]},
+  dove:{at:['home','deep','autumn','pond'],snd:'dove',narr:'A dove was cooing in the branches, low and sleepy.',lines:[[[1,'Something is purring up there.'],[0,'That\'s a dove. It always sounds half asleep.']],[[0,'Listen. A dove.'],[1,'It sounds like it\'s snoring.']]]},
+  pinecone:{at:['home','deep','winter'],snd:'thunk',act:'crouch',narr:'A pine cone let go of its branch and landed with a small, definite thump.',lines:[[[1,'What was THAT?'],[0,'A pine cone. The tree dropped it.'],[1,'It should be more careful.']],[[1,'Finders keepers!'],[0,'That makes eleven pine cones, Pip.']]]},
+  crickets:{at:['home','grass','giant'],snd:'cricket',rep:4,narr:'In the grass, the crickets had started up.',lines:[[[0,'Listen. Crickets.'],[1,'They\'re playing their legs like violins!']],[[1,'The grass is singing.'],[0,'That\'s the crickets.']]]},
+  bee:{at:['home','grass','giant','alpine','aspen'],snd:'bee',narr:'A bee went by on important business.',lines:[[[1,'Bzzzzz.'],[0,'It\'s busy. Let it by.']],[[0,'Stand still, Pip. It\'s only a bee.'],[1,'Good morning, bee!']]]},
+  gusty:{at:['grass','alpine','mtn','sky','marsh'],snd:'gust',act:'spin',narr:'A gust came across the open ground and tugged at their sleeves.',lines:[[[1,'Whoa! The wind pushed me!'],[0,'Lean into it.']],[[0,'Hold on to your hat.'],[1,'I\'m not wearing a hat!'],[0,'Then hold on to your hair.']]]},
+  echo:{at:['alpine','mtn','crystal'],act:'hop',narr:'Pip tried out her voice on the rocks, and the rocks tried it right back.',lines:[[[1,'HELLOOO!'],[1,'...It said hello back!'],[0,'That\'s your echo.']],[[1,'ECHO!'],[0,'Echo, echo, echo.'],[1,'You\'re not the echo, June.']]]},
+  hawk:{at:['grass','alpine','mtn','sky'],bird:2,snd:'hawk',narr:'High up, a single hawk hung on the wind without moving a feather.',lines:[[[0,'Look up. A hawk.'],[1,'It isn\'t even flapping!'],[0,'It\'s riding the warm air.']],[[1,'That bird is just floating.'],[0,'It\'s looking for lunch.']]]},
+  heron:{at:['marsh','pond'],bird:1,snd:'honk',narr:'A heron lifted off the water, all legs and elbows, and flapped slowly away.',lines:[[[1,'That bird has stilts!'],[0,'It\'s a heron. We interrupted its fishing.']],[[0,'A heron. Look at those wings.'],[1,'Sorry, heron!']]]},
+  frogs:{at:['marsh','pond'],snd:'croak',rep:3,narr:'All at once the frogs started up, as if somebody had given a signal.',lines:[[[1,'Ribbit! Ribbit!'],[0,'Now they think you\'re a frog.']],[[0,'Listen to them all.'],[1,'It\'s a frog choir!']]]},
+  plop:{at:['marsh','pond'],snd:'splash',act:'point',narr:'Something went plop in the water, and left only rings.',lines:[[[1,'What jumped?'],[0,'A fish. Or a frog. It\'s gone now.']],[[1,'I saw the splash!'],[0,'But not the splasher.']]]},
+  snowslide:{at:['winter'],snd:'thump',act:'look',narr:'A branch shrugged, and its whole load of snow slid off with a soft whump.',lines:[[[1,'Snow avalanche!'],[0,'A very small one. The branch got tired.']],[[0,'Did you hear that?'],[1,'The tree dropped its snow!']]]},
+  dripping:{at:['winter','crystal'],snd:'drip',rep:3,narr:'Somewhere close, something was dripping, one slow drop at a time.',lines:[[[1,'Drip. Drip. Drip.'],[0,'Something is melting.']],[[0,'Hear the drips?'],[1,'I\'m counting them. Four. Five.']]]},
+  chime:{at:['crystal'],snd:'chime',narr:'A crystal rang all by itself, the way a glass does when you run a finger round it.',lines:[[[1,'Did you touch one?'],[0,'No. It just... rang.'],[1,'It\'s saying hello.']],[[0,'Listen. They\'re humming.'],[1,'I\'m humming back.']]]},
+  bat:{at:['crystal','glow'],snd:'trill',narr:'Something small and leathery flickered past overhead.',lines:[[[1,'A bat!'],[0,'It won\'t bump into us. It can hear where we are.']],[[1,'Hello, bat! Goodbye, bat!'],[0,'Bats are always in a hurry.']]]},
+  star:{at:['glow'],act:'point',star:true,narr:'A star came loose and slid down the sky.',lines:[[[1,'A shooting star!'],[0,'Quick, make a wish.'],[1,'I wished for more shooting stars.']],[[0,'Did you see that?'],[1,'It fell right off the sky!']]]},
+  moth:{at:['glow'],narr:'A pale moth blundered by, on its way to the brightest thing it could find.',lines:[[[1,'A moth! It\'s glowing too.'],[0,'It\'s only catching the light.']],[[0,'A moth. It thinks your ribbon is the Moon.'],[1,'It\'s a very nice ribbon.']]]},
+  marmot:{at:['alpine','mtn'],snd:'whistle',act:'look',narr:'From among the rocks came a sharp whistle, and then another.',lines:[[[1,'Who whistled?'],[0,'A marmot. It\'s telling the others we\'re here.'],[1,'Hello, others!']],[[0,'That\'s a marmot whistling.'],[1,'I can whistle too. Listen. ...Nearly.']]]},
+  bell:{at:['home','autumn','grass','alpine','mtn'],snd:'bell',narr:'Far below, in the town, a bell was ringing.',lines:[[[0,'Hear the bell? That\'s the church in town.'],[1,'We can hear it from all the way up HERE?']],[[1,'Is that ringing for us?'],[0,'It\'s for whoever is listening.']]]},
+  ladybird:{at:['home','aspen','grass','giant'],act:'look',narr:'A ladybird landed on Pip\'s sleeve, had a look round, and left.',lines:[[[1,'A ladybird! On me!'],[0,'Count her spots before she goes.'],[1,'Seven! ...Bye.']],[[1,'I\'ve been chosen.'],[0,'By a ladybird. Hold still.']]]},
+  seeds:{at:['grass','giant'],snd:'gust',act:'hop',narr:'A puff of wind sent a crowd of dandelion seeds sailing across the path.',lines:[[[1,'Parachutes!'],[0,'Dandelion seeds. Each one is looking for somewhere to grow.']],[[1,'I caught one!'],[0,'Let it go. It has a long way to travel.']]]},
+  pebble:{at:['alpine','mtn'],snd:'thunk',narr:'A pebble came skittering down the slope from nowhere in particular.',lines:[[[1,'Who threw that?'],[0,'Nobody. Mountains drop things sometimes.']],[[0,'Loose stone. Watch your feet.'],[1,'I\'m watching all four of our feet.']]]},
+  cloudlet:{at:['mtn','sky'],act:'spin',narr:'A scrap of cloud wandered across the path and went straight through them.',lines:[[[1,'I walked through a cloud!'],[0,'What did it feel like?'],[1,'Like a cold sneeze.']],[[0,'Mind the cloud.'],[1,'It minded ME.']]]}};
+for(const k in SMALL){ NARR_EVENT[k]=SMALL[k].narr; SMALL[k].at.forEach(p=>(EVENT_MENU[p]||(EVENT_MENU[p]=[])).push(k)); }
+const smallSound=S=>{ if(!S.snd) return; if(S.snd==='gust') Music.gust(); else if(S.snd==='honk') Music.sfx('honk'); else Music.amb(S.snd); };
+const shootStar=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xffffff,transparent:true,opacity:0.9,fog:false,depthWrite:false,blending:THREE.AdditiveBlending})); shootStar.visible=false; scene.add(shootStar);
 const EVT={cur:null,inT:18,last:'',lastPat:-1};
 const eventPlace=()=>bioKeyAt(party.s)||(deep(party.s)>0.5?'deep':'home');
 function tell(lines){ if(script.length>2) script.length=2; script.push(...lines); speakIn=10; }   /* like announce, for lines with set speakers */
@@ -3709,6 +3812,11 @@ function endEvent(){ flock.visible=false; squirrel.visible=false; rabbit.visible
 function startEvent(kind){
   const e=EVT.cur={kind,t:0,said:false,cue:false,s0:party.s,place:eventPlace()}; EVT.last=kind;
   if(NARR_EVENT[kind]) narrate(NARR_EVENT[kind]);
+  if(SMALL[kind]){ const S=e.small=SMALL[kind]; e.name=kind;
+    if(S.bird!==undefined){ e.kind='birds'; e.pat=S.bird; e.n=1; e.near=1e9; e.px=null; birds.forEach((b,i)=>{ b.g.visible=i<1; b.g.position.set(b.home[0],b.home[1],b.home[2]); }); return; }   /* one bird, flown the way the flocks are */
+    e.reps=(S.rep||1)-1; e.nextSnd=0.9; smallSound(S);
+    if(S.act&&!pipB.cur&&!pipB.queue.length) pipB.queue.push({k:'pose',pose:'idle',dur:0.8},{k:'pose',pose:S.act,dur:2.8,face:heading(party.s)+(S.act==='look'||S.act==='point'?0.9:0)});
+    return; }
   if(kind==='birds'){ /* never the same flight twice running; in the deep woods they keep to the gap above the trail */
     e.pat=pick((e.place==='deep'?[0,3]:[0,1,2,3]).filter(p=>p!==EVT.lastPat)); EVT.lastPat=e.pat; e.n=3+Math.floor(Math.random()*5); e.near=1e9; e.px=null;
     const loose=Math.random()<0.4;   /* a tidy V, or a loose bunch */
@@ -3734,6 +3842,11 @@ function updateEvents(dt){
     let menu=(EVENT_MENU[eventPlace()]||[]).filter(k=>k!==EVT.last||EVENT_MENU[eventPlace()].length<2); if(party.s>34&&fork.stage<4) menu=menu.filter(k=>k!=='rabbit');   /* the rabbit needs open ground beside the trail */
     if(!menu.length){ EVT.inT=20; return; } startEvent(pick(menu)); return; }
   e.t+=dt; const t=e.t, hd=heading(party.s), px=trailX(party.s), py=trailY(party.s);
+  if(e.small&&e.kind!=='birds'){ const S=e.small;
+    if(e.reps>0&&t>e.nextSnd){ e.reps--; e.nextSnd=t+0.8+Math.random()*0.9; smallSound(S); }
+    if(S.star){ const u=(t-0.7)/1.3, on=u>0&&u<1; shootStar.visible=on; if(on){ shootStar.position.set(px+lerp(-70,30,u),py+62-16*u,party.s+95); shootStar.scale.set(7*(1-u*0.5),1.6*(1-u*0.5),1); shootStar.material.rotation=-0.16; shootStar.material.opacity=0.9*Math.sin(Math.PI*u); } }
+    if(!e.said&&t>2){ e.said=true; tell(nextLine('ev-'+e.name,S.lines)); }
+    if(t>7.5){ shootStar.visible=false; endEvent(); } return; }
   if(e.kind==='birds'){ let x,y,z,done=false;
     if(e.pat===0){ const s=e.s0-40+t*6.5; x=trailX(s)-1.2+Math.sin(t*0.7)*0.8; y=trailY(s)+3.5+Math.sin(t*1.1)*0.35; z=s; done=s>party.s+70; }                 /* up the trail from behind, just overhead */
     else if(e.pat===1){ const lat=-30+t*6.4; z=party.s+10; x=trailX(z)+lat; y=Math.max(trailY(z)+4.6,groundY(x,z)+3.6)+Math.sin(t*1.3)*0.5; done=lat>32; }     /* across the trail a little way ahead */
@@ -3742,8 +3855,8 @@ function updateEvents(dt){
     flock.visible=true; if(e.px!==null&&(x!==e.px||z!==e.pz)) flock.rotation.y=Math.atan2(x-e.px,z-e.pz); e.px=x; e.pz=z; flock.position.set(x,y,z);
     birds.forEach(b=>{ const f=Math.sin(time*9+b.ph)*0.65; b.wl.rotation.z=f; b.wr.rotation.z=-f; });
     const far=Math.hypot(x-px,z-party.s); e.near=Math.min(e.near,far);
-    if(!e.cue&&far<13){ e.cue=true; Music.sfx('chirp'); narrate(NARR_BIRDS[e.pat]); }                                                        /* they call as they come close */
-    if(e.cue&&!e.said&&far>e.near+6){ e.said=true; announce(nextLine('birds'+e.pat,BIRD_LINES[e.pat])); }        /* the girls speak only once the flock has gone by */
+    if(!e.cue&&far<13){ e.cue=true; if(e.small) smallSound(e.small); else { Music.sfx('chirp'); narrate(NARR_BIRDS[e.pat]); } }                                                        /* they call as they come close */
+    if(e.cue&&!e.said&&(far>e.near+6||e.small&&t>5)){ e.said=true; if(e.small) tell(nextLine('ev-'+e.name,e.small.lines)); else announce(nextLine('birds'+e.pat,BIRD_LINES[e.pat])); }        /* the girls speak only once the flock has gone by */
     if(done) endEvent(); }
   else if(e.kind==='butterfly'){ const p=pip.g.position, a=t*2.3, up=Math.max(0,t-9.5), r=0.55+0.22*Math.sin(t*1.7)+up*1.4;   /* dances round Pip's head, then lifts away */
     flutter.visible=true; flutter.position.set(p.x+Math.sin(a)*r,p.y+1.55+0.16*Math.sin(t*3.1)+up*up*0.9,p.z+Math.cos(a)*r); flutter.rotation.y=a+1.57;
