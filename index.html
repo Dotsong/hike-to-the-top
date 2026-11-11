@@ -1284,14 +1284,14 @@ function rebuildForest(s0){
        and the same boulders, logs, mushrooms, ferns and flowers, in the same places, as the rest scene the girls will sit down in. */
     if(picks[2]&&VILLAGE_Z>=z0&&VILLAGE_Z<z0+3&&FOLK[legKey(2)]) drawVillage(legKey(2));
     if(wondersOn&&z0>=HILL_B-4&&z0<SKY_A-5) mtnWonders(r,z0);
-    for(let si=0;si<3;si++){ const Z=SITES[si].rest, X=SX[si]; if(!(Z>=z0&&Z<z0+3)) continue; const KIT=kitFor(si);
+    for(let si=0;si<3;si++){ const Z=SITES[si].rest, X=SX[si]; if(!(Z>=z0&&Z<z0+3)) continue; const KIT=kitFor(si), SD=si&&SITE_DECOR[legKey(si-1)]||SITE_DECOR.all;   /* only what belongs in the place the site stands in */
       for(let i=0;i<30;i++){ const an=i/30*6.283+0.1, off=Math.abs(Math.atan2(Math.sin(an),Math.cos(an))); if(off<0.62||off>2.9) continue;
         const rr=12.9+hash(i,1,77)*2.2; plantTree(r,120+i,X+Math.sin(an)*rr,Z+Math.cos(an)*rr,true,s0,false,true); }
-      KIT.boulders.forEach(([x,z,sz],i)=>{ const y=floorY(X+x,Z+z); put(P.rock,X+x,y+sz*0.25,Z+z,sz*1.2,sz*0.75,sz,hash(i,1,78)*6,ROCKS[i%3]); put(P.bush,X+x,y+sz*0.72,Z+z,sz*0.85,sz*0.3,sz*0.7,0,MOSS); });
-      KIT.logs.forEach(([x,z,len,yaw],i)=>{ const y=floorY(X+x,Z+z); put(P.log,X+x,y+0.26,Z+z,len,0.62,0.62,yaw,BARKS[i%3]); put(P.bush,X+x,y+0.52,Z+z,len*0.3,0.13,0.3,yaw,MOSS); });
-      KIT.mush.forEach(([x,z],i)=>{ for(let k=0;k<4;k++){ const mx=X+x+(hash(i,k,79)-0.5)*0.7, mz=Z+z+(hash(i,k,80)-0.5)*0.7, ms=0.8+hash(i,k,81)*0.9, my=floorY(mx,mz); put(P.stem,mx,my,mz,ms,ms,ms,0,STEM); put(P.cap,mx,my,mz,ms,ms,ms,0,CAPS[i%3]); } });
-      KIT.ferns.forEach(([x,z],i)=>{ const y=floorY(X+x,Z+z), s1=0.8+hash(i,1,82)*0.5; for(let k=0;k<6;k++){ const fa=k*1.047+hash(i,k,83)*0.4; put(P.bush,X+x+Math.sin(fa)*0.36*s1,y+0.2*s1,Z+z+Math.cos(fa)*0.36*s1,0.11*s1,0.045*s1,0.46*s1,fa,FERNS[i%3]); } });
-      KIT.flowers.forEach(([x,z],i)=>{ for(let k=0;k<7;k++){ const fx=X+x+(hash(i,k,84)-0.5)*1.3, fz=Z+z+(hash(i,k,85)-0.5)*1.3; put(P.petal,fx,floorY(fx,fz)+0.11,fz,1,1,1,0,PETALS[i%5]); } }); }
+      if(SD.rocks) KIT.boulders.forEach(([x,z,sz],i)=>{ const y=floorY(X+x,Z+z); put(P.rock,X+x,y+sz*0.25,Z+z,sz*1.2,sz*0.75,sz,hash(i,1,78)*6,ROCKS[i%3]); if(SD.cap) put(P.bush,X+x,y+sz*0.72,Z+z,sz*0.85,sz*0.3,sz*0.7,0,SD.cap); });
+      if(SD.logs) KIT.logs.forEach(([x,z,len,yaw],i)=>{ const y=floorY(X+x,Z+z); put(P.log,X+x,y+0.26,Z+z,len,0.62,0.62,yaw,BARKS[i%3]); put(P.bush,X+x,y+0.52,Z+z,len*0.3,0.13,0.3,yaw,MOSS); });
+      if(SD.mush) KIT.mush.forEach(([x,z],i)=>{ for(let k=0;k<4;k++){ const mx=X+x+(hash(i,k,79)-0.5)*0.7, mz=Z+z+(hash(i,k,80)-0.5)*0.7, ms=0.8+hash(i,k,81)*0.9, my=floorY(mx,mz); put(P.stem,mx,my,mz,ms,ms,ms,0,STEM); put(P.cap,mx,my,mz,ms,ms,ms,0,CAPS[i%3]); } });
+      if(SD.ferns) KIT.ferns.forEach(([x,z],i)=>{ const y=floorY(X+x,Z+z), s1=0.8+hash(i,1,82)*0.5; for(let k=0;k<6;k++){ const fa=k*1.047+hash(i,k,83)*0.4; put(P.bush,X+x+Math.sin(fa)*0.36*s1,y+0.2*s1,Z+z+Math.cos(fa)*0.36*s1,0.11*s1,0.045*s1,0.46*s1,fa,FERNS[i%3]); } });
+      if(SD.flowers) KIT.flowers.forEach(([x,z],i)=>{ for(let k=0;k<7;k++){ const fx=X+x+(hash(i,k,84)-0.5)*1.3, fz=Z+z+(hash(i,k,85)-0.5)*1.3; put(P.petal,fx,floorY(fx,fz)+0.11,fz,1,1,1,0,PETALS[i%5]); } }); }
     if(BOULDER_S>=z0&&BOULDER_S<z0+3){ const x=trailX(BOULDER_S), y=trailY(BOULDER_S);   /* the boulder across the trail in the mist, with smaller rocks jammed in either side of it */
       put(P.rock,x,y+0.5,BOULDER_S,2.5,1.25,1.25,0.4,ROCKS[1]); put(P.rock,x-2.6,y+0.6,BOULDER_S+0.2,1.7,1.5,1.3,1.9,ROCKS[0]); put(P.rock,x+2.7,y+0.55,BOULDER_S-0.1,1.8,1.4,1.4,3.3,ROCKS[2]);
       put(P.rock,x-4.6,y+0.9,BOULDER_S,2,1.9,1.6,5,ROCKS[1]); put(P.rock,x+4.8,y+0.9,BOULDER_S+0.3,2.1,1.8,1.7,0.9,ROCKS[0]); put(P.bush,x+0.3,y+1.42,BOULDER_S,1.3,0.2,0.7,0,MOSS); }
@@ -1386,21 +1386,33 @@ function makeRestSet(key){
   const box=(w,h,d,c,x,y,z)=>add(new THREE.BoxGeometry(w,h,d),c,x,y,z), cyl=(r0,r1,h,c,x,y,z,n)=>add(new THREE.CylinderGeometry(r0,r1,h,n||12),c,x,y,z), ball=(r,c,x,y,z)=>add(new THREE.SphereGeometry(r,12,9),c,x,y,z);
   const rock=(sx,sy,sz,c,x,y,z)=>{ const m=add(rockGeo,c,x,y,z); m.scale.set(sx,sy,sz); m.rotation.set(x*3,z*5,y*7); return m; };
   const stoneBench=c=>{ box(3.7,0.26,0.95,c,0,SEAT_H-0.13,0); rock(0.5,0.36,0.5,c,-1.3,0.28,0); rock(0.5,0.36,0.5,c,1.3,0.28,0); };
-  const plankBench=()=>{ box(3.7,0.1,0.34,'#b98a5a',0,SEAT_H-0.05,-0.19); box(3.7,0.1,0.34,'#a9744a',0,SEAT_H-0.05,0.19); [-1.4,1.4].forEach(x=>cyl(0.2,0.24,SEAT_H-0.1,'#7a5238',x,(SEAT_H-0.1)/2,0)); };
+  /* a proper bench: two planks for the seat on a pair of trestle legs, with a rail between them */
+  const plankBench=()=>{ box(3.7,0.1,0.34,'#b98a5a',0,SEAT_H-0.05,-0.19); box(3.7,0.1,0.34,'#a9744a',0,SEAT_H-0.05,0.19);
+    [-1.45,1.45].forEach(x=>{ box(0.11,SEAT_H-0.1,0.11,'#7a5238',x,(SEAT_H-0.1)/2,-0.26); box(0.11,SEAT_H-0.1,0.11,'#7a5238',x,(SEAT_H-0.1)/2,0.26); box(0.13,0.1,0.72,'#7a5238',x,SEAT_H-0.15,0); }); box(2.9,0.08,0.08,'#7a5238',0,0.2,0); };
   if(key==='aspen'){   /* a sun-warmed slab of stone beside a spring, with stepping stones across the pool */
     stoneBench('#b8b4a8'); const sp=cyl(1.5,1.5,0.04,new THREE.MeshLambertMaterial({color:0x7fc4ee,emissive:0x1f4a5c}),4.4,0.03,1.0,20); sp.scale.z=0.75;
     for(let k=0;k<9;k++){ const a=k*0.7; rock(0.3,0.2,0.26,'#9a9a94',4.4+Math.cos(a)*1.6,0.1,1.0+Math.sin(a)*1.2); } [[3.9,0.8],[4.5,1.1],[5.0,0.7]].forEach(([x,z])=>cyl(0.22,0.22,0.06,'#a6a39a',x,0.07,z,8));
     cyl(0.03,0.03,0.5,'#6aa857',3.2,0.25,1.9); ball(0.09,'#fff3a3',3.2,0.52,1.9); }
   else if(key==='autumn'){   /* a bench under a lean-to somebody built for hikers, with the year's pumpkins lined up beside it */
-    plankBench(); [-2.15,2.15].forEach(x=>{ cyl(0.07,0.08,2.5,'#7a5238',x,1.25,-0.75); cyl(0.07,0.08,1.9,'#7a5238',x,0.95,0.75); });
-    const roof=box(4.9,0.09,2.3,'#a8502f',0,2.35,0); roof.rotation.x=-0.34; box(4.9,0.1,0.14,'#7a5238',0,2.66,-0.95);
+    plankBench();
+    { const ZB=-0.95, ZF=1.0, HB=2.6, HF=2.0, tilt=Math.atan((HB-HF)/(ZF-ZB));   /* the lean-to: tall posts behind, short ones in front, and the roof lying on top of all four, sloping down to the front */
+      [-2.15,2.15].forEach(x=>{ box(0.13,HB,0.13,'#7a5238',x,HB/2,ZB); box(0.13,HF,0.13,'#7a5238',x,HF/2,ZF); });
+      box(4.7,0.12,0.12,'#7a5238',0,HB+0.02,ZB); box(4.7,0.12,0.12,'#7a5238',0,HF+0.02,ZF);                        /* a beam along the top of each pair of posts */
+      [-2.15,0,2.15].forEach(x=>{ const rf=box(0.1,0.1,2.5,'#8a5a3c',x,(HB+HF)/2+0.11,(ZB+ZF)/2); rf.rotation.x=tilt; });   /* rafters */
+      const roof=box(5.1,0.07,2.75,'#a8502f',0,(HB+HF)/2+0.2,(ZB+ZF)/2); roof.rotation.x=tilt;
+      for(let k=0;k<5;k++){ const sh=box(5.1,0.035,0.5,k%2?'#b65a35':'#9c482a',0,(HB+HF)/2+0.245+(0.55*(2-k))*Math.sin(tilt),(ZB+ZF)/2-(0.55*(2-k))*Math.cos(tilt)); sh.rotation.x=tilt; } }   /* rows of shingles */
     [[3.3,0.9,0.34],[3.9,0.5,0.26],[3.5,0.25,0.2]].forEach(([x,z,r2])=>{ const p=ball(r2,'#e07a2f',x,r2*0.8,z); p.scale.y=0.8; cyl(0.03,0.04,0.12,'#5d9b4f',x,r2*1.55,z,6); });
     [[-3.5,1.2],[-4.2,0.4]].forEach(([x,z])=>{ const h=ball(0.9,'#d9783c',x,0.2,z); h.scale.y=0.36; }); }
   else if(key==='winter'){   /* a log with snow on it, beside a ring of stones with a fire going, and a snowman somebody left */
     const lg=makeSeatLog(); g.add(lg); [-1.3,0,1.2].forEach(x=>{ const s=ball(0.4,'#f4f7fb',x,SEAT_H+0.0,-0.24); s.scale.set(1.2,0.22,0.5); });
     for(let k=0;k<8;k++){ const a=k*0.785; rock(0.2,0.16,0.2,'#8b8f8a',-3.7+Math.cos(a)*0.62,0.1,1.7+Math.sin(a)*0.62); }
     [0.4,1.5,2.6].forEach(a=>{ const l2=cyl(0.07,0.07,0.9,'#5a3c2a',-3.7,0.14,1.7,7); l2.rotation.set(1.3,a,0); });
-    [[0,0.5,'#ff9a3c'],[0.12,0.36,'#ffd24a'],[-0.1,0.3,'#ff7a2f']].forEach(([dx,h,c])=>{ const f=add(new THREE.ConeGeometry(0.2,h,7),new THREE.MeshBasicMaterial({color:c}),-3.7+dx,0.2+h/2,1.7+dx); f.userData.flame=h; });
+    { const FX=-3.7, FZ=1.7, fire=g.userData.fire={flames:[],embers:[],x:FX,z:FZ};   /* the fire: flames that lick and lean, embers that drift up, a glow on the snow, and a light that flickers (see animFire) */
+      [[0,0.62,0.2,'#ff9a3c'],[0.12,0.44,0.15,'#ffd24a'],[-0.11,0.4,0.15,'#ff7a2f'],[0.02,0.3,0.11,'#fff0a8'],[-0.04,0.5,0.13,'#ff5a2a']].forEach(([dx,h,w,c],i)=>{ const geo=new THREE.ConeGeometry(w,h,7); geo.translate(0,h/2,0);
+        const f=add(geo,new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.92}),FX+dx,0.16,FZ+dx*(i%2?-1:1)); fire.flames.push({m:f,ph:i*1.7,sp:9+i*2.3}); });
+      for(let i=0;i<7;i++){ const e=ball(0.025,new THREE.MeshBasicMaterial({color:0xffc860,transparent:true}),FX,0.4,FZ); fire.embers.push({m:e,ph:i/7,dx:(i%3-1)*0.16,dz:((i*2)%3-1)*0.14}); }
+      const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xffa24a,transparent:true,opacity:0.5,depthWrite:false,blending:THREE.AdditiveBlending})); glow.position.set(FX,0.5,FZ); glow.scale.set(2.6,2.2,1); g.add(glow); fire.glow=glow;
+      const lamp=new THREE.PointLight(0xff9a4a,1.3,9,1.6); lamp.position.set(FX,0.8,FZ); g.add(lamp); fire.lamp=lamp; }
     [[0.5,0.45],[0.36,1.12],[0.25,1.6]].forEach(([r2,y])=>ball(r2,'#fbfdff',3.9,y,0.9)); add(new THREE.ConeGeometry(0.05,0.24,6),'#e07a2f',3.9,1.6,1.2).rotation.x=Math.PI/2;
     [-1,1].forEach(s=>{ ball(0.03,'#2a1c26',3.9+s*0.09,1.68,1.12); const arm=cyl(0.02,0.02,0.6,'#5a3c2a',3.9+s*0.5,1.2,0.9,5); arm.rotation.z=s*1.1; }); cyl(0.16,0.2,0.2,'#3b3550',3.9,1.92,0.9); }
   else if(key==='grass'){   /* a picnic bench and table under the biggest apple tree in the field, with a kite caught in it */
@@ -1414,11 +1426,17 @@ function makeRestSet(key){
     const oar=cyl(0.025,0.025,1.9,'#d9b98a',5.75,0.45,0.9,6); oar.rotation.set(1.3,0,0.2); cyl(0.05,0.06,1.9,'#7a5238',-4.3,0.95,1.6,7); ball(0.16,new THREE.MeshBasicMaterial({color:0xfff3a3}),-4.3,1.98,1.6); cyl(0.2,0.2,0.04,'#3a3340',-4.3,2.16,1.6); }
   else {   /* alpine: a bench of stone behind a low wall of stacked rocks to keep the wind off, with a flag to show where it is */
     stoneBench('#9a9a94'); for(let k=0;k<11;k++){ const an=Math.PI+(-1.25+2.5*k/10); if(Math.abs(Math.sin(an))<0.34) continue;
-      const x=Math.sin(an)*3.3, z=Math.cos(an)*3.3+0.6; rock(0.7,0.5,0.6,'#8b8f8a',x,0.36,z); rock(0.55,0.4,0.5,'#a6a39a',x*1.02,0.95,z*1.02+0.02); if(k%2) rock(0.4,0.3,0.4,'#7d807c',x,1.4,z); }
+      const x=Math.sin(an)*3.5, z=Math.cos(an)*3.5+0.6; rock(0.7,0.42,0.6,'#8b8f8a',x,0.3,z); if(k%3===0) rock(0.42,0.26,0.4,'#a6a39a',x*1.02,0.72,z*1.02+0.02); }   /* a low wall, one course and a few capstones */
     cyl(0.035,0.035,3,'#f3ecdf',3.9,1.5,-0.6,6); const fl=add(new THREE.CircleGeometry(0.5,3),new THREE.MeshLambertMaterial({color:0xff8a7a,side:THREE.DoubleSide}),4.25,2.75,-0.6); fl.rotation.z=-Math.PI/2; fl.scale.y=0.6;
     [[-3.9,1.4]].forEach(([x,z])=>{ for(let k=0;k<4;k++) rock(0.34-k*0.06,0.14,0.3-k*0.05,'#9a9a94',x,0.14+k*0.26,z); }); }
   g.traverse(o=>{ if(o.isMesh){ o.castShadow=o.material.type!=='MeshBasicMaterial'; o.receiveShadow=true; } }); return g;
 }
+const SITE_DECOR={all:{ferns:1,mush:1,flowers:1,cap:MOSS,logs:1,rocks:1},aspen:{ferns:1,mush:1,flowers:1,cap:MOSS,logs:1,rocks:1},autumn:{ferns:1,mush:1,flowers:0,cap:MOSS,logs:1,rocks:1},
+  winter:{ferns:0,mush:0,flowers:0,cap:SNOW,logs:0,rocks:1},grass:{ferns:0,mush:0,flowers:1,cap:null,logs:0,rocks:0},marsh:{ferns:1,mush:0,flowers:0,cap:MOSS,logs:0,rocks:0},alpine:{ferns:0,mush:0,flowers:1,cap:null,logs:0,rocks:1}};
+function animFire(fire,t){ if(!fire) return;
+  fire.flames.forEach(f=>{ const a=Math.sin(t*f.sp+f.ph), b=Math.sin(t*f.sp*0.63+f.ph*2); f.m.scale.set(1+0.16*b,1+0.28*a+0.12*b,1+0.16*a); f.m.rotation.set(0.1*b,0,0.14*a); });
+  fire.embers.forEach(e=>{ const u=(t*0.33+e.ph)%1; e.m.position.set(fire.x+e.dx*(0.3+u)+Math.sin(t*2+e.ph*9)*0.05,0.4+u*1.9,fire.z+e.dz*(0.3+u)); e.m.material.opacity=1-u; });
+  const fl=0.5+0.5*Math.sin(t*13)*Math.sin(t*7.3+1); fire.lamp.intensity=1.1+0.5*fl; fire.glow.material.opacity=0.42+0.16*fl; fire.glow.scale.set(2.5+0.3*fl,2.1+0.3*fl,1); }
 /* the small things scattered round a rest site: the first site has the full set; the later ones each keep a different part of it, the second site mirrored */
 function kitFor(si){ if(!si) return REST_KIT; const mir=si===1?-1:1, keep=(a,f)=>a.filter((_,i)=>i%3!==(si===1?0:1)).map(f);
   return {stump:REST_KIT.stump,sign:REST_KIT.sign,beams:REST_KIT.beams,boulders:keep(REST_KIT.boulders,([x,z,s2])=>[x*mir,z,s2*0.85]),logs:si===2?[]:keep(REST_KIT.logs,([x,z,l,y])=>[x*mir,z,l,-y]),
@@ -2149,6 +2167,8 @@ const Music=(()=>{
     else if(kind==='whistle'){ const f=2500+Math.random()*300; tone(f,f*1.32,0,0.17,0.02); tone(f,f*1.32,0.34,0.17,0.02); }              /* a marmot */
     else if(kind==='bell'){ [0,1.7,3.4].forEach(at=>{ tone(392,390,at,2.4,0.026); tone(784,782,at,1.5,0.009); tone(1180,1176,at,0.8,0.004); }); }   /* a church bell, a long way down */
     else if(kind==='hawk'){ const f=2900+Math.random()*200; tone(f,f*0.72,0,0.75,0.015); }
+    else if(kind==='crackle'){ const n=3+Math.floor(Math.random()*5); for(let i=0;i<n;i++){ const at=Math.random()*0.7; hiss(at,0.02+Math.random()*0.03,0.03+Math.random()*0.03,2500+Math.random()*3500,2.5); if(Math.random()<0.3) tone(260,120,at,0.03,0.02); }
+      hiss(0,1.1,0.01,480,0.5); }   /* a wood fire: sharp little pops over a soft roar */
     /* weather and water */
     else if(kind==='windlow'){ hiss(0,2.4+Math.random()*1.4,0.03,280+Math.random()*120,0.7); }                                   /* a long low breath of wind */
     else if(kind==='windhigh'){ const f=1100+Math.random()*500; hiss(0,2+Math.random(),0.02,f,7); hiss(0.4,1.6,0.012,f*1.4,9); } /* wind whistling round a rock */
@@ -2343,7 +2363,7 @@ function markName(b){ if(b.site===0) return 'the first rest site'; if(b.site===1
 function syncResume(){ const b=loadMark(), el=$('resumeBtn'); el.hidden=!b; if(b) el.textContent='Carry on from '+markName(b); }
 function stopForToday(){ if(mode!=='rest'||!rest||rest.leaving||!state.started) return;
   const b={site:fork.site,picks:[picks[0],fork.site>0?picks[1]:0,0]}; let ok=true; try{ localStorage.setItem(MARK_KEY,JSON.stringify(b)); }catch(e){ ok=false; }
-  $('stopBtn').hidden=true; hideFork(); hushBubbles(); speakIn=30; narrate(ok?'That was enough mountain for one day. It would still be there tomorrow, and so would the log.':'That was enough mountain for one day.');
+  $('stopBtn').hidden=true; hideFork(); hushBubbles(); speakIn=30; narrate(ok?'That was enough mountain for one day. It would still be there tomorrow, and so would the '+restSay().seat+'.':'That was enough mountain for one day.');
   setTimeout(()=>{ if(state.started&&mode==='rest') $('fade').classList.add('on'); },2600); setTimeout(()=>{ if(state.started&&mode==='rest') backToStart(); },3500); }
 function resumeHike(){ const b=loadMark(); if(!b||state.started) return; try{ localStorage.removeItem(MARK_KEY); }catch(e){} syncResume(); startHike(true);   /* once it has been used, the saved spot is gone: the title card offers it again only after they stop at a rest site again */
   warp('Back on the trail',b.site===0?REST_C-8:SITES[b.site].rest-7,[b.site>0?b.picks[0]:0,b.site>1?b.picks[1]:0,0]);
@@ -2419,6 +2439,15 @@ let mode='trail', rest=null, restToken=0;
 const REST_SEATS=[[-0.55,0],[0.62,0]];   /* June and Pip on the log */
 const REST_SPOTS=[[-3.6,4.2,'crouch'],[3.2,5,'look'],[-2.6,6.2,'point'],[0.9,5.6,'look'],[4.2,2.4,'scoop'],[-4.4,2.6,'crouch'],[1.7,3.4,'spin'],[-1.3,3.1,'hop']];   /* things worth getting up for */
 const REST_ARRIVE=[[0,'Ahh. That\'s better.'],[1,'This log is exactly my size.'],[0,'Listen. You can hear the whole forest.']];
+/* each later rest site has its own seat and its own first words; nobody calls a stone bench a log */
+const REST_SAY={
+  aspen:{seat:'stone',lines:[[0,'Ahh. That\'s better.'],[1,'This stone is WARM. Like toast.'],[0,'Listen. You can hear the spring.']],cap:'A sun-warmed slab of stone beside a spring, with stepping stones across the pool.'},
+  autumn:{seat:'bench',lines:[[0,'Ahh. That\'s better.'],[1,'A bench with a ROOF. Fancy.'],[0,'Somebody built this for hikers. And left us pumpkins.']],cap:'A bench under a lean-to somebody built for hikers, with the year\'s pumpkins lined up beside it.'},
+  winter:{seat:'log',lines:[[0,'Ahh. That\'s better.'],[1,'This log has a snow cushion!'],[0,'And somebody left a fire going. Warm your hands, Pip.']],cap:'A snowy log beside a crackling fire, with a snowman keeping watch.'},
+  grass:{seat:'bench',lines:[[0,'Ahh. That\'s better.'],[1,'A picnic table! Under an apple tree!'],[0,'Listen. Nothing but wheat and wind.']],cap:'A picnic bench under the biggest apple tree in the field.'},
+  marsh:{seat:'bench',lines:[[0,'Ahh. That\'s better.'],[1,'This bench is on a dock! With a boat!'],[0,'Listen to all those frogs.']],cap:'A bench on a landing stage of old planks, with a rowing boat pulled up beside it.'},
+  alpine:{seat:'stone bench',lines:[[0,'Ahh. That\'s better.'],[1,'This bench is made of mountain.'],[0,'And the wall keeps the wind off. Clever.']],cap:'A bench of stone behind a low wall that keeps the wind off, and a flag to find it by.'}};
+const restSay=()=>fork.site>0&&REST_SAY[legKey(fork.site-1)]||{seat:'log',lines:REST_ARRIVE,cap:'A round clearing, a patch of sun, and a log just the right size for two.'};
 const REST_PATHS=[[1,'June, look! The trail splits in two.'],[0,'One goes into that thicket. The other goes into a little cave.'],[1,'Which one do we take?']];
 /* At every rest site the girls find a scrap of paper tucked under the seat, in Dad's eight-year-old handwriting, about the place they have
    just walked through. He was as astonished as they are, and just as sure that nobody would ever believe him. (Nobody did. In the end, not even he.) */
@@ -2498,7 +2527,16 @@ function buildRest(si){
       put(T.blob,x,top+cr*0.9,z,cr,cr*1.15,cr,ry,col); put(T.blob,x+Math.cos(ry)*cr*0.6,top+cr*0.1,z+Math.sin(ry)*cr*0.6,cr*0.75,cr*0.8,cr*0.75,ry,col); put(T.blob,x-Math.cos(ry)*cr*0.55,top+cr*0.45,z-Math.sin(ry)*cr*0.55,cr*0.7,cr*0.75,cr*0.7,ry,col); return; }
     const th=(5+r()*2.4)*sc1, cr=(2+r()*0.9)*sc1, top=y+th; put(T.trunk,x,y,z,0.34*sc1,th+0.6,0.34*sc1,ry,bark);
     put(T.blob,x,top+cr*0.55,z,cr,cr*0.85,cr,ry,col); put(T.blob,x+Math.cos(ry)*cr*0.75,top+cr*0.2,z+Math.sin(ry)*cr*0.75,cr*0.72,cr*0.62,cr*0.72,ry,col); put(T.blob,x-Math.cos(ry+0.6)*cr*0.7,top+cr*0.3,z-Math.sin(ry+0.6)*cr*0.7,cr*0.64,cr*0.56,cr*0.64,ry,col); }
-  const SNOWY=!!(LK&&LK.snow), BU=SNOWY?[SNOW]:BUSHES, FL=SNOWY?[SNOW,WHITE]:si===1?(legKey(0)==='aspen'?FALL_ASPEN:FALL_AUTUMN):FALLEN;
+  /* what belongs round each site, so that nothing strays in from somewhere else: no ferns or mushrooms in the snow, no moss or fallen leaves
+     on the bare mountain, no sunbeams where there is no roof of leaves for them to come through */
+  const PK=si>0?legKey(si-1):null, D=({
+    aspen: {ferns:26,mush:1,flowers:1,cap:MOSS,bush:BUSH_ASPEN,leaves:FALL_ASPEN,drift:1,beams:1,flies:1,logs:1,rocks:1},
+    autumn:{ferns:10,mush:1,flowers:0,cap:MOSS,bush:BUSH_AUTUMN,leaves:FALL_AUTUMN,drift:1,beams:1,flies:0,logs:1,rocks:1},
+    winter:{ferns:0,mush:0,flowers:0,cap:SNOW,bush:[SNOW],leaves:null,drift:0,beams:0,flies:0,logs:0,rocks:1},
+    grass: {ferns:0,mush:0,flowers:1,cap:null,bush:null,tuft:'wheat',leaves:null,drift:0,beams:0,flies:1,logs:0,rocks:0},
+    marsh: {ferns:8,mush:0,flowers:0,cap:MOSS,bush:null,tuft:'reed',leaves:null,drift:0,beams:0,flies:1,logs:0,rocks:0},
+    alpine:{ferns:0,mush:0,flowers:1,cap:null,bush:null,leaves:null,drift:0,beams:0,flies:0,logs:0,rocks:2}})[PK]||{ferns:70,mush:1,flowers:1,cap:MOSS,bush:BUSHES,leaves:FALLEN,drift:1,beams:1,flies:1,logs:1,rocks:1};
+  const BU=D.bush||BUSHES, FL=D.leaves||FALLEN;
   function tree(x,z,sc1,pine){ if(LK){ lookTree(x,z,sc1); return; } const ry=r()*6.28, bark=DEEP_BARK[Math.floor(r()*3)], col=DEEPS[Math.floor(r()*4)];
     if(pine){ const y=restBase(x,z,0.95*sc1+0.1), th=2.2*sc1, H=(11+r()*4)*sc1, rr=(2.6+r()*0.8)*sc1;
       put(T.trunk,x,y,z,0.42*sc1,th+0.5,0.42*sc1,ry,bark); put(T.cone,x,y,z,0.95*sc1,1.4,0.95*sc1,ry,bark);
@@ -2513,25 +2551,29 @@ function buildRest(si){
   for(let a=0;a<6.28;a+=0.2){ const rr=12.8+r()*2.4, x=Math.sin(a)*rr, z=Math.cos(a)*rr; if(pathDist(x,z)>2.8) tree(x,z,0.9+r()*0.45,false); }   /* the ring of trees around the clearing */
   for(let i=0;i<170;i++){ const a=r()*6.28, rr=16+Math.pow(r(),0.8)*42, x=Math.sin(a)*rr, z=Math.cos(a)*rr; if(pathDist(x,z)>3) tree(x,z,0.85+r()*0.5,r()<0.3); }   /* the deep woods beyond */
   /* ferns: a rosette of fronds */
-  for(let i=0;i<(SNOWY?0:LK?26:70);i++){ const a=r()*6.28, rr=8.6+r()*17, x=Math.sin(a)*rr, z=Math.cos(a)*rr; if(pathDist(x,z)<1.9) continue; const y=restFloor(x,z), col=FERNS[Math.floor(r()*3)], s1=0.7+r()*0.6;
+  for(let i=0;i<D.ferns;i++){ const a=r()*6.28, rr=8.6+r()*17, x=Math.sin(a)*rr, z=Math.cos(a)*rr; if(pathDist(x,z)<1.9) continue; const y=restFloor(x,z), col=FERNS[Math.floor(r()*3)], s1=0.7+r()*0.6;
     for(let k=0;k<6;k++){ const fa=k*1.047+r()*0.4; put(T.blob,x+Math.sin(fa)*0.36*s1,y+0.2*s1,z+Math.cos(fa)*0.36*s1,0.11*s1,0.045*s1,0.46*s1,fa,col); } }
-  KIT.ferns.forEach(([x,z])=>{ const y=restFloor(x,z), col=FERNS[Math.floor(r()*3)], s1=0.8+r()*0.5; for(let k=0;k<6;k++){ const fa=k*1.047+r()*0.4; put(T.blob,x+Math.sin(fa)*0.36*s1,y+0.2*s1,z+Math.cos(fa)*0.36*s1,0.11*s1,0.045*s1,0.46*s1,fa,col); } });
-  KIT.flowers.forEach(([x,z],i)=>{ for(let k=0;k<7;k++) put(T.petal,x+(r()-0.5)*1.3,0.11,z+(r()-0.5)*1.3,1,1,1,0,PETALS[i%5]); });
+  if(D.ferns) KIT.ferns.forEach(([x,z])=>{ const y=restFloor(x,z), col=FERNS[Math.floor(r()*3)], s1=0.8+r()*0.5; for(let k=0;k<6;k++){ const fa=k*1.047+r()*0.4; put(T.blob,x+Math.sin(fa)*0.36*s1,y+0.2*s1,z+Math.cos(fa)*0.36*s1,0.11*s1,0.045*s1,0.46*s1,fa,col); } });
+  if(D.flowers) KIT.flowers.forEach(([x,z],i)=>{ for(let k=0;k<7;k++) put(T.petal,x+(r()-0.5)*1.3,0.11,z+(r()-0.5)*1.3,1,1,1,0,PETALS[i%5]); });
   /* bushes round the edge, flowers in the grass, mushrooms, mossy boulders, fallen logs */
-  for(let i=0;i<34;i++){ const a=r()*6.28, rr=10.2+r()*5, x=Math.sin(a)*rr, z=Math.cos(a)*rr; if(pathDist(x,z)<2.4) continue; const rad=0.5+r()*0.6; put(T.blob,x,restFloor(x,z)+rad*0.3,z,rad,rad*0.7,rad,r()*6,BU[Math.floor(r()*BU.length)]); }
-  KIT.mush.forEach(([x,z])=>{ const col=CAPS[Math.floor(r()*3)];
+  for(let i=0;i<34;i++){ const a=r()*6.28, rr=10.2+r()*5, x=Math.sin(a)*rr, z=Math.cos(a)*rr; if(pathDist(x,z)<2.4) continue; const rad=0.5+r()*0.6, y=restFloor(x,z);
+    if(D.bush) put(T.blob,x,y+rad*0.3,z,rad,rad*0.7,rad,r()*6,BU[Math.floor(r()*BU.length)]);
+    else if(D.tuft==='wheat') for(let k=0;k<5;k++) put(T.cone,x+(r()-0.5)*1.4,y,z+(r()-0.5)*1.4,0.3,1+r()*0.5,0.3,r()*6,WHEAT[Math.floor(r()*WHEAT.length)]);   /* stands of wheat */
+    else if(D.tuft==='reed') for(let k=0;k<5;k++){ const hh=1.4+r()*0.9, rx=x+(r()-0.5)*1.1, rz=z+(r()-0.5)*1.1; put(T.trunk,rx,y,rz,0.035,hh,0.035,0,TAN); put(T.blob,rx,y+hh,rz,0.06,0.18,0.06,0,BARKS[0]); } }   /* clumps of reeds and cattails */
+  if(D.mush) KIT.mush.forEach(([x,z])=>{ const col=CAPS[Math.floor(r()*3)];
     for(let k=0;k<4;k++){ const mx=x+(r()-0.5)*0.7, mz=z+(r()-0.5)*0.7, ms=0.8+r()*0.9; put(T.stem,mx,restFloor(mx,mz),mz,ms,ms,ms,0,STEM); put(T.cap,mx,restFloor(mx,mz),mz,ms,ms,ms,0,col); } });
-  KIT.boulders.forEach(([x,z,sz])=>{ const y=restFloor(x,z);
-    put(T.rock,x,y+sz*0.25,z,sz*1.2,sz*0.75,sz,r()*6,ROCKS[Math.floor(r()*3)]); put(T.blob,x,y+sz*0.72,z,sz*0.85,sz*0.3,sz*0.7,0,MOSS); });
-  KIT.logs.forEach(([x,z,len,yaw])=>{ const y=restFloor(x,z); put(T.log,x,y+0.26,z,len,0.62,0.62,yaw,BARKS[Math.floor(r()*3)]); put(T.blob,x,y+0.52,z,len*0.3,0.13,0.3,yaw,MOSS); });
+  if(D.rocks) KIT.boulders.forEach(([x,z,sz])=>{ const y=restFloor(x,z);
+    put(T.rock,x,y+sz*0.25,z,sz*1.2,sz*0.75,sz,r()*6,ROCKS[Math.floor(r()*3)]); if(D.cap) put(T.blob,x,y+sz*0.72,z,sz*0.85,sz*0.3,sz*0.7,0,D.cap); });
+  if(D.rocks>1) for(let i=0;i<16;i++){ const a=r()*6.28, rr=7.5+r()*12, x=Math.sin(a)*rr, z=Math.cos(a)*rr, sz=0.5+r()*1.1; if(pathDist(x,z)<2.4) continue; put(T.rock,x,restFloor(x,z)+sz*0.25,z,sz*1.2,sz*0.75,sz,r()*6,ROCKS[Math.floor(r()*3)]); }   /* the bare mountain: more rock */
+  if(D.logs) KIT.logs.forEach(([x,z,len,yaw])=>{ const y=restFloor(x,z); put(T.log,x,y+0.26,z,len,0.62,0.62,yaw,BARKS[Math.floor(r()*3)]); put(T.blob,x,y+0.52,z,len*0.3,0.13,0.3,yaw,MOSS); });
   /* a scatter of fallen leaves */
-  for(let i=0;i<150;i++){ const a=r()*6.28, rr=1+r()*11, s1=0.7+r()*0.8; put(T.leaf,Math.sin(a)*rr,0.03,Math.cos(a)*rr,s1,1,s1*1.6,r()*6.28,FL[Math.floor(r()*FL.length)]); }
+  for(let i=0;i<(D.leaves?150:0);i++){ const a=r()*6.28, rr=1+r()*11, s1=0.7+r()*0.8; put(T.leaf,Math.sin(a)*rr,0.03,Math.cos(a)*rr,s1,1,s1*1.6,r()*6.28,FL[Math.floor(r()*FL.length)]); }
   const DRIFT0=T.leaf.n, drift=[];   /* and a few still coming down */
-  for(let i=0;i<24;i++){ drift.push({x:(r()-0.5)*20,z:(r()-0.5)*20,ph:r()*9,sp:0.55+r()*0.4,s:0.9+r()*0.7}); put(T.leaf,0,-5,0,1,1,1,0,LK?FL[Math.floor(r()*FL.length)]:(r()<0.5?FALLEN:GOLDS)[Math.floor(r()*3)]); }
+  for(let i=0;i<(D.drift?24:0);i++){ drift.push({x:(r()-0.5)*20,z:(r()-0.5)*20,ph:r()*9,sp:0.55+r()*0.4,s:0.9+r()*0.7}); put(T.leaf,0,-5,0,1,1,1,0,LK?FL[Math.floor(r()*FL.length)]:(r()<0.5?FALLEN:GOLDS)[Math.floor(r()*3)]); }
   for(const k in T){ const p=T[k]; p.m.count=p.n; p.m.instanceMatrix.needsUpdate=true; p.m.instanceColor.needsUpdate=true; }
 
   /* the log, the backpacks set down beside it, and a snack laid out on a blanket */
-  sc.add(LK?makeRestSet(legKey(si-1)):makeSeatLog());   /* the seat, and whatever makes this particular site a good place to stop */
+  const seatSet=LK?makeRestSet(legKey(si-1)):makeSeatLog(); sc.add(seatSet);   /* the seat, and whatever makes this particular site a good place to stop */
   const solid=g=>{ g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } }); sc.add(g); return g; };
   [[-2.5,0.55,0.5,'#4fa3a0','#3d8683'],[2.6,0.4,-0.6,'#ffd27a','#eab44f']].forEach(([x,z,turn,col,flap])=>{ const g=new THREE.Group();
     const bag=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.4,0.2),L(col)); bag.position.y=0.2; g.add(bag);
@@ -2576,19 +2618,19 @@ function buildRest(si){
   const paper=new THREE.Mesh(new THREE.PlaneGeometry(0.34,0.26),new THREE.MeshLambertMaterial({color:0xf6ead0,side:THREE.DoubleSide})); paper.position.copy(NOTE_AT); paper.position.y=restFloor(NOTE_AT.x,NOTE_AT.z)+0.03; paper.rotation.set(-1.45,0,0.5); sc.add(paper);   /* Dad's note, lying where it fell */
   /* sunbeams, mist and butterflies */
   const bm=beamMat.clone(), pm=poolMat.clone(); bm.opacity=0.2; pm.opacity=0.24;
-  REST_KIT.beams.forEach(([x,z,w])=>{
+  if(D.beams) REST_KIT.beams.forEach(([x,z,w])=>{
     const m=new THREE.Mesh(beamGeo,bm); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),SUN_DIR); m.scale.set(w,1,w); m.position.set(x,0,z).addScaledVector(SUN_DIR,BEAM_H/2-0.3); m.renderOrder=3; sc.add(m);
     const pl=new THREE.Mesh(poolGeo,pm); pl.scale.set(w*1.15,1,w); pl.position.set(x,0.05,z); pl.renderOrder=2; sc.add(pl); });
   const puffs=[];
   for(let i=0;i<16;i++){ const a=r()*6.28, rr=7+r()*16, o=0.09+r()*0.09, sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xe6f3ea,transparent:true,opacity:o,depthWrite:false}));
     sp.scale.set(8+r()*7,2.4+r()*2,1); sp.position.set(Math.sin(a)*rr,0.9+r()*0.9,Math.cos(a)*rr); sp.renderOrder=1; sc.add(sp); puffs.push({sp,x:sp.position.x,o,ph:r()*6}); }
-  const flies=[['#ffb38a',-3.2,3.6],['#fff3a3',3.8,2.6],['#c6a8ff',0.4,6.2],['#9fd8ff',-4.6,-1.8]].map(([c,x,z])=>{ const g=new THREE.Group(), m=new THREE.MeshBasicMaterial({color:c,side:THREE.DoubleSide});
+  const flies=(D.flies?[['#ffb38a',-3.2,3.6],['#fff3a3',3.8,2.6],['#c6a8ff',0.4,6.2],['#9fd8ff',-4.6,-1.8]]:[]).map(([c,x,z])=>{ const g=new THREE.Group(), m=new THREE.MeshBasicMaterial({color:c,side:THREE.DoubleSide});
     const wl=new THREE.Mesh(wingGeo,m), wr=new THREE.Mesh(wingGeo,m); wr.scale.x=-1; g.add(wl,wr); g.scale.set(0.34,0.34,0.7); sc.add(g); return {g,wl,wr,x,z,ph:r()*6}; });
 
   const SHARED=new Set([trunkGeo,blobGeo,coneGeo,rockGeo,stemGeo,capGeo,petalGeo,leafGeo,logGeo,beamGeo,poolGeo,wingGeo]);
   return {scene:sc,paper,
     update(dt,t){
-      rsky.position.copy(camera.position);
+      rsky.position.copy(camera.position); animFire(seatSet.userData.fire,t);
       bm.opacity=0.19+0.035*Math.sin(t*0.7); pm.opacity=bm.opacity*1.2;
       puffs.forEach(p=>{ p.sp.position.x=p.x+Math.sin(t*0.11+p.ph)*1.6; p.sp.material.opacity=p.o*smooth(3,9,p.sp.position.distanceTo(camera.position))*(0.8+0.2*Math.sin(t*0.3+p.ph)); });
       flies.forEach(f=>{ const a=t*0.5+f.ph; f.g.position.set(f.x+Math.sin(a)*1.6+Math.sin(a*2.3)*0.5,0.7+Math.sin(a*1.7)*0.35+Math.abs(Math.sin(t*6+f.ph))*0.08,f.z+Math.cos(a*0.8)*1.4);
@@ -2631,14 +2673,14 @@ function enterRest(){
     scene.remove(june.g,pip.g); rest.scene.add(june.g,pip.g); june.pack.visible=pip.pack.visible=false;
     mode='rest'; landY=()=>0; zoom=1; userPhi=0;
     BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(REST_SEATS[i][0],1.3+i*0.4); b.face=b.faceT=Math.PI; b.actIn=7+i*5+Math.random()*4; });   /* standing in front of the log, about to sit down */
-    hushBubbles(); showCaption({t:'The rest site',b:'A round clearing, a patch of sun, and a log just the right size for two.'});
+    hushBubbles(); showCaption({t:'The rest site',b:restSay().cap});
     $('fade').classList.remove('on'); },950);
 }
 function updateRest(dt,rawDt){
   rest.t+=dt;
   BRAINS.forEach(b=>updateRestBrain(b,dt));
   /* the scene: sit down and sigh, look around for a while, notice the two paths, then the buttons appear */
-  if(rest.phase===0&&rest.t>4.5){ rest.phase=1; playScript(REST_ARRIVE.concat(known.notes.length&&saved.notes.length<ALL_NOTES.length?[[1,'I bet Dad hid another note here. He always does.'],[0,'Have a look around, then.']]:[])); }
+  if(rest.phase===0&&rest.t>4.5){ rest.phase=1; playScript(restSay().lines.concat(known.notes.length&&saved.notes.length<ALL_NOTES.length?[[1,'I bet Dad hid another note here. He always does.'],[0,'Have a look around, then.']]:[])); }
   else if(rest.phase===1&&rest.t>8&&quiet()){ rest.phase=2; rest.t2=rest.t; rest.canAct=true; speakIn=6; narrate('For a while nobody said anything important. That is what rest sites are for.'); }
   else if(rest.phase===2&&rest.t>rest.t2+12&&!(note.state===1)){ rest.canAct=false; if(quiet()&&!BRAINS.some(b=>b.cur||b.queue.length)){ rest.phase=3; narrate(fork.site?'And once again, the trail had two ideas about where to go next.':'Then Pip noticed something. The trail had two ideas about where to go next.'); playScript(restPathLines());
       pipB.queue.push({k:'pose',pose:'sitpoint',dur:5,face:0}); juneB.queue.push({k:'pose',pose:'sit',dur:3},{k:'pose',pose:'sitlook',dur:4,face:0}); } }
@@ -3578,11 +3620,11 @@ const POSE_LINES={scoop:['A perfect acorn!','This leaf is as big as my face.','A
   spin:['Twirl!','Hiking twirl!'],wave:['Keep up, Pip!','This way!'],hop:['Boing!','I\'m not tired at all!']};
 /* Things the girls say anywhere still have to fit where they are: nobody admires the treetops in a wheat field, or the sunshine in a cave.
    Each rule is a pattern and the places where a line containing it makes sense; a line is used only where every rule it trips allows. */
-const LINE_RULES=[[/\btrees?\b|treetop|branch|\bnest\b|woodpecker|squirrel|forest|\bbears?\b|\bstick\b|\bmoss\b|\blog\b/i,['home','deep','aspen','autumn','winter','glow','pond']],
+const LINE_RULES=[[/\btrees?\b|treetop|branch|\bnest\b|woodpecker|squirrel|forest|\bbears?\b|\bstick\b|\bmoss\b/i,['home','deep','aspen','autumn','winter','glow','pond']],
   [/\bleaf\b|\bleaves\b|acorn|crunchy/i,['home','deep','aspen','autumn']],[/\bpine/i,['home','deep','winter']],
   [/\bsun\b|sunbeam|sunshine/i,['home','deep','aspen','autumn','winter','grass','marsh','alpine','giant','pond','mtn','sky']],
   [/\bbirds?\b|butterfly|see so far/i,['home','deep','aspen','autumn','winter','grass','marsh','alpine','giant','pond','mtn','sky','glow']],
-  [/thicket|the cave\?|\bmist\b|pick the cave/i,['deep']],[/beetle|\bant\b|mushroom/i,['home','deep','aspen','autumn','grass','marsh','giant','glow','pond']]];
+  [/thicket|the cave\?|\bmist\b|pick the cave/i,['deep']],[/\blog\b|hammock/i,['deep','winter']],[/sunbeams?/i,['home','deep','aspen','autumn']],[/whole forest|hello, forest/i,['home','deep','aspen','autumn','winter','glow']],[/beetle|\bant\b|mushroom/i,['home','deep','aspen','autumn','grass','marsh','giant','glow','pond']]];
 const lineText=l=>Array.isArray(l)?l.map(x=>Array.isArray(x)?x[x.length-1]:x).join(' '):l;
 const fitsHere=(l,place)=>{ const tx=lineText(l); return LINE_RULES.every(([re,ok])=>!re.test(tx)||ok.includes(place)); };
 function lineFor(key,src){ const p=eventPlace(), ok=src.filter(l=>fitsHere(l,p)); return ok.length?nextLine(key+'@'+p,ok):null; }   /* (a deck of its own for each place, since each place keeps a different set) */
@@ -3964,7 +4006,7 @@ const AMB2={
   crystal:{bed:0,wind:0.2,every:[1.1,2.3],k:['ting','ting','ting','ting','drip','drip','plonk','hum','trill']},
   mtn:{bed:0,wind:2.2,every:[2.4,4.2],k:['windlow','windhigh','windlow','thunk']},
   sky:{bed:0,wind:1.4,every:[2.6,4.4],k:['windlow','windlow','whoosh','feebee']}};
-let ambIn=2.5, ambK=-1, ambLast='', windK=-1, waterBed=0;
+let ambIn=2.5, ambK=-1, ambLast='', windK=-1, waterBed=0, fireIn=1;
 /* which version of the music is playing: the place the girls are in, or a blend of two while they cross from one to the next */
 function updateMood(){ let a='home', b='home', k=0, r=0, men=0; const s=party.s;
   if(!state.started||mode==='home'||mode==='falls'){}
@@ -3986,6 +4028,7 @@ function updateAmbient(dt){
   const k=A?A.bed:!first?0:mode==='rest'?1:0.5+0.4*deep(party.s), w=A?A.wind:0; waterBed=A&&A.water||0;
   if(Math.abs(k-ambK)>0.04){ ambK=k; Music.ambience(k); }
   if(Math.abs(w-windK)>0.04){ windK=w; Music.wind(w); }
+  if(mode==='rest'&&key==='winter'){ fireIn-=dt; if(fireIn<=0){ Music.amb('crackle'); fireIn=0.45+Math.random()*0.8; } }   /* the fire at the winter site never stops crackling */
   if(!A&&!first) return; ambIn-=dt; if(ambIn>0) return;
   if(A){ const kind=pick(A.k.filter(a=>a!==ambLast)); ambLast=kind; Music.amb(kind); ambIn=lerp(A.every[0],A.every[1],Math.random()); return; }
   const place=mode==='rest'?'rest':deep(party.s)>0.5?'deep':'home', kind=pick(AMB[place].filter(a=>a!==ambLast)); ambLast=kind; Music.amb(kind);
