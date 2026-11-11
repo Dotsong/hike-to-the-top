@@ -2725,8 +2725,6 @@ function buildSummit(){
     for(let i=0;i<46;i++){ const sd=i%2?1:-1, z=STAIR.zb-6+r()*(STAIR.zt-STAIR.zb+6), x=sd*(6.6+r()*9), sz=0.8+r()*1.9; rock(x,stairY(x,z)+sz*0.25-0.2,z,sz*1.2,sz*0.8,sz); }   /* boulders either side of the stair */
     for(let i=0;i<14;i++){ const z=STAIR.zb+r()*(STAIR.zt-STAIR.zb), x=(r()-0.5)*9, sz=0.25+r()*0.3; if(Math.abs(x-stairX(z))<1.6) continue; rock(x,stairY(x,z)+sz*0.2,z,sz*1.3,sz*0.7,sz); }
     for(let i=0;i<16;i++){ const sd=i%2?1:-1, x=sd*(1.9+(i>>1)*1.25+r()*0.5), sz=1.3+r()*0.9; rock(x,0.15+r()*0.5,STAIR.zt-0.5-r()*0.8,sz*1.1,sz,sz*0.9); }   /* the ridge: it hides the top until the very last step */
-    { const m=P[0], arch=new THREE.Mesh(boxGeo,new THREE.MeshBasicMaterial({color:0x0b0a10})); arch.scale.set(2.3,2.7,1.2); arch.position.set(m[0]-1.4,stairY(m[0],m[1])+1.2,m[1]-0.5); arch.rotation.y=0.9; sc.add(arch);   /* the mouth of the cave they came out of */
-      [[-2.9,0.2,1.9],[-3.3,-1.2,1.6],[-1.7,-0.2,2.9]].forEach(([dx,dz,hh])=>rock(m[0]+dx,stairY(m[0],m[1])+hh*0.55,m[1]+dz-0.6,1.3,hh,1.4)); }
     /* prayer flags: strings of small squares, blue white red green yellow, sagging between two poles across each turn of the stair */
     const PRAY=['#3f7fd0','#f6f3ea','#d9443a','#3f9a55','#f0c63a'], pole=(x,z,h)=>{ const m=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.045,h,6),L('#6e5a48')); m.position.set(x,stairY(x,z)+h/2-0.1,z); m.castShadow=true; sc.add(m); return stairY(x,z)+h-0.15; };
     const string=(x0,z0,x1,z1,h)=>{ const y0=pole(x0,z0,h), y1=pole(x1,z1,h), n=Math.max(8,Math.round(Math.hypot(x1-x0,z1-z0)/0.42)), ry=Math.atan2(x1-x0,z1-z0)+Math.PI/2;
@@ -2879,11 +2877,14 @@ function enterSummit(){
   const tok=++restToken, fd=$('fade'), white=mode==='cave'; fd.classList.toggle('white',white); fd.classList.add('on');   /* out of the cave the picture goes to white, not black: daylight */
   setTimeout(()=>{ if(tok!==restToken||!state.started){ fd.classList.remove('white'); return; }
     if(mode==='cave') leaveCave();
-    summit=buildSummit(); Object.assign(summit,{th:Math.PI,cam0:camTheta,t:0,t0:0,phase:-1,leg:0,friend:null,goT:0,cam:new THREE.Vector3(),blend:0});
+    summit=buildSummit(); Object.assign(summit,{th:Math.PI,cam0:camTheta,t:0,t0:0,phase:-1,leg:1,friend:null,goT:0,cam:new THREE.Vector3(),blend:0});
     scene.remove(june.g,pip.g); summit.scene.add(june.g,pip.g); setTorches(0); endEvent();
     mode='summit'; landY=stairY; zoom=1; userPhi=0;
-    const P=STAIR.path, hd=Math.atan2(P[1][0]-P[0][0],P[1][1]-P[0][1]);
-    BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(P[0][0]-i*0.9,P[0][1]-i*0.25); b.face=b.faceT=hd; b.actIn=99; b.queue.push({k:'pose',pose:i?'look':'idle',dur:2.6+i*0.5,face:hd}); });
+    /* they are already on the stair and climbing when the picture comes back, a little way up its first flight, with the camera right behind them */
+    const P=STAIR.path, len=Math.hypot(P[1][0]-P[0][0],P[1][1]-P[0][1]), ux=(P[1][0]-P[0][0])/len, uz=(P[1][1]-P[0][1])/len, hd=Math.atan2(ux,uz), sx=lerp(P[0][0],P[1][0],0.22), sz=lerp(P[0][1],P[1][1],0.22);
+    BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(sx-i*(ux*0.95-uz*0.25),sz-i*(uz*0.95+ux*0.25)); b.face=b.faceT=hd; b.actIn=99;
+      b.queue.push({k:'walk',to:i?[P[1][0]-ux*0.95+uz*0.25,P[1][1]-uz*0.95-ux*0.25]:[P[1][0],P[1][1]],speed:i?1.08:1.05}); });
+    summit.cam.set(sx-ux*6.8,stairY(sx,sz)+1.7,sz-uz*6.8);
     hushBubbles(); speakIn=99;
     narrate('Outside, the light was so bright that for a moment there was nothing but white. Then there were steps: stone ones, going up the bare side of the mountain, this way and that.');
     showCaption({t:'The last stair',b:'Flat stones zigzagging up bare rock, strung with flags by everyone who came this way before.'});
@@ -2923,7 +2924,7 @@ function updateSummit(dt,rawDt){
      beyond them is rock, flags and sky, and the top stays hidden behind the ridge. It drifts only enough to keep them in the picture. */
   const gx=(june.g.position.x+pip.g.position.x)/2, gy=(june.g.position.y+pip.g.position.y)/2, gz=(june.g.position.z+pip.g.position.z)/2;
   const sw=clamp((camTheta-S.cam0)*0.6,-0.7,0.7), back=7.6*zoom*aspectBoost;
-  chase.set(gx*0.35+Math.sin(sw)*back*0.6+1.2,gy-0.55+userPhi*2,gz-Math.cos(sw)*back); if(S.t<0.2||S.cam.lengthSq()===0) S.cam.copy(chase); else if(S.phase<0) S.cam.lerp(chase,1-Math.exp(-1.5*rawDt));
+  chase.set(gx*0.35+Math.sin(sw)*back*0.6+1.2,gy-0.55+userPhi*2,gz-Math.cos(sw)*back); if(S.cam.lengthSq()===0) S.cam.copy(chase); else if(S.phase<0) S.cam.lerp(chase,1-Math.exp(-1.5*smooth(2.5,7,S.t)*rawDt));   /* (it starts right behind them, holds there a moment, then eases round to its place down the slope) */
   if(S.phase>=0){ S.blend=Math.min(1,S.blend+rawDt/3.2); S.th+=dt*0.075*motion*S.blend; }   /* at the top it lets go: up and over, and into one slow turn of the whole view every minute and a half */
   const th=S.th+(camTheta-S.cam0), r=10*zoom*aspectBoost, ph=clamp(0.2+userPhi,-0.2,1.0), k=S.blend*S.blend*(3-2*S.blend);
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r); look.set(0,1.3,0);
