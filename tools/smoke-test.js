@@ -66,7 +66,7 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
     places.push(await p.evaluate(()=>window.hikeDebug.place())); await p.waitForTimeout(1500); }
   for(const m of [470,503,535,542,550,554,600,642,649]){ await p.evaluate(m=>window.hikeDebug.walkTo(m),m); await p.waitForTimeout(1800); }
   await p.evaluate(()=>window.hikeDebug.walkTo(653.4));
-  await p.waitForFunction(()=>window.hikeDebug.mode()==='summit',null,{timeout:20000}).catch(()=>errs.push('the summit scene did not start'));
+  await p.waitForFunction(()=>window.hikeDebug.mode()==='summit',null,{timeout:180000}).catch(()=>errs.push('the summit scene did not start'));
   await p.waitForTimeout(4000);
   const summit=await p.evaluate(()=>window.hikeDebug.mode()==='summit'&&window.hikeDebug.tail()===5);
   // at the top, the friend from the village turns up and offers a way home; accepting leads to spaghetti night, told to the end

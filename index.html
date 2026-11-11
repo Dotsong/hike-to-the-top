@@ -1614,7 +1614,7 @@ function setOutfit(girl,m){ const p=girl.parka; if(p.mode===m) return; p.pop=p.m
   p.coat.visible=m>0; p.sleeves.forEach(sl=>sl.visible=m>0); p.down.visible=m===1; p.up.visible=m===2; p.tuck.forEach(o=>o.visible=m!==2);
   girl.pack.position.z=m>0?-0.085:0; }   /* the backpack goes on over the coat */
 [june,pip].forEach(g=>setOutfit(g,0));
-function outfitWanted(){ if(mode==='summit') return 1; if(mode==='home'||mode==='moon') return 0; let k=bioKeyAt(party.s);
+function outfitWanted(){ if(mode==='summit'||mode==='cave') return 1; if(mode==='home'||mode==='moon') return 0; let k=bioKeyAt(party.s);
   if(mode==='trail'){ const g=gateInfo(party.s); if(g.i>0&&g.i<3&&g.in>0.4&&picks[g.i]&&!BIO[legKey(g.i)].coat) k=legKey(g.i);   /* coats go on (or come off) in the dark of the gateway, before the new place opens up */
     if(k==='mtn'&&party.s<MTN+4) k=prevKeyAt(party.s); }                                                  /* and on the mountain trail when June says so */
   const c=BIO[k]&&BIO[k].coat; return c==='up'?2:c?1:0; }
@@ -2090,7 +2090,7 @@ function backToStart(){
   const intro=$('intro'); intro.hidden=false; requestAnimationFrame(()=>intro.classList.remove('gone'));
 }
 function resetHike(){
-  if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); if(mode==='moon') leaveMoon(); forceSecret=false; $('homeDock').hidden=true; $('phoneDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
+  if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); if(mode==='moon') leaveMoon(); if(mode==='cave') leaveCave(); forceSecret=false; $('homeDock').hidden=true; $('phoneDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
   clearPrints(); fork.village=false; choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
 }
@@ -2479,9 +2479,104 @@ function updateSummitBrain(b,dt){
   else { pose=st.pose; if(pose==='spin'){ b.face+=dt*4.2; b.faceT=b.face; } else if(st.face!==undefined) b.faceT=st.face; if(b.t>=st.dur) b.cur=null; }
   b.hop=0; b.duck=0; finishBrain(b,pose,walking,dt);
 }
+/* ---------- the last cave: a great hall inside the mountain, climbed ledge by ledge toward the light ---------- */
+/* A scene of its own. The floor rises in three sheer steps, each too high for either girl alone: Pip climbs onto June's shoulders and up,
+   then turns and hauls June after her. High at the far end is the way out, a blaze of daylight that the camera keeps in view the whole way.
+   Bats, stalactites, glowing mushrooms, crystals and drips keep them company. On the last ledge they step into the light, and the summit follows. */
+let caveS=null;
+const CAVE_STEPS=[-1,4,9], CAVE_H=1.7, caveLevel=(x,z)=>{ let y=0; for(const c of CAVE_STEPS) if(z>=c) y+=CAVE_H; return y; };
+const CAVE_SAY=[[[0,'Too high to step up. Onto my shoulders, Pip!'],[1,'Don\'t drop me!'],[1,'I\'m up! Give me your hand!'],[0,'Pull!']],
+  [[1,'Another one. Can I be the bottom this time?'],[0,'No. Shoulders.'],[1,'Heave... HO!']],[[0,'Last one, Pip.'],[1,'I can feel the wind from outside!'],[0,'Up we go.']]];
+function buildCave(){
+  let sd=7007; const r=()=>{ sd=(sd*16807)%2147483647; return (sd-1)/2147483646; };
+  const sc=new THREE.Scene(); sc.background=new THREE.Color(0x07080d); sc.fog=new THREE.FogExp2(0x0a0c13,0.03);
+  sc.add(new THREE.HemisphereLight(0x8f9fd0,0x2a2630,0.34));
+  const tones=['#4f4c58','#5d5966','#45424e','#6a6572'].map(c=>L(c)), stone=()=>tones[Math.floor(r()*4)];
+  const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); sc.add(m); return m; };
+  const rock=(x,y,z,sx,sy,sz)=>{ const m=add(rockGeo,stone(),x,y,z); m.scale.set(sx,sy,sz); m.rotation.set(r()*6,r()*6,r()*6); m.receiveShadow=true; return m; };
+  /* the floor, in four levels, with a sheer face between each */
+  [[-9,0],[CAVE_STEPS[0],1],[CAVE_STEPS[1],2],[CAVE_STEPS[2],3]].forEach(([z0,k])=>{ const z1=18, y=k*CAVE_H; const b=add(new THREE.BoxGeometry(13,y+3,z1-z0),L(['#5a5662','#5f5b68','#646070','#6a6676'][k]),0,(y-3)/2,(z0+z1)/2); b.receiveShadow=true;
+    if(k) for(let x=-6;x<=6;x+=0.9){ if(Math.abs(x)<1.3) continue; rock(x+r()*0.4,y-0.5-r()*0.8,z0-0.1,0.6+r()*0.4,0.6+r()*0.5,0.4); } });   /* craggy at the sides, clean rock where they climb */
+  /* walls and roof: big blocks all round, closing in overhead */
+  for(let z=-10;z<=19;z+=1.6) for(const sd of [-1,1]) for(let y=0;y<15;y+=2.7){ const lean=z>13?Math.min(y*0.2,1):y*0.2; rock(sd*(6.9-lean+r()*1.2),y+r()*1.5,z+r(),2.4+r()*1.2,2+r(),2.2+r()); }
+  for(let z=-10;z<=11;z+=2.3) for(let x=-5;x<=5;x+=2.6) rock(x+r()*1.5,13.4+caveLevel(0,z)*0.25+r()*1.2,z+r()*1.5,2.6+r()*1.4,1.6+r(),2.6+r());
+  for(let x=-7;x<=7;x+=1.9) for(let y=0;y<13;y+=2.5) rock(x+r(),y+r(),-10.2,2.3+r(),2.1+r(),1.6);
+  for(let x=-7;x<=7;x+=1.9) for(let y=0;y<16;y+=2.5){ if(Math.abs(x)<3.6&&y>4.5&&y<12.6) continue; rock(x+r(),y+r(),18.4,2.3+r(),2.1+r(),1.6); }   /* the far wall, with the way out left open */
+  /* stalactites and stalagmites */
+  const stal=L('#6f6a78');
+  for(let i=0;i<34;i++){ const x=(r()-0.5)*11, z=-8+r()*20, h=1+r()*2.6, m=add(new THREE.ConeGeometry(0.22+r()*0.25,h,7),stal,x,12.6+caveLevel(0,z)*0.25-h/2,z); m.rotation.x=Math.PI; }
+  for(let i=0;i<26;i++){ const x=(r()<0.5?-1:1)*(2.4+r()*3.4), z=-8+r()*24, h=0.5+r()*1.5; add(new THREE.ConeGeometry(0.16+r()*0.2,h,7),stal,x,caveLevel(0,z)+h/2,z); }
+  /* glowing mushrooms, a few crystals, and a still pool on the floor */
+  const stemM=new THREE.MeshBasicMaterial({color:0xd8fff0}), capM=new THREE.MeshBasicMaterial({color:0x8ff5d6});
+  for(let i=0;i<22;i++){ const x=(r()<0.5?-1:1)*(2+r()*3.6), z=-8+r()*24, y=caveLevel(0,z), s1=0.9+r()*1.2; [[stemGeo,stemM],[capGeo,capM]].forEach(([g,m])=>{ const o=add(g,m,x,y,z); o.scale.setScalar(s1); }); }
+  for(let i=0;i<12;i++){ const x=(r()<0.5?-1:1)*(3+r()*2.8), z=-7+r()*22, m=add(new THREE.ConeGeometry(0.16,0.7+r()*1.1,5),new THREE.MeshBasicMaterial({color:[0x8fe8ff,0xb79cff,0xff9ee0][i%3]}),x,caveLevel(0,z)+0.3,z); m.rotation.z=(r()-0.5)*0.7; }
+  { const p=add(new THREE.CircleGeometry(1.6,20),new THREE.MeshBasicMaterial({color:0x27405a}),-3.4,0.02,-4.5); p.rotation.x=-Math.PI/2; p.scale.y=0.7; }
+  /* the way out: daylight, pouring in from high up at the far end */
+  const LIGHT=new THREE.Vector3(0,9.2,17.2);
+  add(new THREE.CircleGeometry(2.5,24),new THREE.MeshBasicMaterial({color:0xfffbe8,fog:false}),LIGHT.x,LIGHT.y,LIGHT.z).rotation.y=Math.PI;
+  const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xfff0c0,transparent:true,opacity:0.9,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); halo.position.copy(LIGHT); halo.position.z-=0.4; halo.scale.set(15,15,1); sc.add(halo);
+  const shaftM=new THREE.MeshBasicMaterial({color:0xfff0b8,transparent:true,opacity:0.1,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false});
+  { const sh=add(new THREE.CylinderGeometry(2.3,5,17,18,1,true),shaftM,0,6.6,9.6); sh.rotation.x=-1.12; sh.renderOrder=3; }
+  const day=new THREE.PointLight(0xffe9c0,1.25,34,1.3); day.position.set(0,8.6,15); sc.add(day);
+  { const st=[[0,5.1,13.3,2.4],[0,5.5,14.6,2.4],[0,5.9,15.9,2.4]]; st.forEach(([x,y,z,w],i)=>add(new THREE.BoxGeometry(w,0.5,1.4),L('#77727f'),x,y+0.1+i*0.25,z)); }   /* the last few steps up into it */
+  /* bats: hanging about under the roof, and now and then a few of them wheel out across the hall */
+  const batM=new THREE.MeshBasicMaterial({color:0x15131c,side:THREE.DoubleSide}), bats=[];
+  for(let i=0;i<9;i++){ const g=new THREE.Group(), body=new THREE.Mesh(new THREE.SphereGeometry(0.09,8,6),batM), wl=new THREE.Mesh(wingGeo,batM), wr=new THREE.Mesh(wingGeo,batM); wr.scale.x=-1; body.scale.z=1.5; g.add(body,wl,wr); g.scale.setScalar(0.75+r()*0.4); sc.add(g);
+    bats.push({g,wl,wr,cx:(r()-0.5)*4,cz:-3+r()*13,rad:1.6+r()*2.6,h:8+r()*2.6,sp:(r()<0.5?-1:1)*(0.9+r()*0.8),ph:r()*6}); }
+  return {scene:sc,LIGHT,halo,day,shaftM,bats,
+    update(t){ bats.forEach(b=>{ const a=t*b.sp+b.ph, dip=Math.pow(Math.max(0,Math.sin(t*0.23+b.ph)),6)*4.2; b.g.position.set(b.cx+Math.cos(a)*b.rad,b.h+caveLevel(0,b.cz)*0.6-dip+Math.sin(t*2+b.ph)*0.2,b.cz+Math.sin(a)*b.rad*1.4);
+        b.g.rotation.y=-a+(b.sp>0?0:Math.PI); const f=Math.sin(t*19+b.ph)*0.9; b.wl.rotation.z=f; b.wr.rotation.z=-f; });
+      halo.material.opacity=0.82+0.1*Math.sin(t*0.8); shaftM.opacity=0.09+0.03*Math.sin(t*0.6); },
+    dispose(){ sc.traverse(o=>{ if(o.geometry&&o.geometry!==rockGeo&&o.geometry!==stemGeo&&o.geometry!==capGeo&&o.geometry!==wingGeo) o.geometry.dispose(); if(o.material&&!tones.includes(o.material)) o.material.dispose(); }); tones.forEach(m=>m.dispose()); } };
+}
+function enterCave(){
+  const tok=++restToken; $('fade').classList.add('on'); fork.tail=5;
+  setTimeout(()=>{ if(tok!==restToken||!state.started) return;
+    caveS=buildCave(); Object.assign(caveS,{t:0,pt:0,phase:'walk',step:0,cam0:camTheta,amb:3,cam:new THREE.Vector3(0,3,-12)});
+    scene.remove(june.g,pip.g); caveS.scene.add(june.g,pip.g); endEvent(); setTorches(1);
+    mode='cave'; landY=caveLevel; zoom=1; userPhi=0;
+    BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(i?0.6:-0.4,-7.2-i*0.6); b.face=b.faceT=0; });
+    hushBubbles(); playScript([[1,'It goes UP.'],[0,'See the light? That\'s the top. We climb to it.'],[1,'BATS!'],[0,'They live here. We\'re only visiting.']]); speakIn=60;
+    narrate('The last cave was not a tunnel at all. It was a great dark hall inside the mountain, and far above, at the very top of it, there was daylight.');
+    showCaption({t:'The last cave',b:'Three high ledges, a great many bats, and the way out shining at the top.'});
+    $('fade').classList.remove('on'); },950);
+}
+function updateCave(dt,rawDt){
+  const C=caveS, J=juneB, Pp=pipB; C.t+=dt; C.pt+=dt; C.update(time);
+  C.amb-=dt; if(C.amb<=0){ Music.amb(pick(['drip','drip','trill','tap'])); C.amb=1.8+Math.random()*3; }
+  let jp='idle', pq='idle', jw=false, pw=false, jo=null, po=null;   /* poses, whether walking, and (while climbing) exactly where each girl is */
+  if(C.phase==='walk'){ const k=C.step, cz=CAVE_STEPS[k], jt=k<3?[-0.25,cz-0.5]:[-0.5,12.2], pt2=k<3?[0.65,cz-1.4]:[0.5,12.5];
+    if(C.t>(k?0:5)){ jw=moveToward(J,jt[0],jt[1],1.25,dt)>0.05; pw=moveToward(Pp,pt2[0],pt2[1],1.25,dt)>0.05;
+      if(!jw&&!pw){ C.pt=0; if(k<3){ C.phase='climb'; playScript(CAVE_SAY[k]); if(k===1) narrate('Each ledge was taller than June. But two sisters, one on top of the other, are taller than a ledge.'); }
+        else { C.phase='top'; playScript([[1,'We\'re so close.'],[0,'Ready? Together.'],[1,'Together.']]); narrate('On the last ledge they stood a moment, side by side. Then they stepped into the light.'); } } } }
+  else if(C.phase==='climb'){ const cz=CAVE_STEPS[C.step], L0=C.step*CAVE_H, t=C.pt, jx=-0.25, jz=cz-0.5, sh=0.98-0.22*(1-smooth(1.5,2.2,t)); J.faceT=0; Pp.faceT=0;
+    /* June: crouch for Pip to climb on, stand, reach up, and be hauled up after her */
+    if(t<1.6) jp='crouch'; else if(t<4.4) jp='idle'; else if(t<5.4) jp='wave';
+    else { jp=t<7?'hop':'idle'; jo=[jx,L0+CAVE_H*smooth(5.4,6.7,t),lerp(jz,cz+0.5,smooth(6.2,7,t))]; }
+    /* Pip: round behind June, up onto her shoulders, a scramble over the edge, then turn and pull */
+    if(t<1.2){ pw=moveToward(Pp,jx+0.05,jz-0.6,1.3,dt)>0.05; }
+    else if(t<2.8){ const u=smooth(1.2,2.5,t); po=[jx,L0+sh*u,lerp(jz-0.6,jz,u)]; pq='hop'; }
+    else if(t<4.4){ const u=smooth(2.9,4.1,t); po=[lerp(jx,0.4,u),lerp(L0+sh,L0+CAVE_H,u),lerp(jz,cz+0.55,smooth(3.5,4.4,t))]; pq='crouch'; }
+    else { po=[0.4,L0+CAVE_H,cz+0.55]; if(t<7){ pq='scoop'; Pp.faceT=Math.PI; } else pq='hop'; }
+    if(po) Pp.pos.set(jx+1.1,jz);   /* (her brain is parked beside June so the two never jostle; her body is put where the climb has her) */
+    if(t>8){ J.pos.set(jx,cz+0.5); Pp.pos.set(0.4,cz+0.55); C.step++; C.phase='walk'; C.pt=0; jo=po=null; } }
+  else if(C.phase==='top'){ J.faceT=0; Pp.faceT=0; jp=C.pt>2?'look':'idle'; pq=C.pt>2.5?'point':'idle'; if(C.pt>6&&quiet()){ C.phase='light'; C.pt=0; } }
+  else if(C.phase==='light'){ jw=moveToward(J,-0.4,15.6,0.9,dt)>0.05; pw=moveToward(Pp,0.4,15.6,0.9,dt)>0.05; const u=smooth(0,2.4,C.pt); C.halo.scale.setScalar(15+70*u); C.day.intensity=1.25+3*u;
+    [june,pip].forEach(g=>{ g.g.position.y+=0; }); if(C.pt>2.4){ C.phase='done'; enterSummit(); } }
+  finishBrain(J,jp,jw,dt); finishBrain(Pp,pq,pw,dt);
+  if(C.phase==='light'||C.phase==='done'){ [J,Pp].forEach(b=>{ b.girl.g.position.y=5.1+Math.max(0,b.pos.y-12.6)*0.42; }); }   /* up the last steps */
+  if(jo) june.g.position.set(jo[0],jo[1],jo[2]); if(po) pip.g.position.set(po[0],po[1],po[2]);
+  /* the camera stays below and behind the girls, looking up past them at the light */
+  const fx=(june.g.position.x+pip.g.position.x)/2, fy=(june.g.position.y+pip.g.position.y)/2+1, fz=(june.g.position.z+pip.g.position.z)/2, aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
+  const sw=clamp((camTheta-C.cam0)*0.7,-0.9,0.9)+Math.sin(time*0.11)*0.12*motion, back=7.4*zoom*aspectBoost;
+  chase.set(fx+Math.sin(sw)*back*0.7+1.6,fy+1.3+userPhi*3,fz-Math.cos(sw)*back); C.cam.lerp(chase,1-Math.exp(-2.2*rawDt)); if(C.t<0.2) C.cam.copy(chase);
+  camera.position.copy(C.cam); target.set(fx,fy,fz).lerp(C.LIGHT,0.34); camera.lookAt(target);
+}
+function leaveCave(){ caveS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); caveS.dispose(); caveS=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; setTorches(0); }
 function enterSummit(){
   const tok=++restToken; $('fade').classList.add('on');
   setTimeout(()=>{ if(tok!==restToken||!state.started) return;
+    if(mode==='cave') leaveCave();
     summit=buildSummit(); Object.assign(summit,{th:0.4,cam0:camTheta,t:0,phase:0,friend:null,goT:0});
     scene.remove(june.g,pip.g); summit.scene.add(june.g,pip.g); setTorches(0); endEvent();
     mode='summit'; landY=()=>0; zoom=1; userPhi=0;
@@ -2518,8 +2613,7 @@ function onTail(what){
   if(what==='trail'){ narrate('Higher still, the path turned to stone and the air grew thin and bright.'); showCaption({t:'The mountain trail',b:'Steep and stony now. A bank of cloud is coming down to meet it.'}); }
   else if(what==='mist'){ playScript(BIO.sky.gate.enter); speakIn=14; narrate('Then the cloud closed round them, soft and white and very quiet.'); }
   else if(what==='sky'){ const R=BIO.sky.reveal; hushBubbles(); startGust(BIO.sky.fall,party.s); Music.gust(); revealT=0; speakIn=16; narrate(R.narr); playScript(R.lines); showCaption({t:R.t,b:R.b}); }
-  else if(what==='cave'){ narrate('One last cave, and it was the steepest and the darkest of all.'); playScript([[0,'One more cave, Pip. Flashlights on.'],[1,'I can feel wind! The top must be close.']]); speakIn=14;
-    showCaption({t:'The last cave',b:'It climbs steeply, with a circle of daylight at the far end.'}); }
+  else if(what==='cave') enterCave();   /* the last cave is a scene of its own; the summit follows it */
   else if(what==='top') enterSummit();
 }
 /* ---------- home again: spaghetti night ---------- */
@@ -2928,6 +3022,7 @@ function chatter(){
   if(mode==='summit'){ speak(nextLine('summit',SUMMIT_LINES)); return; }
   if(mode==='home'){ if(home.phase<1) speak(nextLine('home',HOME_LINES)); return; }
   if(mode==='moon'){ speak(nextLine('moon',MOON_LINES)); return; }
+  if(mode==='cave') return;
   { const k=bioKeyAt(party.s), ls=k==='aspen'?ASPEN_LINES:k==='autumn'?AUTUMN_LINES:BIO[k]&&BIO[k].lines;   /* things to say about wherever they are */
     if(ls&&gateK(party.s)<0.2&&Math.random()<(BIO[k].tree?0.75:0.5)){ speak(nextLine(k,ls)); return; } }
   speak(nextLine('trail',TRAIL_LINES));
@@ -3333,7 +3428,7 @@ MARKDEFS.forEach(m=>{ const f=FACTS[m.k], w=document.createElement('div'); w.cla
   w.appendChild(b); marksEl.appendChild(w); MK[m.k]=w; });
 const placed=[];
 function updateMarks(){
-  (mode==='rest'?rest.scene:mode==='summit'?summit.scene:mode==='home'?home.scene:mode==='moon'?moonS.scene:scene).updateMatrixWorld();
+  (mode==='rest'?rest.scene:mode==='summit'?summit.scene:mode==='home'?home.scene:mode==='moon'?moonS.scene:mode==='cave'?caveS.scene:scene).updateMatrixWorld();
   camera.updateMatrixWorld();
   const show=state.started&&!bookOpen&&mode==='trail';
   marksEl.classList.toggle('compact',!paused);
@@ -3461,7 +3556,7 @@ function updateBreath(dt){
    so nothing behaves differently, it just happens sooner. (The fades between scenes still take their usual second.) */
 let pace=1;
 function simStep(dt){ time+=dt;
-  if(mode==='rest') updateRest(dt,dt); else if(mode==='summit') updateSummit(dt,dt); else if(mode==='home') updateHome(dt,dt); else if(mode==='moon') updateMoon(dt,dt);
+  if(mode==='rest') updateRest(dt,dt); else if(mode==='summit') updateSummit(dt,dt); else if(mode==='home') updateHome(dt,dt); else if(mode==='moon') updateMoon(dt,dt); else if(mode==='cave') updateCave(dt,dt);
   else { updateParty(dt); BRAINS.forEach(b=>updateBrain(b,dt)); updateEvents(dt); updateGust(dt); }
   updateSpeech(dt); updateNarrator(dt); }
 function setPace(p){ pace=p; const b=$('paceBtn'); b.textContent='Pace ×'+p; b.setAttribute('aria-label','Pace: '+(p===1?'normal speed':p+' times as fast')+'. Tap to change.'); }
@@ -3476,6 +3571,7 @@ function frame(now){
   else if(mode==='summit') updateSummit(dt,rawDt);
   else if(mode==='home') updateHome(dt,rawDt);
   else if(mode==='moon') updateMoon(dt,rawDt);
+  else if(mode==='cave') updateCave(dt,rawDt);
   else {
   /* the walk, and the strip of forest that travels with it */
   updateParty(dt);
@@ -3557,7 +3653,7 @@ function frame(now){
   if(mode==='trail') updatePrints();
   updateMarks();
   updateSpeech(dt); updateNarrator(dt);
-  if(wall.state!=='closed'||(frameNo++%20)===0) renderer.render(mode==='rest'?rest.scene:mode==='summit'?summit.scene:mode==='home'?home.scene:mode==='moon'?moonS.scene:scene,camera);   /* behind the closed wall of leaves, only now and then */
+  if(wall.state!=='closed'||(frameNo++%20)===0) renderer.render(mode==='rest'?rest.scene:mode==='summit'?summit.scene:mode==='home'?home.scene:mode==='moon'?moonS.scene:mode==='cave'?caveS.scene:scene,camera);   /* behind the closed wall of leaves, only now and then */
   requestAnimationFrame(frame);
 }
 /* iPad: no double-tap or pinch zooming of the page (pinching the scene still zooms the camera) */
