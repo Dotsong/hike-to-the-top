@@ -491,8 +491,8 @@ const hash=(a,b,c)=>{ const v=Math.sin(a*127.1+b*311.7+c*74.7)*43758.5453; retur
      140+    the aspen grove or the autumn woods
      250     a second rest site and a second choice: winter forest or grassland (after the autumn woods), marsh or alpine rock garden (after the aspens)
      398     a third: moonlit glow-wood or giant garden; upside-down pond or crystal hollow
-     500     whichever it was gives way to the stony mountain trail; at 536 a bank of mist, and beyond it the sky garden
-     640-652 one last cave, climbing steeply, and then the top of the mountain, which is a scene of its own */
+     500     whichever it was gives way to the stony mountain trail; at 536 a bank of mist, 15 m deep, and beyond it the sky garden
+     643-655 one last cave, climbing steeply, and then the top of the mountain, which is a scene of its own */
 const REST_S=98, REST_C=100, FORK=101, GATE_A=128, GATE_B=140, RIVER_Z=52, GATE_OB=GATE_A+8;
 /* What a rest site is furnished with, measured from the middle of the log (x across, z along the trail). The rest scene is built from this list,
    and so is the rest site the girls walk into on the trail, so what they arrive at is what they then sit down in. Nothing here lies on a path. */
@@ -518,7 +518,7 @@ const trailX=s=>x0(s)+choice*spread(s-FORK);       /* the path the girls are on 
    mist, the sky garden, one last cave and the top. Past the first fork there is only ever one trail on the ground: the choice is made in
    the rest scene, and the trail picks up inside whichever gateway was chosen. */
 const SITES=[{rest:REST_C,a:GATE_A,b:GATE_B},{rest:250,a:276,b:288},{rest:398,a:424,b:436}];
-const MTN=500, SKY_A=536, SKY_B=548, TOP_A=640, TOP_B=652;
+const MTN=500, SKY_A=536, SKY_B=551, TOP_A=643, TOP_B=655;   /* the mist is 15 m deep */
 const GA=[GATE_A,276,424,SKY_A,TOP_A], GB=[GATE_B,288,436,SKY_B,TOP_B], BOUNDS=[GATE_B,288,436,MTN,SKY_B];   /* where each gateway starts and ends, and where each new place begins */
 const picks=[0,0,0];   /* what was chosen at each rest site: 1 the left-hand button, -1 the right-hand one */
 function optionsAt(i){ return i===0?['autumn','aspen']:i===1?(choice>0?['winter','grass']:['marsh','alpine']):(choice>0?['glow','giant']:['pond','crystal']); }   /* [left, right] */
@@ -700,7 +700,7 @@ function rebuildGround(s0){
   const r0=Math.floor((s0-BACK)/ROW);
   for(let i=0;i<NR;i++){ const r=r0+i, z=r*ROW;
     const [xl,xr,wl,wr]=fillRow(z);
-    const g=deep(z)*0.85, bp=bioK(z), nb=BIO[bioKeyAt(z)], pb=BIO[prevKeyAt(z)], nk=newK(z), fogQ=!skyOpen?smooth(SKY_B+2,SKY_B+12,z):skyShut?1-smooth(SKY_A-12,SKY_A-2,z):0, tyRow=trailY(z);   /* beyond the cloud bank the ground is only more cloud */
+    const g=deep(z)*0.85, bp=bioK(z), nb=BIO[bioKeyAt(z)], pb=BIO[prevKeyAt(z)], nk=newK(z), fogQ=!skyOpen?smooth(SKY_B+2,SKY_B+12,z):skyShut?1-smooth(SKY_B-12,SKY_B-3,z):0, tyRow=trailY(z);   /* beyond the cloud bank the ground is only more cloud */
     const only=choice&&z>GATE_B-3?(Math.abs(trailX(z)-xl)<Math.abs(trailX(z)-xr)?-1:1):0;   /* past the gateways only the chosen path is a path; the other is just forest floor */
     for(let j=0;j<NC;j++){ const x=rowX[j], k=(i*NC+j)*3, a=only<0?Math.abs(x-xl)/wl:only>0?Math.abs(x-xr)/wr:Math.min(Math.abs(x-xl)/wl,Math.abs(x-xr)/wr);
       gPos[k]=x; gPos[k+1]=groundY(x,z); gPos[k+2]=z;
@@ -968,15 +968,6 @@ function plantTree(r,id,x,z,first,s0,fact,ring){
     if(fact) spots.pine.push({x,y:y+th+H*0.35,z});
   }
 }
-/* The bank of cloud the mountain trail walks into. Great soft heaps of it stand either side of the trail through the mist, piled three high,
-   and stay there afterwards as the sky garden's near wall. Until the girls are inside the mist there is also a wall of it right across the
-   trail a little further on, so that from no angle, and from no place lower down, can anything beyond be seen. */
-function fogBank(r,z0){ const back=!skyOpen&&z0>=SKY_B+4, side=z0<SKY_B-3, shut=skyShut&&z0<SKY_B-9; if(!back&&!side) return;   /* shut: once they are through, it closes across the trail behind them too */
-  for(let k=-12;k<=12;k++){ const id=400+k, lat=k*7+(hash(r,id,1)-0.5)*4; if(!back&&!shut&&Math.abs(lat)<13) continue;   /* the trail itself, and room for the camera, stay clear */
-    const z=z0+hash(r,id,2)*3, x=trailX(z)+lat, y=floorY(x,z);
-    put(P.blobF,x,y+2.4,z,6.5+hash(r,id,3)*3,4.6+hash(r,id,4)*2,5.5+hash(r,id,5)*2,0,WHITE);
-    put(P.blobF,x+(hash(r,id,6)-0.5)*5,y+8.5+hash(r,id,7)*2.5,z,7+hash(r,id,8)*3,5+hash(r,id,9)*2,6,0,WHITE);
-    put(P.blobF,x+(hash(r,id,10)-0.5)*5,y+15+hash(r,id,11)*3,z,6+hash(r,id,12)*3,4.5,5.5,0,WHITE); } }
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
   POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
@@ -984,9 +975,8 @@ function rebuildForest(s0){
   rowCache.clear();   /* the drawn ground may have moved on (or the paths changed), so measure it afresh */
   const r0=Math.floor((s0-BACK)/3), r1=Math.floor((s0+FWD)/3);
   for(let r=r0;r<=r1;r++){ const z0=r*3, inGate=z0+3>GATE_A-1&&z0<GATE_B+0.5;
-    if(z0>=SKY_A-3&&z0<SKY_B+18) fogBank(r,z0);
     if(!skyOpen&&z0>SKY_B+6) continue;   /* nothing of the sky garden, or of anything past it, exists yet */
-    if(skyShut&&z0<SKY_A-4) continue;    /* and from the ridge, nothing of the mountain below exists any more */
+    if(skyShut&&z0<SKY_B-9) continue;    /* and from the ridge, nothing of the mountain below exists any more */
     for(const side of [-1,1]){ const dp=deep(z0+1.5), bands=side<0||dp>0.5?BANDS_UP:BANDS_DOWN, q=side*10;   /* in the deep woods the trees close in on both sides */
       const edge=z=>{ paths(z); return side<0?pL:pR; };   /* things on the left grow beside the left path, things on the right beside the right one */
       /* trees */
@@ -2753,6 +2743,17 @@ Object.assign(SKIES,{
 SKIES.aspen.mote=MOTE_ASPEN; SKIES.autumn.mote=MOTE_AUTUMN; SKIES.aspen.falls=SKIES.autumn.falls=1;
 for(const k in SKIES){ const B=BIO[k]; if(B&&B.mote){ SKIES[k].mote=C(B.mote); SKIES[k].falls=B.falls||0; } }
 const FOG_MIST=C('#f3f5f7'); let moteFall=0;
+/* Curtains of mist. What hides the sky garden from everywhere lower down, and everywhere lower down from the sky garden, is not a wall of
+   anything: it is mist, hung in soft sheets right across the mountain, one behind another until nothing shows through, each with a ragged
+   top that fades into the air. One set hangs beyond the far side of the mist until the girls are inside it; the other closes behind them
+   when they step out onto the ridge. They take the color of the haze they stand in. */
+const curtainTex=alphaTex(128,(u,v)=>{ const top=0.62+0.1*Math.sin(u*19)+0.07*Math.sin(u*47+1.3)+0.05*Math.sin(u*83+4);   /* v runs up the sheet: solid below, thinning to nothing at a wavering top */
+  return smooth(top,top-0.34,v)*smooth(0,0.07,u)*smooth(1,0.93,u); });
+const curtainGeo=new THREE.PlaneGeometry(320,60), curtains=[];
+for(let i=0;i<12;i++){ const m=new THREE.Mesh(curtainGeo,new THREE.MeshBasicMaterial({color:0xffffff,map:curtainTex,transparent:true,opacity:0.62,depthWrite:false,side:THREE.DoubleSide}));
+  m.visible=false; m.renderOrder=2; if(i%2) m.scale.x=-1; scene.add(m); curtains.push({m,ahead:i<6,k:i%6,dx:(rnd()-0.5)*40,dy:rnd()*5}); }
+function updateCurtains(){ for(const c of curtains){ const on=c.ahead?!skyOpen&&party.s>SKY_A-190:skyShut; c.m.visible=on; if(!on) continue;
+    const z=c.ahead?SKY_A+8+c.k*3:SKY_B-5-c.k*3; c.m.position.set(trailX(z)+c.dx,trailY(z)+23+c.dy,z); c.m.material.color.copy(scene.fog.color).lerp(WHITE,0.45); } }
 /* the sky garden's own weather: a sea of cloud lying under the ridge, the sun glowing through the haze straight ahead, and mist drifting up the slopes */
 const cloudSea=new THREE.Mesh(new THREE.CircleGeometry(230,48),new THREE.MeshBasicMaterial({color:0xfff6e8})); cloudSea.rotation.x=-Math.PI/2; cloudSea.visible=false; scene.add(cloudSea);
 const sunGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xffe7b0,transparent:true,opacity:0,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); sunGlow.scale.set(520,520,1); sunGlow.visible=false; scene.add(sunGlow);
@@ -2885,7 +2886,7 @@ function frame(now){
   { const nk=nightK*(1-caveK)*(1-thK); moon.visible=stars.visible=nk>0.02; moon.material.opacity=nk; stars.material.opacity=nk*0.9;
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK;
-  updateSkyWeather(party.s,mistK);
+  updateSkyWeather(party.s,mistK); updateCurtains();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;

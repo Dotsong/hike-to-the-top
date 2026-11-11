@@ -27,7 +27,7 @@ sub("renderer.render(mode==='rest'","if(window.__draw||frameNo%40===0) renderer.
   await rest(0,97.2); await go(142,'out0',2500); await go(190,'leg0',2000);
   await rest(1,247.8); await go(290,'out1',2500); await go(340,'leg1',2000);
   await rest(2,395.8); await go(438,'out2',2500); await go(475,'leg2',2000);
-  await go(520,'mtn',2000); await go(541,'mist',2000); await go(552,'sky0',2500); await go(600,'sky',2000); await go(644,'topcave',2000);
-  await go(650.4,null,500); await p.waitForFunction(()=>window.hikeDebug.mode()==='summit',null,{timeout:30000}).catch(()=>console.log('no summit'));
+  await go(520,'mtn',2000); await go(541,'mist',2000); await go(555,'sky0',2500); await go(600,'sky',2000); await go(647,'topcave',2000);
+  await go(653.4,null,500); await p.waitForFunction(()=>window.hikeDebug.mode()==='summit',null,{timeout:30000}).catch(()=>console.log('no summit'));
   for(let k=0;k<3;k++){ await p.waitForTimeout(2500); await shot('summit'+k); await p.mouse.move(450,300); await p.mouse.down(); await p.mouse.move(700,300,{steps:8}); await p.mouse.up(); }
   await alive('summit'); console.log(ROUTE,'done; screenshots in',OUT,errs.join('\n')); await b.close(); })();
