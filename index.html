@@ -861,6 +861,7 @@ const REST_LOOKS={
 BIO.mtn=Object.assign({},BIO.alpine,{gate:null,reveal:null,
   lines:[['My legs say we\'re nearly there.','Your legs said that an hour ago.'],'The path is all stones now.',['Is that a cloud? Coming DOWN?','We\'re going up to meet it.'],['I can see the top!','So can I. Keep walking.']],
   narr:['The trail was nothing but stone now, and it only went one way: up.','Below them, the places they had walked through lay folded like a map.']});
+BIO.winter.coat='up'; BIO.alpine.coat=BIO.mtn.coat=BIO.sky.coat='down';   /* where it is cold enough for a parka, and whether the hood is up */
 for(const k in BIO){ const g=BIO[k].gate; if(g){ g.pal=(g.cols||g.rock||[]).map(C); if(g.glow) g.glowC=C(g.glow); } }
 const TOP_GATE={kind:'arch',pal:pal(['#8b8f8a','#9a9a94','#7d807c'])};   /* the last cave */
 const GUSTS={winter:[SNOW,WHITE],grass:MEADOW,marsh:[TAN,GREENS[3],TAN],alpine:[WHITE,SNOW],glow:GLOWS,giant:BLOOM,pond:PASTEL,crystal:GEMS,sky:BIO.sky.fall};   /* what the wind throws about when each place opens up */
@@ -1284,7 +1285,7 @@ function makeGirl(o){
   const hd=new THREE.Mesh(new THREE.SphereGeometry(0.2,20,16),skin); hd.position.y=0.17; head.add(hd);
   const cap=new THREE.Mesh(new THREE.SphereGeometry(0.215,20,14,0,Math.PI*2,0,Math.PI*0.55),hair); cap.position.set(0,0.18,-0.015); cap.rotation.x=-0.35; head.add(cap);
   const back=new THREE.Mesh(new THREE.SphereGeometry(0.2,16,12),hair); back.scale.set(1.02,1.1,0.7); back.position.set(0,0.12,-0.07); head.add(back);
-  const tails=[];
+  const tails=[], topknot=[];
   if(o.style==='pigtails'){ [-1,1].forEach(s=>{const tp=new THREE.Group();tp.position.set(s*0.21,0.17,-0.03);head.add(tp);
     const p=new THREE.Mesh(new THREE.SphereGeometry(0.085,10,8),hair);p.scale.set(0.9,1.3,0.9);p.position.set(s*0.02,-0.09,-0.01);tp.add(p);
     const t=new THREE.Mesh(new THREE.SphereGeometry(0.035,8,6),L(o.ribbon));tp.add(t);tails.push(tp);}); }
@@ -1294,7 +1295,7 @@ function makeGirl(o){
     [-1,1].forEach(s=>{ const ring=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.012,6,16),gm); ring.position.set(s*0.075,0.18,0.2); head.add(ring); });
     const br=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.012,0.012),gm); br.position.set(0,0.19,0.21); head.add(br); }
   else { const bun=new THREE.Mesh(new THREE.SphereGeometry(0.11,12,10),hair); bun.position.set(0,0.35,-0.12); head.add(bun);
-    const t=new THREE.Mesh(new THREE.TorusGeometry(0.07,0.025,6,14),L(o.ribbon)); t.position.set(0,0.3,-0.1); t.rotation.x=1.2; head.add(t); }
+    const t=new THREE.Mesh(new THREE.TorusGeometry(0.07,0.025,6,14),L(o.ribbon)); t.position.set(0,0.3,-0.1); t.rotation.x=1.2; head.add(t); topknot.push(bun,t); }
   const eyeM=new THREE.MeshBasicMaterial({color:0x2a1c26}), cheekM=new THREE.MeshBasicMaterial({color:0xff9ea0});
   const eyes=[-1,1].map(s=>{const e=new THREE.Mesh(new THREE.SphereGeometry(0.022,8,6),eyeM);e.position.set(s*0.07,0.18,0.185);head.add(e);
     const c=new THREE.Mesh(new THREE.SphereGeometry(0.032,8,6),cheekM);c.scale.z=0.35;c.position.set(s*0.115,0.125,0.165);head.add(c);return e;});
@@ -1302,7 +1303,7 @@ function makeGirl(o){
     const a=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.3,6),L(o.dress));a.position.y=-0.15;piv.add(a);
     const h=new THREE.Mesh(new THREE.SphereGeometry(0.045,8,6),skin);h.position.y=-0.32;piv.add(h);upper.add(piv);return piv;});
   g.scale.setScalar(o.scale);
-  return {g,legs,upper,head,eyes,tails,dress,armL:arms[0],armR:arms[1],scale:o.scale};
+  return {g,legs,upper,head,eyes,tails,topknot,dress,armL:arms[0],armR:arms[1],scale:o.scale};
 }
 const june=makeGirl({dress:'#ff8a7a',hair:'#4a2e22',skin:'#f2c7a5',legs:'#fff3e8',ribbon:'#fff3a3',style:'pigtails',scale:1.3});
 const pip=makeGirl({dress:'#b79cff',hair:'#d9783c',skin:'#c99372',legs:'#ffe1ea',ribbon:'#9fd8ff',style:'bun',scale:1.08});
@@ -1334,6 +1335,39 @@ function addTorch(girl,hand,col){
 }
 addTorch(june,1,'#d9534a'); addTorch(pip,-1,'#4fa3a0');
 function setTorches(k){ const on=k>0.15; [june,pip].forEach(g=>{ const t=g.torch; t.body.visible=t.lens.visible=t.beam.visible=on; t.light.intensity=1.8*k; t.beam.material.opacity=0.1*k; }); juneB.torch=pipB.torch=on; }
+/* Parkas for the cold places: a puffy coat over the dress with a fur hem, sleeves with fur cuffs, mittens, and a fur-trimmed hood.
+   In the winter forest the hood is up (and pigtails and topknot are tucked inside it); in the other cold places (the alpine rock garden,
+   the mountain trail, the sky garden and the summit) it lies folded down behind the neck. The coats are always there, just out of sight until wanted. */
+function addParka(girl,col){
+  const M=L(col), FUR=L('#fff6ec'), coat=new THREE.Group(), down=new THREE.Group(), up=new THREE.Group(), sleeves=[];
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.285,0.44,18),M); body.position.y=0.26; coat.add(body);
+  const hem=new THREE.Mesh(new THREE.TorusGeometry(0.283,0.036,8,22),FUR); hem.rotation.x=Math.PI/2; hem.position.y=0.045; coat.add(hem);
+  const zip=new THREE.Mesh(new THREE.BoxGeometry(0.022,0.4,0.02),FUR); zip.position.set(0,0.26,0.218); zip.rotation.x=-0.3; coat.add(zip);
+  [[0.32,0.2],[0.2,0.237]].forEach(([y,z])=>{ const tg=new THREE.Mesh(new THREE.SphereGeometry(0.024,8,6),L('#8a5a3c')); tg.scale.set(1.5,0.8,0.8); tg.position.set(0.045,y,z+0.012); coat.add(tg); });   /* two toggles */
+  { const roll=new THREE.Mesh(new THREE.SphereGeometry(0.16,14,10),M); roll.scale.set(1.15,0.62,0.8); roll.position.set(0,0.5,-0.12); down.add(roll);   /* the hood, folded down */
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(0.125,0.036,8,18),FUR); rim.scale.set(1.15,0.8,1); rim.rotation.x=Math.PI/2-0.45; rim.position.set(0,0.545,-0.1); down.add(rim); coat.add(down); }
+  girl.upper.add(coat);
+  [girl.armL,girl.armR].forEach(arm=>{ const sl=new THREE.Group();
+    const sv=new THREE.Mesh(new THREE.CylinderGeometry(0.058,0.064,0.25,10),M); sv.position.y=-0.125; sl.add(sv);
+    const cuff=new THREE.Mesh(new THREE.TorusGeometry(0.058,0.024,6,14),FUR); cuff.rotation.x=Math.PI/2; cuff.position.y=-0.255; sl.add(cuff);
+    const mit=new THREE.Mesh(new THREE.SphereGeometry(0.058,10,8),M); mit.position.y=-0.325; sl.add(mit); arm.add(sl); sleeves.push(sl); });
+  { const R=0.255, TH=Math.PI*0.68;   /* the hood, up: a shell over the top and back of the head, open round the face, edged with fur */
+    const shell=new THREE.Mesh(new THREE.SphereGeometry(R,20,14,0,Math.PI*2,0,TH),L(col,{side:THREE.DoubleSide})); up.add(shell);
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(R*Math.sin(TH),0.042,8,24),FUR); rim.rotation.x=Math.PI/2; rim.position.y=R*Math.cos(TH); up.add(rim);
+    up.position.set(0,0.17,0); up.rotation.x=-1.1; girl.head.add(up); }
+  girl.parka={coat,down,up,sleeves,tuck:girl.tails.concat(girl.topknot),mode:-1,pop:0};
+}
+addParka(june,'#d9506e'); addParka(pip,'#4fa0dc');
+function setOutfit(girl,m){ const p=girl.parka; if(p.mode===m) return; p.pop=p.mode<0?0:1; p.mode=m;   /* 0 no coat, 1 coat with the hood down, 2 hood up */
+  p.coat.visible=m>0; p.sleeves.forEach(sl=>sl.visible=m>0); p.down.visible=m===1; p.up.visible=m===2; p.tuck.forEach(o=>o.visible=m!==2);
+  girl.pack.position.z=m>0?-0.085:0; }   /* the backpack goes on over the coat */
+[june,pip].forEach(g=>setOutfit(g,0));
+function outfitWanted(){ if(mode==='summit') return 1; let k=bioKeyAt(party.s);
+  if(mode==='trail'){ const g=gateInfo(party.s); if(g.i>0&&g.i<3&&g.in>0.4&&picks[g.i]) k=legKey(g.i);   /* coats go on (or come off) in the dark of the gateway, before the new place opens up */
+    if(k==='mtn'&&party.s<MTN+4) k=prevKeyAt(party.s); }                                                  /* and on the mountain trail when June says so */
+  const c=BIO[k]&&BIO[k].coat; return c==='up'?2:c?1:0; }
+function updateOutfit(dt){ const m=outfitWanted();
+  [june,pip].forEach(g=>{ setOutfit(g,m); const p=g.parka; if(p.pop>0||p.coat.scale.x!==1){ p.pop=Math.max(0,p.pop-dt/0.45); const sc=1+0.2*Math.sin(Math.PI*p.pop); p.coat.scale.setScalar(sc); p.up.scale.setScalar(sc); } }); }   /* a little puff as it goes on */
 scene.add(june.g,pip.g);
 [june.g,pip.g].forEach(root=>root.traverse(o=>{ if(o.isMesh){ o.castShadow=o.material.type!=='MeshBasicMaterial'; o.receiveShadow=true; } }));
 
@@ -1780,7 +1814,7 @@ function backToStart(){
 }
 function resetHike(){
   if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
-  choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
+  clearPrints(); choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
 }
 /* ---------- zone select (for testing): jump straight to any place on the mountain ---------- */
@@ -2173,7 +2207,7 @@ function updateSummit(dt,rawDt){
 function leaveSummit(){ summit.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); summit.dispose(); summit=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
 /* the last stretch: the mountain trail, the mist, the sky garden, the last cave, the top */
 function onTail(what){
-  if(what==='trail'){ narrate('Higher still, the path turned to stone and the air grew thin and bright.'); showCaption({t:'The mountain trail',b:'Steep and stony now. A bank of cloud is coming down to meet it.'}); }
+  if(what==='trail'){ narrate('Higher still, the path turned to stone and the air grew thin and bright.'); if(!BIO[prevKeyAt(party.s)].coat){ playScript([[0,'Brr. The wind is cold up here. Parkas on, Pip!'],[1,'Hood down. I want to see EVERYTHING.']]); speakIn=14; } showCaption({t:'The mountain trail',b:'Steep and stony now. A bank of cloud is coming down to meet it.'}); }
   else if(what==='mist'){ playScript(BIO.sky.gate.enter); speakIn=14; narrate('Then the cloud closed round them, soft and white and very quiet.'); }
   else if(what==='sky'){ const R=BIO.sky.reveal; hushBubbles(); startGust(BIO.sky.fall,party.s); Music.gust(); revealT=0; speakIn=16; narrate(R.narr); playScript(R.lines); showCaption({t:R.t,b:R.b}); }
   else if(what==='cave'){ narrate('One last cave, and it was the steepest and the darkest of all.'); playScript([[0,'One more cave, Pip. Flashlights on.'],[1,'I can feel wind! The top must be close.']]); speakIn=14;
@@ -2186,7 +2220,7 @@ function onTail(what){
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -2682,6 +2716,27 @@ for(const k in SKIES){ const B=BIO[k]; if(B&&B.mote){ SKIES[k].mote=C(B.mote); S
 const FOG_MIST=C('#f3f5f7'); let moteFall=0;
 const altValue=$('altValue');
 let revealT=-1, lookBack=1, hikeT=0, frameNo=0, riverHeard=0, bloom=0, last=performance.now(), time=0, lastAltText='', camHd=heading(0), swayK=0, groundRow=null, forestRow=null;
+/* Footprints in the snow. In the winter forest each girl leaves a trail of small prints, left, right, left, pressed into the snow where she
+   actually walked (so they wander when she does, and there is a gap where she hopped a log). The last couple of hundred are kept; older ones
+   have filled in. */
+const printGeo=new THREE.CircleGeometry(1,12); printGeo.rotateX(-Math.PI/2);
+const PRINTS=260, printMesh=new THREE.InstancedMesh(printGeo,new THREE.MeshLambertMaterial({color:0x7d93b6,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}),PRINTS);
+printMesh.frustumCulled=false; printMesh.count=0; printMesh.receiveShadow=true; scene.add(printMesh);
+const prints={n:0,last:[null,null],side:[1,-1]};
+function clearPrints(){ prints.n=0; printMesh.count=0; prints.last[0]=prints.last[1]=null; }
+function updatePrints(){
+  BRAINS.forEach((b,i)=>{ const L0=prints.last[i], x=b.pos.x, z=b.pos.y, sc=i?pip.scale:june.scale, step=0.27*sc;
+    if(!L0){ prints.last[i]={x,z}; return; }
+    const dx=x-L0.x, dz=z-L0.z, d=Math.hypot(dx,dz); if(d>6){ L0.x=x; L0.z=z; return; } if(d<step) return;
+    const ux=dx/d, uz=dz/d, n=Math.floor(d/step); let made=false;
+    for(let k=1;k<=n;k++){ const px=L0.x+ux*step*k, pz=L0.z+uz*step*k; prints.side[i]=-prints.side[i];
+      if(bioKeyAt(pz)!=='winter'||newK(pz)<0.6||b.hop>0.05) continue;
+      const fx=px+uz*prints.side[i]*0.07*sc, fz=pz-ux*prints.side[i]*0.07*sc;
+      _e.set(-Math.atan(trailY(fz+0.5)-trailY(fz-0.5)),Math.atan2(ux,uz),0); _q.setFromEuler(_e);
+      _m.compose(_p.set(fx,groundY(fx,fz)+0.02,fz),_q,_s.set(0.056*sc,1,0.098*sc)); printMesh.setMatrixAt(prints.n%PRINTS,_m); prints.n++; made=true; }
+    L0.x+=ux*step*n; L0.z+=uz*step*n;
+    if(made){ printMesh.count=Math.min(prints.n,PRINTS); printMesh.instanceMatrix.needsUpdate=true; } });
+}
 /* Pace, for testing: 1 is the real thing; 2, 4 and 8 run everything that much faster. The extra time is taken in ordinary-sized steps,
    so nothing behaves differently, it just happens sooner. (The fades between scenes still take their usual second.) */
 let pace=1;
@@ -2694,7 +2749,7 @@ $('paceBtn').addEventListener('click',()=>setPace(pace>=8?1:pace*2));
 function frame(now){
   const rawDt=Math.min(0.05,(now-last)/1000); last=now; idle+=rawDt;
   const dt=paused?0:rawDt; time+=dt;
-  updateAmbient(dt);
+  updateAmbient(dt); updateOutfit(rawDt);
   if(!paused) for(let k=1;k<pace;k++) simStep(rawDt);   /* a faster pace (for testing): the walk, the talk and the story take extra steps between pictures */
 
   if(mode==='rest') updateRest(dt,rawDt);   /* the rest site is its own scene; the trail is not touched while it runs */
@@ -2775,6 +2830,7 @@ function frame(now){
   const txt=fmtDist(Math.max(0,party.s)); if(txt!==lastAltText){ altValue.textContent=txt; lastAltText=txt; }
 
   }
+  if(mode==='trail') updatePrints();
   updateMarks();
   updateSpeech(dt); updateNarrator(dt);
   if(wall.state!=='closed'||(frameNo++%20)===0) renderer.render(mode==='rest'?rest.scene:mode==='summit'?summit.scene:scene,camera);   /* behind the closed wall of leaves, only now and then */
