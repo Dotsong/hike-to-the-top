@@ -2112,10 +2112,15 @@ function leafTick(now){
   const dt=Math.min(0.05,(now-wall.last)/1000||0); wall.last=now; wall.t+=dt;
   if(!reduced) for(const l of wall.leaves) if(l.worm&&!l.gone) stepWorm(l.worm,dt);
   if(wall.state==='falling'){ const k=wall.k; let left=0; wall.ft+=dt; wall.bg=Math.max(0,1-wall.ft/0.7);
+    const eu=wall.ft/2.7, ex=wall.W*(-0.18+1.36*eu), ey=wall.H*(0.74-0.46*eu+0.1*Math.sin(eu*7)), ER=Math.max(wall.W,wall.H)*0.3, est=smooth(0,0.3,wall.ft)*(1-smooth(2.6,3.8,wall.ft));   /* where the eddy is now, how wide, and how hard it blows */
     for(const l of wall.leaves){ if(l.gone) continue; left++;
       if(wall.ft<l.delay) continue; l.go=true;
-      l.vy=Math.min(l.term,l.vy+760*k*dt); l.y+=l.vy*dt; l.x+=(l.vx+Math.sin(wall.t*2.3+l.ph)*110*k)*dt; l.vx*=1-0.6*dt; l.a+=l.spin*dt*(0.5+0.5*Math.sin(wall.t*1.7+l.ph));
-      if(l.y>wall.H+90*k) l.gone=true; }
+      /* an eddy of wind crosses the wall from the lower left, turning as it goes: leaves near it are swept round it and lifted, and all of them are carried off sideways by the gust it rides on. They never stop falling, so they sink and flutter as they go. */
+      const ddx=l.x-ex, ddy=l.y-ey, dd=Math.hypot(ddx,ddy)+1, f=Math.exp(-dd*dd/(ER*ER))*est, lg=l.light;
+      const wx=(560*f*(-ddy/dd)-90*f*ddx/dd+(300+160*Math.sin(wall.t*1.3+l.ph))*est*(0.35+0.65*f))*k*lg, wy=(560*f*(ddx/dd)-90*f*ddy/dd-230*f)*k*lg;
+      l.vx+=(wx-l.vx)*2.4*est*dt; l.vy+=(wy-l.vy)*2.6*f*dt;
+      l.vy=Math.min(l.term,l.vy+760*k*dt); l.y+=l.vy*dt; l.x+=(l.vx+Math.sin(wall.t*2.3+l.ph)*110*k)*dt; l.vx*=1-0.6*dt; l.a+=l.spin*dt*(0.5+0.5*Math.sin(wall.t*1.7+l.ph)+2.2*f);
+      if(l.y>wall.H+90*k||l.x>wall.W+140*k||l.x<-140*k) l.gone=true; }
     drawLeaves(wall.t);
     if(!left||wall.ft>6){ wall.state='away'; leafwall.classList.add('away'); lctx.setTransform(1,0,0,1,0,0); lctx.clearRect(0,0,leafCv.width,leafCv.height); return; } }
   else if(now-wall.drawn>30&&!reduced){ wall.drawn=now; drawLeaves(wall.t); }   /* rustling: about thirty redraws a second is plenty */
@@ -2130,9 +2135,9 @@ function openDoors(){
   clearTimeout(doorTimer); leafwall.classList.add('open');
   if(reduced){ leafwall.classList.add('hide'); wall.state='away'; doorTimer=setTimeout(()=>leafwall.classList.add('away'),750); return; }
   const cx=wall.W/2, cy=wall.H/2, far=Math.hypot(cx,cy), k=wall.k;
-  wall.leaves.forEach(l=>{ const dx=l.x-cx, dy=l.y-cy; l.delay=Math.hypot(dx,dy)/far*0.95+Math.random()*0.55; l.go=false; l.gone=false;
+  wall.leaves.forEach(l=>{ const dx=l.x-cx, dy=l.y-cy; l.delay=Math.max(0,Math.min(Math.hypot(dx,dy)/far*0.95+0.5+Math.random()*0.55,2.7*(l.x/wall.W+0.18)/1.36-0.5+Math.random()*0.5)); l.go=false; l.gone=false; l.light=0.65+Math.random()*0.7;   /* the eddy plucks them as it reaches them; stragglers let go by themselves. Some leaves are lighter than others. */
     l.vx=dx/far*260*k*(0.4+Math.random()); l.vy=-40*k*Math.random(); l.term=(380+Math.random()*320)*k; l.spin=(Math.random()<0.5?-1:1)*(1.2+Math.random()*3.2); });
-  wall.state='falling'; wall.ft=0; startLeaves();
+  wall.state='falling'; wall.ft=0; startLeaves(); try{ Music.gust(); }catch(e){}
 }
 /* back to the title page: a fresh wall of leaves fades in */
 function closeDoors(){
