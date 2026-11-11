@@ -600,7 +600,8 @@ function optionsAt(i){ return i===0?['autumn','aspen']:i===1?(choice>0?['winter'
 const legKey=i=>picks[i]?optionsAt(i)[picks[i]>0?0:1]:null;
 /* The sky garden is not there at all until the girls are well inside the mist: until then the mountain trail simply runs on into a bank of
    cloud, with nothing beyond it. (The game's frame loop flips this as they walk in, when the mist is too thick to see the change.) */
-let skyOpen=false, skyShut=false, mtnShut=false;   /* mtnShut: they are out on the mountain trail, and mist has closed over the place they came from */   /* skyShut: the girls are out on the ridge, and the cloud has closed behind them over everything lower down */
+let skyOpen=false, skyShut=false, mtnShut=false, wondersOn=false;   /* wondersOn: the impossible rocks of the mountain trail exist only once the girls are inside the mist on the hill below it, so they are never seen from further down */
+   /* mtnShut: they are out on the mountain trail, and mist has closed over the place they came from */   /* skyShut: the girls are out on the ridge, and the cloud has closed behind them over everything lower down */
 function bioKeyAt(z){ if(z>SKY_B) return skyOpen?'sky':'mtn'; if(z>MTN) return 'mtn'; for(let i=2;i>=0;i--) if(z>SITES[i].b){ const k=legKey(i); if(k) return k; } return null; }   /* the name of the place at z (null in the home woods) */
 function boundAt(z){ let b=-1e9; for(let i=0;i<5;i++) if(z>BOUNDS[i]) b=BOUNDS[i]; return b; }
 const prevKeyAt=z=>bioKeyAt(boundAt(z)-0.01);
@@ -1280,7 +1281,7 @@ function rebuildForest(s0){
     /* The rest site, furnished from REST_KIT: a ring of big trees with gaps where the trail comes in and the two paths go out,
        and the same boulders, logs, mushrooms, ferns and flowers, in the same places, as the rest scene the girls will sit down in. */
     if(picks[2]&&VILLAGE_Z>=z0&&VILLAGE_Z<z0+3&&FOLK[legKey(2)]) drawVillage(legKey(2));
-    if(z0>=HILL_B-4&&z0<SKY_A-5) mtnWonders(r,z0);
+    if(wondersOn&&z0>=HILL_B-4&&z0<SKY_A-5) mtnWonders(r,z0);
     for(let si=0;si<3;si++){ const Z=SITES[si].rest, X=SX[si]; if(!(Z>=z0&&Z<z0+3)) continue; const KIT=kitFor(si);
       for(let i=0;i<30;i++){ const an=i/30*6.283+0.1, off=Math.abs(Math.atan2(Math.sin(an),Math.cos(an))); if(off<0.62||off>2.9) continue;
         const rr=12.9+hash(i,1,77)*2.2; plantTree(r,120+i,X+Math.sin(an)*rr,Z+Math.cos(an)*rr,true,s0,false,true); }
@@ -3191,7 +3192,7 @@ function leaveFalls(){ fallsS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -4039,7 +4040,7 @@ function frame(now){
   /* the walk, and the strip of forest that travels with it */
   updateParty(dt);
   BRAINS.forEach(b=>updateBrain(b,dt));
-  { const so=party.s>=SKY_A+1, sh=party.s>=SKY_B+1.5, ms=party.s>=BOULDER_S+1.5&&fork.site===2; if(so!==skyOpen||sh!==skyShut||ms!==mtnShut){ skyOpen=so; skyShut=sh; mtnShut=ms; groundRow=forestRow=null; } }   /* deep in the mist: now the sky garden is put in place */
+  { const so=party.s>=SKY_A+1, sh=party.s>=SKY_B+1.5, ms=party.s>=BOULDER_S+1.5&&fork.site===2, wo=party.s>=MTN+34&&fork.site===2; if(so!==skyOpen||sh!==skyShut||ms!==mtnShut||wo!==wondersOn){ skyOpen=so; skyShut=sh; mtnShut=ms; wondersOn=wo; groundRow=forestRow=null; } }   /* deep in the mist: now the sky garden is put in place */
   const gr=Math.floor(party.s/ROW), fr=Math.floor(party.s/3);
   if(gr!==groundRow){ groundRow=gr; rebuildGround(party.s); }
   if(fr!==forestRow){ forestRow=fr; rebuildForest(party.s); }
