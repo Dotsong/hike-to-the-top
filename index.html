@@ -2141,7 +2141,9 @@ function onRiver(){ narrate('But the trail could not go straight for long. A riv
 function onDeep(){ narrate('So into the deep woods they went, where the trees were older than anyone they knew.'); playScript([[1,'The trees are HUGE in here.'],[0,'It\'s like the forest swallowed us up.'],[1,'I can\'t see where the trail goes!']]); speakIn=16;
   showCaption({t:'The deep woods',b:'Big old trees close in on every side. The trail winds between them, and you can never see far ahead.'}); }
 /* arriving at the rest site: a few words, then the screen fades and the rest scene takes over */
-function onForkArrive(){ narrate('By and by they came to a clearing that seemed to have been waiting for them.'); hushBubbles(); playScript([[0,'Phew. Let\'s take a break here.'],[1,'Yes, please. My legs are noodles.']]); }
+/* which crossroads this is, by its name on the map */
+const siteNode=()=>fork.site===0?'R1':fork.site===1?(choice>0?'RA':'RB'):({winter:'RW',grass:'RG',marsh:'RM',alpine:'RL'})[legKey(1)];
+function onForkArrive(){ remember('sites',siteNode()); narrate('By and by they came to a clearing that seemed to have been waiting for them.'); hushBubbles(); playScript([[0,'Phew. Let\'s take a break here.'],[1,'Yes, please. My legs are noodles.']]); }
 function onForkReady(){ capEl.classList.remove('show'); enterRest(); }
 
 /* ---------- the rest site: a small scene of its own ---------- */
@@ -2585,6 +2587,7 @@ function enterSummit(){
   const tok=++restToken; $('fade').classList.add('on');
   setTimeout(()=>{ if(tok!==restToken||!state.started) return;
     if(mode==='cave') leaveCave();
+    if(!saved.top){ saved.top=true; storeFound(); }
     summit=buildSummit(); Object.assign(summit,{th:0.4,cam0:camTheta,t:0,phase:0,friend:null,goT:0});
     scene.remove(june.g,pip.g); summit.scene.add(june.g,pip.g); setTorches(0); endEvent();
     mode='summit'; landY=()=>0; zoom=1; userPhi=0;
@@ -2631,14 +2634,15 @@ let home=null;
 /* What has been found, across every hike on this device: the places come out into, and the village friends brought home. (If the browser
    will not keep it, the game simply forgets between visits.) */
 const SAVE_KEY='trail-to-the-top-found', ALL_PLACES=['aspen','autumn','winter','grass','marsh','alpine','glow','giant','pond','crystal'], ALL_FRIENDS=['glow','giant','pond','crystal'];
-let saved={places:[],friends:[]}, forceSecret=false;
-try{ const j=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(j&&Array.isArray(j.places)&&Array.isArray(j.friends)) saved={places:j.places.filter(k=>ALL_PLACES.includes(k)),friends:j.friends.filter(k=>ALL_FRIENDS.includes(k))}; }catch(e){}
+const ALL_SITES=['R1','RA','RB','RW','RG','RM','RL'];   /* the crossroads, by their names on the map */
+let saved={places:[],friends:[],sites:[],top:false}, forceSecret=false;
+try{ const j=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(j&&Array.isArray(j.places)&&Array.isArray(j.friends)) saved={places:j.places.filter(k=>ALL_PLACES.includes(k)),friends:j.friends.filter(k=>ALL_FRIENDS.includes(k)),sites:(Array.isArray(j.sites)?j.sites:[]).filter(k=>ALL_SITES.includes(k)),top:!!j.top}; }catch(e){}
 function storeFound(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(saved)); return true; }catch(e){ return false; } }
-function showFound(){ const el=$('foundNow'); if(el) el.textContent=`Places found: ${saved.places.length} of 10. Friends brought home: ${saved.friends.length} of 4.`+(secretReady()?' The secret ending is unlocked: finish any hike and the telephone will ring.':''); }
+function showFound(){ const el=$('foundNow'); if(el) el.textContent=`Places found: ${saved.places.length} of 10. Friends brought home: ${saved.friends.length} of 4. Crossroads on the map: ${saved.sites.length} of 7.`+(secretReady()?' The secret ending is unlocked: finish any hike and the telephone will ring.':''); }
 /* for testing: set every flag the secret ending needs, or clear them all */
-$('foundAll').addEventListener('click',()=>{ saved={places:ALL_PLACES.slice(),friends:ALL_FRIENDS.slice()}; const ok=storeFound(); showFound(); if(!ok) $('foundNow').textContent+=' (This browser would not save it, so it lasts only until the page is closed.)'; });
-$('foundNone').addEventListener('click',()=>{ saved={places:[],friends:[]}; storeFound(); showFound(); });
-function remember(kind,key){ if(!key||!(kind==='places'?ALL_PLACES:ALL_FRIENDS).includes(key)||saved[kind].includes(key)) return; saved[kind].push(key); storeFound(); }   /* written to the browser's storage the moment it happens */
+$('foundAll').addEventListener('click',()=>{ saved={places:ALL_PLACES.slice(),friends:ALL_FRIENDS.slice(),sites:ALL_SITES.slice(),top:true}; const ok=storeFound(); showFound(); if(!ok) $('foundNow').textContent+=' (This browser would not save it, so it lasts only until the page is closed.)'; });
+$('foundNone').addEventListener('click',()=>{ saved={places:[],friends:[],sites:[],top:false}; storeFound(); showFound(); });
+function remember(kind,key){ if(!key||!({places:ALL_PLACES,friends:ALL_FRIENDS,sites:ALL_SITES})[kind].includes(key)||saved[kind].includes(key)) return; saved[kind].push(key); storeFound(); }   /* written to the browser's storage the moment it happens */
 const friendsHome=()=>forceSecret?ALL_FRIENDS.slice():ALL_FRIENDS.filter(k=>saved.friends.includes(k));
 const secretReady=()=>forceSecret||ALL_PLACES.every(k=>saved.places.includes(k))&&ALL_FRIENDS.every(k=>saved.friends.includes(k));
 const PLACE_SAID={aspen:'an aspen grove, all white and gold',autumn:'the autumn woods, where it rained leaves',winter:'a forest full of SNOW',grass:'a wheat field that never ends',marsh:'a marsh with a wooden path over it',
@@ -3006,7 +3010,7 @@ function drawMap(){
   const dots=(pts,r,c)=>pts.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`).join('');
   const reached=i=>!!picks[i]&&(fork.site>i||fork.site===i&&fork.stage>=4)||mode==='summit'||mode==='home';   /* have they come out into the place chosen at rest site i? */
   const place=(key,i)=>{ const [x,y,tx,ty,name,c1,c2]=MAP_PLACE[key];
-    if(!(legKey(i)===key&&reached(i))) return `<circle cx="${x}" cy="${y}" r="14" fill="#f6ead0" stroke="${ink}" stroke-width="1.6" stroke-dasharray="3 6" opacity=".6"/><text x="${x}" y="${y+7}" font-size="20" text-anchor="middle" opacity=".7">?</text>`;
+    if(!found(key,i)) return `<circle cx="${x}" cy="${y}" r="14" fill="#f6ead0" stroke="${ink}" stroke-width="1.6" stroke-dasharray="3 6" opacity=".6"/><text x="${x}" y="${y+7}" font-size="20" text-anchor="middle" opacity=".7">?</text>`;
     return `<g stroke="${ink}" stroke-width="1">${dots([[x-9,y+3],[x+9,y+3]],8,c1)}${dots([[x,y-5]],9,c1)}</g>${dots([[x-4,y-7],[x+6,y+1],[x-8,y+4]],2.6,c2)}<text x="${tx}" y="${ty}" font-size="15" text-anchor="middle">${name}</text>`; };
   const rest=([x,y])=>`<circle cx="${x}" cy="${y}" r="9" fill="#ecd9a8" stroke="${ink}" stroke-width="1.6"/><rect x="${x-6}" y="${y-2}" width="12" height="4" rx="2" fill="#8a5a3c"/>`;
   const dash=d=>`<path d="${d}" fill="none" stroke="${ink}" stroke-width="2.4" stroke-dasharray="2 7" stroke-linecap="round" opacity=".8"/>`;
@@ -3015,21 +3019,27 @@ function drawMap(){
      mark; the blank is filled in when they come out into that place, and the one not taken stays a blank. */
   const done=mode==='summit'||mode==='home', arrived=i=>done||fork.site>i||fork.site===i&&fork.stage>=1;   /* have they arrived at rest site i? */
   const k0=legKey(0), k1=legKey(1), k2=legKey(2), r2=k0==='autumn'?'RA':k0==='aspen'?'RB':null, r3={winter:'RW',grass:'RG',marsh:'RM',alpine:'RL'}[k1];
-  const all=[MAP_A], rests=[N.R1], blanks=[];
-  if(arrived(0)){ all.push(MAP_LEG0.autumn,MAP_LEG0.aspen); blanks.push(['autumn',0],['aspen',0]); }
-  if(arrived(1)&&r2){ rests.push(N[r2]); const o=optionsAt(1); o.forEach(k=>{ all.push(MAP_LEG1[k]); blanks.push([k,1]); }); }
-  if(arrived(2)&&r3){ rests.push(N[r3]); const o=optionsAt(2); o.forEach(k=>{ all.push(line(r3,k)); blanks.push([k,2]); }); }
-  if(k2&&reached(2)) all.push(line(k2,'M'));
-  const upKnown=done||fork.site===2&&fork.tail>=1, mistKnown=done||fork.site===2&&fork.tail>=2; if(upKnown) all.push(MAP_UP);
+  /* ...and it remembers. Everything found on earlier hikes is still drawn: crossroads once reached keep their ways on, places once come out
+     into stay filled in, and the ways already taken are inked as plain lines. What is left dotted, with a question mark at the end, is
+     what nobody has walked yet. */
+  const nowAt={R1:arrived(0)}; if(r2) nowAt[r2]=arrived(1); if(r3) nowAt[r3]=arrived(2);
+  const known=n=>!!nowAt[n]||saved.sites.includes(n), found=(k,i)=>legKey(i)===k&&reached(i)||saved.places.includes(k);
+  const WAYS={R1:[['autumn',0,MAP_LEG0.autumn],['aspen',0,MAP_LEG0.aspen]],RA:[['winter',1,MAP_LEG1.winter],['grass',1,MAP_LEG1.grass]],RB:[['marsh',1,MAP_LEG1.marsh],['alpine',1,MAP_LEG1.alpine]],
+    RW:[['glow',2,line('RW','glow')],['giant',2,line('RW','giant')]],RG:[['glow',2,line('RG','glow')],['giant',2,line('RG','giant')]],RM:[['pond',2,line('RM','pond')],['crystal',2,line('RM','crystal')]],RL:[['pond',2,line('RL','pond')],['crystal',2,line('RL','crystal')]]};
+  const all=[MAP_A], taken=[], rests=[], blanks=[];
+  for(const n in WAYS){ if(!known(n)) continue; rests.push(N[n]); for(const [k,i,d] of WAYS[n]){ (found(k,i)?taken:all).push(d); if(!blanks.some(b=>b[0]===k)) blanks.push([k,i]); } }
+  ALL_FRIENDS.forEach(k=>{ if(found(k,2)) taken.push(line(k,'M')); });
+  const upKnown=done||saved.top||fork.site===2&&fork.tail>=1, mistKnown=done||saved.top||fork.site===2&&fork.tail>=2; if(upKnown) taken.push(MAP_UP);
+  const villages=ALL_FRIENDS.filter(k=>saved.friends.includes(k)||k===k2&&fork.village);
   /* the path they have taken, piece by piece, with the metres each piece covers */
   const walked=[[MAP_A,0,REST_C]];
   if(k0) walked.push([MAP_LEG0[k0],REST_C,SITES[1].rest]); if(k1) walked.push([MAP_LEG1[k1],SITES[1].rest,SITES[2].rest]);
   if(k2&&r3) walked.push([line(r3,k2),SITES[2].rest,VILLAGE_Z],[line(k2,'M'),VILLAGE_Z,MTN],[MAP_UP,MTN,TOP_B]);
-  const sNow=mode==='summit'||mode==='home'?TOP_B:Math.max(0,party.s), skyKnown=fork.site===2&&fork.tail>=3||mode==='summit'||mode==='home';
+  const sNow=mode==='summit'||mode==='home'?TOP_B:Math.max(0,party.s), skyKnown=saved.top||fork.site===2&&fork.tail>=3||mode==='summit'||mode==='home';
   /* Dad's map was only ever this: home, the woods, and a checkered line straight to the top, which is all he saw of the mountain. Everything
      else is the girls' doing. The sheet starts narrow, with the mountain drawn right beside the woods, and each new stretch they reach
      unfolds another strip of paper between the two. */
-  const open=[arrived(0),arrived(1)&&!!r2,arrived(2)&&!!r3,!!k2&&reached(2)||done], WIDE=[90,110,94,72], dx=-Math.round(WIDE.reduce((t,w,i)=>t+(open[i]?0:w*0.85),0)), W=720+dx;
+  const open=[known('R1'),known('RA')||known('RB'),['RW','RG','RM','RL'].some(known),done||saved.top||ALL_FRIENDS.some(k=>found(k,2))], WIDE=[90,110,94,72], dx=-Math.round(WIDE.reduce((t,w,i)=>t+(open[i]?0:w*0.85),0)), W=720+dx;
   svg.setAttribute('viewBox',`0 0 ${W} 428`); $('mapScroll').style.maxWidth=Math.round(760*W/720)+'px';
   svg.innerHTML=`
     <rect width="${W}" height="428" fill="#f6ead0"/>
@@ -3042,15 +3052,16 @@ function drawMap(){
     ${dots([[92,268],[116,250],[84,348],[128,318],[104,362]],3,'#e58fa6')}${dots([[100,282],[130,266],[146,300]],3,'#ffd27a')}
     <path d="M250 262 L${682+dx} 82" fill="none" stroke="#fffaf0" stroke-width="5"/><path d="M250 262 L${682+dx} 82" fill="none" stroke="${ink}" stroke-width="5" stroke-dasharray="7 7" opacity=".85"/>
     ${all.map(dash).join('')}
+    ${taken.map(d=>`<path d="${d}" fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round" opacity=".5"/>`).join('')}
     ${walked.map(([d],i)=>`<path id="mapW${i}" d="${d}" fill="none" stroke="#d0607a" stroke-width="4.5" stroke-linecap="round"/>`).join('')}
     <g><path d="M36 336v-16l14-12 14 12v16z" fill="#f6ead8" stroke="${ink}" stroke-width="2" stroke-linejoin="round"/><path d="M32 322l18-16 18 16" fill="none" stroke="#c96a55" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><rect x="46" y="324" width="8" height="12" fill="#8a5a3c"/></g>
-    ${arrived(0)?`<g><path d="M268 238c0-12 7-18 13-18s13 6 13 18z" fill="#9a9a94" stroke="${ink}" stroke-width="1.6" stroke-linejoin="round"/><path d="M276 238a5 7 0 0 1 10 0z" fill="#1d2228"/></g>
+    ${known('R1')?`<g><path d="M268 238c0-12 7-18 13-18s13 6 13 18z" fill="#9a9a94" stroke="${ink}" stroke-width="1.6" stroke-linejoin="round"/><path d="M276 238a5 7 0 0 1 10 0z" fill="#1d2228"/></g>
     <g>${dots([[272,290],[282,285],[286,296],[276,299]],6,'#2f5a3e')}<path d="M274 301a6 7 0 0 1 12 0z" fill="#16241b"/></g>`:''}
     ${rests.map(rest).join('')}
     ${blanks.map(([k,i])=>place(k,i)).join('')}
-    ${fork.village&&k2&&N[k2]?`<g transform="translate(${N[k2][0]+16} ${N[k2][1]+4})"><path d="M-6 6v-8l6-6 6 6v8z" fill="#fff6ec" stroke="#d0607a" stroke-width="1.8" stroke-linejoin="round"/><text x="12" y="6" font-size="13" style="fill:#d0607a">${FOLK[k2].village}</text></g>`:''}
+    ${villages.map(k=>`<g transform="translate(${N[k][0]+16} ${N[k][1]+4})"><path d="M-6 6v-8l6-6 6 6v8z" fill="#fff6ec" stroke="#d0607a" stroke-width="1.8" stroke-linejoin="round"/><text x="12" y="6" font-size="13" style="fill:#d0607a">${FOLK[k].village}</text></g>`).join('')}
     ${mistKnown?`<g fill="none" stroke="#8aa0b4" stroke-width="2.4" stroke-linecap="round"><path d="M630 204 q8 -6 16 0 t16 0 t16 0"/><path d="M636 194 q8 -6 16 0 t16 0 t16 0"/></g><text x="706" y="212" font-size="13" text-anchor="end">Mist</text>`:''}
-    ${done||fork.site===2&&fork.tail>=4?`<g><path d="M667 122c0-9 5-13 9-13s9 4 9 13z" fill="#9a9a94" stroke="${ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M672 122a4 5 0 0 1 8 0z" fill="#1d2228"/></g>`:''}
+    ${done||saved.top||fork.site===2&&fork.tail>=4?`<g><path d="M667 122c0-9 5-13 9-13s9 4 9 13z" fill="#9a9a94" stroke="${ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M672 122a4 5 0 0 1 8 0z" fill="#1d2228"/></g>`:''}
     <g transform="translate(${dx} 0)"><path d="M682 80v-22" stroke="${ink}" stroke-width="2"/><path d="M682 58l14 5-14 5z" fill="#d0607a"/><text x="682" y="46" font-size="17" text-anchor="middle">The top</text></g>
     ${upKnown?`<text x="652" y="304" font-size="14" text-anchor="middle">Mountain trail</text>`:''}
     ${skyKnown?`<text x="648" y="160" font-size="14" text-anchor="end">Sky garden</text>`:mistKnown?`<text x="652" y="166" font-size="18" text-anchor="end" opacity=".7">?</text>`:''}
