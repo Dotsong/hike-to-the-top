@@ -1966,9 +1966,9 @@ const Music=(()=>{
     master.gain.linearRampToValueAtTime(0.85,ctx.currentTime+4);
     nextT=ctx.currentTime+0.2; setInterval(tick,90);
   }
-  function pad(m,t,dur,amp){const f=mtof(m),g=ctx.createGain();
+  function pad(m,t,dur,amp,lite){const f=mtof(m),g=ctx.createGain();
     g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(amp,t+2.8); g.gain.setValueAtTime(amp,t+dur); g.gain.linearRampToValueAtTime(0.0001,t+dur+3.5); g.connect(padBus);
-    [[-7,'sawtooth',0.45],[7,'sawtooth',0.45],[0,'sine',0.9]].forEach(([det,type,lvl])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type=type;o.frequency.value=f;o.detune.value=det;og.gain.value=lvl;o.connect(og);og.connect(g);o.start(t);o.stop(t+dur+3.7);});}
+    (lite?[[5,'sawtooth',0.55],[0,'sine',0.9]]:[[-7,'sawtooth',0.45],[7,'sawtooth',0.45],[0,'sine',0.9]]).forEach(([det,type,lvl])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type=type;o.frequency.value=f;o.detune.value=det;og.gain.value=lvl;o.connect(og);og.connect(g);o.start(t);o.stop(t+dur+3.7);});}
   function bass(m,t,dur){const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=mtof(m);
     g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.11,t+1.6);g.gain.setValueAtTime(0.11,t+dur-0.5);g.gain.linearRampToValueAtTime(0.0001,t+dur+2.5);
     o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+2.7);}
@@ -1977,13 +1977,13 @@ const Music=(()=>{
     let out=g; if(ctx.createStereoPanner){const p=ctx.createStereoPanner();p.pan.value=(Math.random()*2-1)*0.6;g.connect(p);out=p;}
     out.connect(bellBus);
     [[1,1],[2,0.22],[3,0.07],[4.2,0.035]].forEach(([r,a])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type='sine';o.frequency.value=f*r;og.gain.value=a;o.connect(og);og.connect(g);o.start(t);o.stop(t+3.5);});}
-  let meter=null;
+  let meter=null, lastBar=-1;
   const env=(g,t,a,v,hold,r)=>{ g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(v,t+a); g.gain.setValueAtTime(v,t+a+hold); g.gain.linearRampToValueAtTime(0.0001,t+a+hold+r); };
   const panned=g=>{ if(!ctx.createStereoPanner) return g; const p=ctx.createStereoPanner(); p.pan.value=(Math.random()*2-1)*0.6; g.connect(p); return p; };
   /* a harp string: plucked, bright at first, ringing down */
   function harp(m,t,v){ const f=mtof(m), g=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(4200,t); lp.frequency.exponentialRampToValueAtTime(900,t+1.6);
-    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.006); g.gain.exponentialRampToValueAtTime(0.0001,t+2.4); g.connect(lp); panned(lp).connect(harpBus);
-    [[1,'triangle',1],[2,'sine',0.3],[3,'sine',0.1]].forEach(([r,ty,a])=>{ const o=ctx.createOscillator(), og=ctx.createGain(); o.type=ty; o.frequency.value=f*r; og.gain.value=a; o.connect(og); og.connect(g); o.start(t); o.stop(t+2.5); }); }
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.006); g.gain.exponentialRampToValueAtTime(0.0001,t+2.2); g.connect(lp); lp.connect(harpBus);
+    [[1,'triangle',1],[2,'sine',0.32]].forEach(([r,ty,a])=>{ const o=ctx.createOscillator(), og=ctx.createGain(); o.type=ty; o.frequency.value=f*r; og.gain.value=a; o.connect(og); og.connect(g); o.start(t); o.stop(t+2.3); }); }
   /* a glass chime: an octave up, slightly out of true, and a long time dying away */
   function glass(m,t,v){ const f=mtof(m+12), g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(v,t+0.015); g.gain.exponentialRampToValueAtTime(0.0001,t+5.5); panned(g).connect(bellBus);
     [[1,1],[2.76,0.18],[5.4,0.06]].forEach(([r,a])=>{ const o=ctx.createOscillator(), og=ctx.createGain(); o.type='sine'; o.frequency.value=f*r; og.gain.value=a; o.connect(og); og.connect(g); o.start(t); o.stop(t+5.6); }); }
@@ -1997,8 +1997,8 @@ const Music=(()=>{
     [[1,1],[2,0.12],[3,0.04]].forEach(([r,a])=>{ const o=ctx.createOscillator(), og=ctx.createGain(); o.type='sine'; o.frequency.value=f*r; og.gain.value=a; vg.connect(o.detune); o.connect(og); og.connect(g); o.start(t); o.stop(t+dur+0.4); });
     const n=ctx.createBufferSource(), bf=ctx.createBiquadFilter(), ng=ctx.createGain(); n.buffer=noiseBuf; bf.type='bandpass'; bf.frequency.value=f*2; bf.Q.value=1.6; ng.gain.value=0.22; n.connect(bf); bf.connect(ng); ng.connect(g); n.start(t,Math.random()*3); n.stop(t+dur+0.4); }
   /* strings: an octave above the pad, brighter, swelling in slowly */
-  function strings(m,t,dur,amp){ const f=mtof(m), g=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2300; env(g,t,3.4,amp,Math.max(0.1,dur-3.4),3.6); g.connect(lp); lp.connect(strBus);
-    [-9,9].forEach(det=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=det; o.connect(g); o.start(t); o.stop(t+dur+3.8); }); }
+  function strings(notes,t,dur,amp){ const g=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2300; env(g,t,3.4,amp*1.5,Math.max(0.1,dur-3.4),3.6); g.connect(lp); lp.connect(strBus);
+    notes.forEach((m,i)=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=mtof(m); o.detune.value=i%2?8:-8; o.connect(g); o.start(t); o.stop(t+dur+3.8); }); }
   /* a drone: the bass note and the fifth above it, an octave down, breathing slowly */
   function drone(m,t,dur,amp){ const g=ctx.createGain(), tr=ctx.createOscillator(), tg=ctx.createGain(); env(g,t,3,0.05*amp,Math.max(0.1,dur-3),3.5); g.connect(master); g.connect(reverb);
     tr.frequency.value=0.13; tg.gain.value=0.015*amp; tr.connect(tg); tg.connect(g.gain); tr.start(t); tr.stop(t+dur+3.7);
@@ -2006,47 +2006,47 @@ const Music=(()=>{
   /* the choir: each voice is a buzzing note sung through the three resonances of a vowel, with a slow waver. Far off it hums "oo"; as it
      grows it opens to "ah", and higher and lower voices come in. */
   function choir(notes,t,dur,amp,r){ const ah=clamp(mix.sky*0.45+r*0.6,0,1), F=[lerp(360,760,ah),lerp(780,1180,ah),lerp(2500,2900,ah)], G=[1,0.5,0.16];
-    const vs=notes.slice(); if(r>0.3) vs.push(notes[notes.length-1]+12); if(r>0.55) vs.push(notes[1]+12); if(r>0.75) vs.push(notes[0]-12);
-    const a=0.014*amp*(0.5+1.9*r);
-    vs.forEach((m,i)=>{ const f=mtof(m), t0=t+i*0.13, g=ctx.createGain(), src=ctx.createGain(); env(g,t0,3.1,a,Math.max(0.1,dur-3.3),3.4); g.connect(choirBus);
-      const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=4.4+Math.random()*1.2; vg.gain.value=9; vib.connect(vg); vib.start(t0); vib.stop(t0+dur+3.6);
-      [-8,8].forEach(det=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=det; vg.connect(o.detune); o.connect(src); o.start(t0); o.stop(t0+dur+3.6); });
-      F.forEach((fq,j)=>{ const bp=ctx.createBiquadFilter(), bg=ctx.createGain(); bp.type='bandpass'; bp.frequency.value=fq; bp.Q.value=5; bg.gain.value=G[j]*2.4; src.connect(bp); bp.connect(bg); bg.connect(g); }); }); }
+    const vs=notes.slice(); if(r>0.3) vs.push(notes[notes.length-1]+12); if(r>0.6) vs.push(notes[1]+12);
+    const a=0.02*amp*(0.5+1.9*r), g=ctx.createGain(), src=ctx.createGain(), end=t+dur+3.7; env(g,t,3.1,a,Math.max(0.1,dur-3.3),3.4); g.connect(choirBus);
+    const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=4.7; vg.gain.value=8; vib.connect(vg); vib.start(t); vib.stop(end);
+    vs.forEach((m,i)=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=mtof(m); o.detune.value=(i%2?9:-9)+i; vg.connect(o.detune); o.connect(src); o.start(t+i*0.11); o.stop(end); });
+    F.forEach((fq,j)=>{ const bp=ctx.createBiquadFilter(), bg=ctx.createGain(); bp.type='bandpass'; bp.frequency.value=fq; bp.Q.value=5; bg.gain.value=G[j]*2.4; src.connect(bp); bp.connect(bg); bg.connect(g); }); }
   /* The sky garden's own melody, for cello with a double bass an octave beneath it: one long phrase to each of the four chords, rising through
      the first three and coming home over the last. [note, beats] */
   const SKY_TUNE=[[[52,4],[55,4],[60,6],[59,2]],[[62,6],[59,2],[55,8]],[[57,4],[60,4],[64,6],[62,2]],[[60,6],[57,2],[55,4],[53,4]]];
   /* a bowed string playing a whole phrase in one breath: the pitch slides a little from note to note, each note leans in, and the waver comes late */
   function bowed(phrase,t,shift,amp,cut){ let at=t; const total=phrase.reduce((n,p)=>n+p[1],0)*BEAT, g=ctx.createGain(), lp=ctx.createBiquadFilter(), body=ctx.createBiquadFilter();
     lp.type='lowpass'; lp.frequency.value=cut; lp.Q.value=0.8; body.type='peaking'; body.frequency.value=cut*0.22; body.Q.value=1.2; body.gain.value=5; g.connect(body); body.connect(lp); lp.connect(strBus);
-    const os=[-4,4].map(det=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.detune.value=det; o.connect(g); o.start(t); o.stop(t+total+0.9); return o; });
+    const os=[3].map(det=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.detune.value=det; o.connect(g); o.start(t); o.stop(t+total+0.9); return o; });
     const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=5.3; vg.gain.value=0; vib.connect(vg); os.forEach(o=>vg.connect(o.detune)); vib.start(t); vib.stop(t+total+0.9);
     g.gain.setValueAtTime(0.0001,t);
     phrase.forEach(([m,beats],i)=>{ const f=mtof(m+shift), d=beats*BEAT;
       os.forEach(o=>{ if(i) o.frequency.exponentialRampToValueAtTime(f,at+0.09); else o.frequency.setValueAtTime(f,at); o.frequency.setValueAtTime(f,at+d-0.02); });
       g.gain.linearRampToValueAtTime(amp*0.55,at+0.07); g.gain.linearRampToValueAtTime(amp,at+Math.min(0.5,d*0.4)); g.gain.setValueAtTime(amp,at+d-0.12); g.gain.linearRampToValueAtTime(amp*0.5,at+d);   /* a new bow stroke */
-      vg.gain.setValueAtTime(0,at+0.05); vg.gain.linearRampToValueAtTime(11,at+Math.min(0.9,d*0.6)); vg.gain.setValueAtTime(11,at+d-0.05); at+=d; });
+      vg.gain.linearRampToValueAtTime(2,at+0.12); vg.gain.linearRampToValueAtTime(11,at+Math.min(0.9,d*0.6)); vg.gain.setValueAtTime(11,at+d-0.05); at+=d; });
     g.gain.linearRampToValueAtTime(0.0001,at+0.7); }
   /* the men: a low chorus an octave under everything, darker and rounder ("oh") */
   function men(c,t,dur,amp){ const seen={}, vs=[c.bass+12,c.notes[0]-12,c.notes[1]-12,c.notes[2]-12].filter(m=>!seen[m]&&(seen[m]=1)), F=[430,820,2450], G=[1,0.45,0.1];
-    vs.forEach((m,i)=>{ const f=mtof(m), t0=t+i*0.17, g=ctx.createGain(), src=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1900; env(g,t0,2.8,0.022*amp,Math.max(0.1,dur-3),3.4); g.connect(lp); lp.connect(menBus);
-      const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=3.9+Math.random()*0.8; vg.gain.value=7; vib.connect(vg); vib.start(t0); vib.stop(t0+dur+3.6);
-      [-6,6].forEach(det=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=det; vg.connect(o.detune); o.connect(src); o.start(t0); o.stop(t0+dur+3.6); });
-      F.forEach((fq,j)=>{ const bp=ctx.createBiquadFilter(), bg=ctx.createGain(); bp.type='bandpass'; bp.frequency.value=fq; bp.Q.value=4.5; bg.gain.value=G[j]*2.6; src.connect(bp); bp.connect(bg); bg.connect(g); }); }); }
+    const g=ctx.createGain(), src=ctx.createGain(), lp=ctx.createBiquadFilter(), end=t+dur+3.7; lp.type='lowpass'; lp.frequency.value=1900; env(g,t,2.8,0.036*amp,Math.max(0.1,dur-3),3.4); g.connect(lp); lp.connect(menBus);
+    const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=4.1; vg.gain.value=7; vib.connect(vg); vib.start(t); vib.stop(end);
+    vs.forEach((m,i)=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=mtof(m); o.detune.value=i%2?7:-7; vg.connect(o.detune); o.connect(src); o.start(t+i*0.15); o.stop(end); });
+    F.forEach((fq,j)=>{ const bp=ctx.createBiquadFilter(), bg=ctx.createGain(); bp.type='bandpass'; bp.frequency.value=fq; bp.Q.value=4.5; bg.gain.value=G[j]*2.6; src.connect(bp); bp.connect(bg); bg.connect(g); }); }
   /* a soft drum far below, for when the choir is at its fullest */
   function drum(t,v){ const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.setValueAtTime(72,t); o.frequency.exponentialRampToValueAtTime(44,t+0.5);
     g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+1.5); o.connect(g); g.connect(master); g.connect(reverb); o.start(t); o.stop(t+1.6); }
   function step(t){
     LAYERS.forEach(l=>{ mix[l]+=(tgt[l]-mix[l])*0.14; }); rise+=(riseT-rise)*0.14;   /* the mix drifts toward wherever the girls are now */
-    const dur=PER*BEAT, pos=beat%PER, grand=mix.sky>0.5;
-    if(pos===0){ cur=(grand?CH_SKY:mix.myst>0.5?CH_MYST:CHORDS)[chordIdx%4]; chordIdx++;
+    const pos=beat%PER, bar=Math.floor(beat/PER), dur=(PER-pos)*BEAT, grand=mix.sky>0.5;
+    if(bar!==lastBar){ lastBar=bar; cur=(grand?CH_SKY:mix.myst>0.5?CH_MYST:CHORDS)[chordIdx%4]; chordIdx++;   /* a new chord, even if its first beat was skipped */
       const thin=1-0.45*Math.min(1,mix.choir+0.6*mix.strings);   /* the plain pad steps back when voices or strings are carrying the chord */
-      cur.notes.forEach(n=>pad(n,t,dur-0.4,0.042*thin)); bass(cur.bass,t,dur);
+      const lite=mix.choir+mix.strings+mix.men>0.5;   /* when the choir and strings are in, everything is built more sparingly, so that slower tablets and phones keep up */
+      cur.notes.forEach(n=>pad(n,t,dur-0.4,0.042*thin,lite)); bass(cur.bass,t,dur);
       if(mix.drone>0.05) drone(cur.bass,t,dur,mix.drone);
-      if(mix.strings>0.05) cur.notes.forEach(n=>strings(n+12,t,dur-0.4,0.011*mix.strings*(1+1.6*rise)));
+      if(mix.strings>0.05) strings(cur.notes.map(n=>n+12),t,dur-0.4,0.011*mix.strings*(1+1.6*rise));
       if(mix.choir>0.05) choir(cur.notes,t,dur,mix.choir,rise);
       if(mix.men>0.05) men(cur,t,dur,mix.men);
-      if(grand&&mix.cello>0.3){ const ph=SKY_TUNE[(chordIdx-1)%4], a=mix.cello*(1+0.7*rise); bowed(ph,t,0,0.03*a,1500); bowed(ph,t,-12,0.034*a,650); }   /* cello, and the bass an octave below */
-      if(grand&&rise>0.3) for(let i=0;i<8;i++) harp(SCALE[i+(chordIdx%2)],t+i*0.07,0.02+0.02*rise);   /* a sweep up the harp to open each bar */
+      if(grand&&mix.cello>0.3&&pos===0){ const ph=SKY_TUNE[(chordIdx-1)%4], a=mix.cello*(1+0.7*rise); bowed(ph,t,0,0.045*a,1500); bowed(ph,t,-12,0.05*a,650); }   /* cello, and the bass an octave below */
+      if(grand&&rise>0.3&&pos===0) for(let i=0;i<6;i++) harp(SCALE[i+(chordIdx%2)],t+i*0.08,0.02+0.02*rise);   /* a sweep up the harp to open each bar */
     }
     if(grand&&rise>0.6&&pos%8===0) drum(t,0.05+0.07*rise);
     /* the tune: the same wandering melody everywhere, handed to whichever instruments this place has */
@@ -2063,7 +2063,11 @@ const Music=(()=>{
       if(Math.random()<0.5+0.4*mix.harp+0.3*rise){ harp(tones[tri(arpI++)],t,hv); if(grand&&rise>0.45) harp(tones[tri(arpI++)],t+BEAT*0.5,hv*0.85); } }   /* the harp runs up and down the chord; twice as fast near the top */
   }
   /* a soft breeze in the leaves once the hike is under way */
-  function tick(){ if(!ctx) return; while(nextT<ctx.currentTime+0.4){ step(nextT); nextT+=BEAT; beat++; }
+  function tick(){ if(!ctx) return;
+    /* if the page was busy (building a scene, say) the clock may have run past beats that were never written down: skip them rather than
+       play them late all at once, which is heard as a stutter and a click */
+    if(nextT<ctx.currentTime+0.06){ const skip=Math.ceil((ctx.currentTime+0.12-nextT)/BEAT); nextT+=skip*BEAT; beat+=skip; }
+    while(nextT<ctx.currentTime+0.7){ step(nextT); nextT+=BEAT; beat++; }
     const gusting=ctx.currentTime<gustUntil; windGain.gain.setTargetAtTime(solo?0:gusting?0.11:state.started?0.016*(1+windBed):0.006,ctx.currentTime,gusting?0.45:1.5); if(menBus) menBus.gain.setTargetAtTime(menLevel,ctx.currentTime,1.1); if(solo){ leafGain.gain.value=0; riverGain.gain.value=0; ambBus.gain.value=0; } }
   let solo=false;   /* (testing: the music with no wind, leaves, river or birds, so its level can be measured) */
   let gustUntil=0;
@@ -3965,7 +3969,7 @@ let ambIn=2.5, ambK=-1, ambLast='', windK=-1, waterBed=0;
 function updateMood(){ let a='home', b='home', k=0, r=0, men=0; const s=party.s;
   if(!state.started||mode==='home'||mode==='falls'){}
   else if(mode==='moon') a='glow';
-  else if(mode==='cave'){ a='sky'; b='cave'; k=0.8; r=1; men=0.6; }
+  else if(mode==='cave'){ a='sky'; b='cave'; k=0.8; r=0.25; men=0.6; }
   else if(mode==='summit'){ a='sky'; r=1; men=1.9; }
   else { const key=bioKeyAt(s);
     if(fork.site===2&&fork.stage===4&&s>MTN&&s<=HILL_B+4){ a=legKey(2)||'home'; b='mtn'; k=smooth(MTN+3,BOULDER_S+2,s); }      /* up the hill, the last place's music turns into the mountain trail's */
