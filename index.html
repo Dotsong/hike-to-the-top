@@ -1002,8 +1002,8 @@ const REST_LOOKS={
 };
 /* the mountain trail: the last of whichever place they came through gives way to bare stone */
 BIO.mtn=Object.assign({},BIO.alpine,{gate:null,reveal:null,
-  lines:[['My legs say we\'re nearly there.','Your legs said that an hour ago.'],'The path is all stones now.',['Is that a cloud? Coming DOWN?','We\'re going up to meet it.'],['I can see the top!','So can I. Keep walking.']],
-  narr:['The trail was nothing but stone now, and it only went one way: up.','Below them, the places they had walked through lay folded like a map.']});
+  lines:[['That rock is FLOATING.','So is that one. Don\'t ask me how.'],['The big stone is on TOP.','Somebody stacked it wrong. Or right.'],['My legs say we\'re nearly there.','Your legs said that an hour ago.'],'The path is all stones now.',['Is that a cloud? Coming DOWN?','We\'re going up to meet it.'],['I can see the top!','So can I. Keep walking.']],
+  narr:['Up here the rocks did as they pleased. Some stood on their points. Some did not bother to stand on anything.','The trail was nothing but stone now, and it only went one way: up.','Below them, the places they had walked through lay folded like a map.']});
 BIO.winter.coat='up'; BIO.alpine.coat=BIO.mtn.coat=BIO.sky.coat=BIO.glow.coat=BIO.crystal.coat='down';   /* where it is cold enough for a parka, and whether the hood is up */
 for(const k in BIO){ const g=BIO[k].gate; if(g){ g.pal=(g.cols||g.rock||[]).map(C); if(g.glow) g.glowC=C(g.glow); } }
 const TOP_GATE={kind:'arch',pal:pal(['#8b8f8a','#9a9a94','#7d807c'])};   /* the last cave */
@@ -1137,6 +1137,20 @@ function drawVillage(key){
       put(P.gcone,x-0.3,y+1.05*sz,z+0.2,0.2,1.3*sz,0.2,0,pk(GEMS,h(3)),0.2); put(P.gcone,x+0.35,y+0.95*sz,z-0.2,0.15,0.9*sz,0.15,0,pk(GEMS,h(4)),-0.25);
       put(P.glow,x+t*1.02*sz,y+1.15*sz,z,1.7,1.7,1.7,0,WHITE); } });
 }
+/* The mountain trail, between its two banks of mist, is where the mountain stops obeying the rules: stacks of rock with the biggest stone
+   on top, arches that have no business standing, spires balanced on their points, stairs of slabs going up to nowhere, and, off in every
+   direction and at every height, rocks that simply float, some with a little grass on top. */
+function mtnWonders(r,z0){ const zc=z0+1.5, cx=trailX(zc), ty=trailY(zc), n=(k,j)=>hash(r,700+k,j), col=h=>pk(h<0.5?GREYS:CRAGS,h*2%1);
+  for(const sd of [-1,1]){ const o=sd>0?40:0;
+    if(n(o,1)<0.42){ const x=cx+sd*(6.5+n(o,2)*20), z=z0+n(o,3)*3, y=floorY(x,z), t=Math.floor(n(o,4)*4), sc=0.8+n(o,5)*0.9;
+      if(t===0){ let yy=y; [0.45,0.8,1.3,2.0,2.9].forEach((q,i)=>{ const h=q*sc*0.75; yy+=h; put(P.rock,x+(n(o,6+i)-0.5)*0.3*q,yy,z,q*sc*1.25,h,q*sc,n(o,12+i)*6,col(n(o,18+i))); yy+=h*0.82; }); }   /* a stack that gets bigger as it goes up */
+      else if(t===1){ const R=2.6+sc*1.6, a0=n(o,6)*3.14; for(let i=0;i<=10;i++){ const a=i/10*Math.PI, q=0.75+0.35*Math.sin(a*3+i); put(P.rock,x+Math.cos(a0)*Math.cos(a)*R,y+Math.sin(a)*R*1.25+0.2,z+Math.sin(a0)*Math.cos(a)*R,q,q*0.9,q,n(o,8+i)*6,col(n(o,20+i)),n(o,32+i)*6); } }   /* a thin arch of loose stones */
+      else if(t===2){ const H=5+sc*4, w=1.6+sc; put(P.coneF,x,y+H,z,w,H,w,n(o,6)*6,col(n(o,7)),Math.PI); put(P.rock,x,y+H+0.5,z,w*1.02,0.6,w*1.02,n(o,8)*6,col(n(o,9))); put(P.bush,x,y+H+1.0,z,w*0.7,0.2,w*0.7,0,MOSS); }   /* a spire standing on its point */
+      else { const a0=n(o,6)*6; for(let i=0;i<8;i++){ const a=a0+i*0.7, rr=1.6+i*0.12; put(P.rock,x+Math.cos(a)*rr,y+0.4+i*0.85,z+Math.sin(a)*rr,1.1,0.16,0.7,-a,col(n(o,8+i))); } } }                                                  /* a stair of slabs, winding up into the air */
+    for(let j=0;j<2;j++){ const q=o+10+j*10, lat=sd*(9+Math.pow(n(q,1),0.7)*105), z=z0+n(q,2)*3, x=cx+lat, sz=0.9+n(q,3)*n(q,3)*5+Math.abs(lat)*0.02, y=ty+7+n(q,4)*(10+Math.abs(lat)*0.38);   /* the floating rocks */
+      put(P.rock,x,y,z,sz*1.3,sz*0.8,sz*1.1,n(q,5)*6,col(n(q,6)),n(q,7)*0.6); put(P.coneF,x,y-sz*0.5,z,sz*0.8,sz*1.2,sz*0.8,0,col(n(q,8)),Math.PI);   /* broad on top, tapering to a point underneath */
+      if(n(q,9)<0.6) put(P.bush,x,y+sz*0.62,z,sz*0.9,sz*0.16,sz*0.75,0,n(q,10)<0.5?MOSS:GREENS[3]);
+      if(n(q,11)<0.5) put(P.rock,x+sz*1.2,y-sz*1.6,z+sz*0.5,sz*0.3,sz*0.25,sz*0.3,n(q,12)*6,col(n(q,13))); } } }   /* and a crumb or two hanging underneath */
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
   POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
@@ -1248,6 +1262,7 @@ function rebuildForest(s0){
     /* The rest site, furnished from REST_KIT: a ring of big trees with gaps where the trail comes in and the two paths go out,
        and the same boulders, logs, mushrooms, ferns and flowers, in the same places, as the rest scene the girls will sit down in. */
     if(picks[2]&&VILLAGE_Z>=z0&&VILLAGE_Z<z0+3&&FOLK[legKey(2)]) drawVillage(legKey(2));
+    if(z0>=HILL_B-4&&z0<SKY_A-5) mtnWonders(r,z0);
     for(let si=0;si<3;si++){ const Z=SITES[si].rest, X=SX[si]; if(!(Z>=z0&&Z<z0+3)) continue; const KIT=kitFor(si);
       for(let i=0;i<30;i++){ const an=i/30*6.283+0.1, off=Math.abs(Math.atan2(Math.sin(an),Math.cos(an))); if(off<0.62||off>2.9) continue;
         const rr=12.9+hash(i,1,77)*2.2; plantTree(r,120+i,X+Math.sin(an)*rr,Z+Math.cos(an)*rr,true,s0,false,true); }
