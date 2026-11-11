@@ -790,7 +790,8 @@ function pool(geo,mat,cap,shadow){ const m=new THREE.InstancedMesh(geo,mat,cap);
   m.setColorAt(0,new THREE.Color(0xffffff)); m.count=0;   /* make the color buffer up front, before the first frame is drawn */
   const p={m,cap,n:0}; scene.add(m); POOLS.push(p); return p; }
 function put(p,x,y,z,sx,sy,sz,ry,col,rx){ if(p.n>=p.cap) return; _e.set(rx||0,ry||0,0); _q.setFromEuler(_e); _m.compose(_p.set(x,y,z),_q,_s.set(sx,sy,sz));
-  p.m.setMatrixAt(p.n,_m); p.m.setColorAt(p.n,col); p.n++; }
+  p.m.setMatrixAt(p.n,_m); p.m.setColorAt(p.n,col); p.n++;
+  if(p===P.glow) put(P.halo,x,y,z,sx*2.7,sy*2.7,sz*2.7,ry,col); }   /* everything that glows has a soft halo of its own color round it */
 const trunkGeo=new THREE.CylinderGeometry(0.7,1,1,7); trunkGeo.translate(0,0.5,0);
 const blobGeo=new THREE.SphereGeometry(1,8,6);
 const coneGeo=new THREE.ConeGeometry(1,1,9); coneGeo.translate(0,0.5,0);
@@ -803,7 +804,7 @@ const logGeo=new THREE.CylinderGeometry(0.5,0.55,1,9); logGeo.rotateZ(Math.PI/2)
 /* trees close to the girls cast shadows; the far ones do not need to */
 const P={trunkN:pool(trunkGeo,white(),300,true), blobN:pool(blobGeo,white(),900,true), coneN:pool(coneGeo,white(),420,true),
   trunkF:pool(trunkGeo,white(),3200), blobF:pool(blobGeo,white(),6400), coneF:pool(coneGeo,white(),12000),
-  bush:pool(blobGeo,white(),4200,true), rock:pool(rockGeo,white(),1900,true), log:pool(logGeo,white(),700,true), stem:pool(stemGeo,white(),160), cap:pool(capGeo,white(),160,true),
+  bush:pool(blobGeo,white(),4200,true), rock:pool(rockGeo,white(),1900,true), log:pool(logGeo,white(),700,true), stem:pool(stemGeo,white(),1400), cap:pool(capGeo,white(),160,true),
   petal:pool(petalGeo,white(),2600), leaf:pool(leafGeo,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}),2800)};
 const GREENS=['#5d9b4f','#6aa857','#4f8a4b','#79b05a','#8fbf5f'].map(C), GOLDS=['#e0a13a','#d9783c','#e8c24a'].map(C);
 const DARKS=['#3f7a4a','#35703f','#4a8552'].map(C);                                   /* thickets and shade */
@@ -822,11 +823,12 @@ const FALL_ASPEN=['#f0d860','#e6c84a','#f4e58a','#d9c04a'].map(C), FALL_AUTUMN=[
    plantTree, rebuildForest, rebuildGround, the sky, the chatter and the rest scene all read from this table, so a new place is one more entry.
    (The aspen grove and the autumn woods came first and are still drawn by their own code; only their gateway and words live here.) */
 const SNOW=C('#f4f7fb'), WATERC=C('#5f9fc0'), TAN=C('#c9b27a'), WOOD=C('#b98a5a'), WHITE=C('#ffffff'), CREAM=C('#f6ead8');
-P.glow=pool(petalGeo,new THREE.MeshBasicMaterial({color:0xffffff}),5000);   /* things that give off their own light */
+P.glow=pool(new THREE.SphereGeometry(0.075,6,4),new THREE.MeshBasicMaterial({color:0xffffff,fog:false}),12000);
+P.halo=pool(new THREE.SphereGeometry(0.075,8,5),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.3,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}),12000); P.halo.m.renderOrder=2;   /* things that give off their own light */
 P.gcone=pool(coneGeo,new THREE.MeshBasicMaterial({color:0xffffff}),4200);
 const pal=a=>a.map(C), pk=(a,h)=>a[Math.floor(h*a.length)%a.length];
 const GLOWS=pal(['#8ff5d6','#9fd8ff','#c6a8ff','#fff3a3']), GEMS=pal(['#8fe8ff','#ff9ee0','#b79cff','#e8fbff']), BLOOM=pal(['#ffc6dc','#ffffff','#ffd9a0','#ffb3c8']);
-const NIGHT=pal(['#1f3f44','#1a3540','#24484a']), CAPS_BIG=pal(['#d9534a','#e8a060','#b79cff','#ff9eb5']), BLADES=pal(['#5d9b4f','#6aa857','#79b05a']);
+const NIGHT=pal(['#0f2428','#0c1e26','#12292c']), CAPS_BIG=pal(['#d9534a','#e8a060','#b79cff','#ff9eb5']), BLADES=pal(['#5d9b4f','#6aa857','#79b05a']);
 const MEADOW=pal(['#7fb85a','#9cc968','#c9c95a','#6aa857']), PASTEL=pal(['#9fe0d0','#c6b8ff','#ffc6dc','#bfe3ff']), GREYS=pal(['#9a9a94','#8b8f8a','#b0aea6']);
 const CRAGS=pal(['#8d857a','#7b746c','#a09787','#6f6a66']), PLANKS=pal(['#9c8468','#8f7a60','#7d6a54','#a89074']), PAVE=pal(['#a8a39a','#989288','#b3ada2','#8c877f']), CAVE=pal(['#4a465a','#57526a','#3f3c4e','#625c78']);
 const WHEAT=pal(['#d9b44a','#c9a03c','#e6c860','#b88f34']), APPLE=C('#d9382f'), WHEAT_ROWS=[1.95,2.45,3,3.6,4.3,5.1,6,7.1,8.4,10,12,14.5,17.5,21.5,26];
@@ -882,12 +884,17 @@ const BIO={
     narr:['Up here the trees had given up, and the rocks and the wind had the place to themselves.','Somebody had piled stones to say: this way, keep going.'],
     reveal:{t:'The alpine rock garden',b:'Above the last trees: grey rock, tiny flowers and a very big wind.',narr:'At the top of the rocky stair the trees were gone, and the wind was waiting.',lines:[[1,'Whoa, it\'s windy!'],[0,'We\'re above the trees now. Look how far you can see!'],[1,'Hi, valley! Hi, everybody!']]},
     gate:{kind:'arch',rock:['#8b8f8a','#9a9a94','#7d807c'],label:'Up the rock stair',say:'up those rocky steps',sub:'A stair of stone squeezing between two leaning boulders.',narr:'They chose the rocky stair, because June said the best views are always uphill.',enter:[[0,'Hands and feet, Pip.'],[1,'I\'m a mountain goat!']]}},
-  glow:{floor:[0.1,0.18,0.2],dirt:[0.22,0.27,0.3],base:true,mote:'#d8ff8a',air:'fireflies',night:true,
+  glow:{floor:[0.04,0.08,0.1],dirt:[0.1,0.13,0.17],base:true,mote:'#d8ff8a',air:'fireflies',night:true,
     tree(T){ const sc=0.9+T.h*0.5, tr=(0.5+0.25*T.n(21))*sc, th=(8+3*T.h)*sc, cr=(3.2+T.n(22))*sc, col=pk(NIGHT,T.n(23)), top=T.y+th;                                                    /* a great dark tree with lights on its bark */
       put(T.tp,T.x,T.y,T.z,tr,th+0.8,tr,T.ry,DEEP_BARK[1]); put(T.cp,T.x,T.y,T.z,tr*1.8,1.7,tr*1.8,T.ry,DEEP_BARK[1]); put(T.bp,T.x,top+cr*0.5,T.z,cr,cr*0.7,cr,T.ry,col);
-      for(let k=0;k<3;k++){ const a=T.ry+k*2.09; put(T.bp,T.x+Math.cos(a)*cr*0.7,top+cr*0.2,T.z+Math.sin(a)*cr*0.7,cr*0.68,cr*0.5,cr*0.68,a,col); put(P.glow,T.x+Math.cos(a)*tr*0.95,T.y+1.2+k*1.4,T.z+Math.sin(a)*tr*0.95,1.6,0.9,1.6,0,pk(GLOWS,T.n(24+k))); } },
-    props(R){ for(let j=0;j<3;j++){ if(R.n(30+j)>0.75) continue; const p=R.at(2+R.n(33+j)*8,36+j), col=pk(GLOWS,R.n(40+j));                                                              /* glowing mushrooms and flowers */
-        for(let k=0;k<3;k++){ const x=p.x+(R.n(44+j*3+k)-0.5)*0.8, z=p.z+(R.n(54+j*3+k)-0.5)*0.8, s1=0.9+R.n(64+k); put(P.stem,x,p.y,z,s1,s1,s1,0,STEM); put(P.glow,x,p.y+0.21*s1,z,2.2*s1,1.1*s1,2.2*s1,0,col); } } },
+      for(let k=0;k<3;k++){ const a=T.ry+k*2.09; put(T.bp,T.x+Math.cos(a)*cr*0.7,top+cr*0.2,T.z+Math.sin(a)*cr*0.7,cr*0.68,cr*0.5,cr*0.68,a,col); put(P.glow,T.x+Math.cos(a)*tr*0.95,T.y+1.2+k*1.4,T.z+Math.sin(a)*tr*0.95,2.2,1.3,2.2,0,pk(GLOWS,T.n(24+k)));
+        put(P.glow,T.x+Math.cos(a+1)*cr*0.8,top+cr*(0.1+0.5*T.n(27+k)),T.z+Math.sin(a+1)*cr*0.8,1.5,1.5,1.5,0,pk(GLOWS,T.n(30+k))); } },   /* and lights like fruit up in the crown */
+    props(R){ for(let j=0;j<5;j++){ if(R.n(30+j)>0.85) continue; const p=R.at(1.9+R.n(33+j)*10,36+j), col=pk(GLOWS,R.n(40+j));                                                              /* glowing mushrooms and flowers */
+        for(let k=0;k<3;k++){ const x=p.x+(R.n(44+j*3+k)-0.5)*0.8, z=p.z+(R.n(54+j*3+k)-0.5)*0.8, s1=0.9+R.n(64+k); put(P.stem,x,p.y,z,s1,s1,s1,0,STEM); put(P.glow,x,p.y+0.21*s1,z,2.8*s1,1.4*s1,2.8*s1,0,col); } }
+      for(let j=0;j<4;j++){ const p=R.at(1.6+R.n(80+j)*14,84+j); put(P.glow,p.x,p.y+0.05,p.z,0.9,0.5,0.9,0,pk(GLOWS,R.n(88+j))); }   /* specks of glowing moss on the ground */
+      /* and it goes on like this all the way to the horizon: mushrooms alight between the trees as far as anyone can see (bigger the further off, so they still show), and lights hanging in the air among the trunks at every height */
+      for(let j=0;j<4;j++){ const d=10+Math.pow(R.n(92+j),0.8)*62, p=R.at(d,96+j), s1=1.4+d*0.07; if(p.y<-100) continue; put(P.stem,p.x,p.y,p.z,s1,s1,s1,0,STEM); put(P.glow,p.x,p.y+0.21*s1,p.z,2.6*s1,1.3*s1,2.6*s1,0,pk(GLOWS,R.n(100+j))); }
+      for(let j=0;j<6;j++){ const d=2.2+Math.pow(R.n(104+j),1.2)*64, p=R.at(d,110+j), s1=0.8+d*0.035; if(p.y<-100) continue; put(P.glow,p.x,p.y+0.9+R.n(116+j)*(3+d*0.12),p.z,s1,s1,s1,0,pk(GLOWS,R.n(122+j))); } },
     lines:[['Flashlights off. Look!','Everything is GLOWING.'],['My footsteps are lighting up!','Step again! Step again!'],'The Moon is so big tonight.',['Do you think Lumi is watching?','Wave, just in case.']],
     narr:['It was night on this side of the tree, and the forest had left all its lamps on.','Wherever the sisters stepped, the moss lit up to see who it was.'],
     reveal:{t:'The moonlit glow-wood',b:'Night under a huge moon, and a forest that makes its own light.',narr:'They stepped out of the hollow tree, and somehow it was night, and nothing was dark.',lines:[[1,'June. It\'s NIGHT.'],[0,'And everything is glowing. Flashlights off, Pip.'],[1,'It\'s like the stars fell down and grew.']]},
@@ -1429,6 +1436,7 @@ for(let i=0;i<24;i++){ const z=66+rnd()*58, x=x0(z)+(rnd()-0.5)*26, o=0.1+rnd()*
 
 /* the top of the mountain, hazy and far ahead */
 const peak=new THREE.Group(); scene.add(peak);
+const glowLamp=new THREE.PointLight(0x8ff5d6,0,11,1.6); scene.add(glowLamp);   /* in the glow-wood, the light of everything glowing nearby falls on the girls */
 /* the Moon and a few stars, for the one place where it is night */
 const moon=new THREE.Mesh(new THREE.SphereGeometry(17,24,16),new THREE.MeshBasicMaterial({color:0xfff6dc,fog:false,transparent:true,opacity:0})); moon.visible=false; scene.add(moon);
 const stars=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({size:2.2,color:0xffffff,transparent:true,opacity:0,fog:false,sizeAttenuation:false,depthWrite:false})); stars.frustumCulled=false; stars.visible=false; scene.add(stars);
@@ -3702,7 +3710,7 @@ Object.assign(SKIES,{
   marsh:  {top:C('#8fb4b0'),mid:C('#dfe6cf'),bot:C('#a9bb95'),hemi:C('#eef2dc'),sun:C('#fff2d0'),air:0.02,  glow:0.72,shine:0.6},    /* soft, grey-green and misty */
   alpine: {top:C('#1a58c0'),mid:C('#cfe0f0'),bot:C('#a9b6c2'),hemi:C('#f4f8ff'),sun:C('#ffffff'),air:0.0055,glow:0.7,shine:0.86},      /* thin, clear mountain air */
   mtn:    {top:C('#2a66c8'),mid:C('#d6e4ee'),bot:C('#b0b8bc'),hemi:C('#f6f8ff'),sun:C('#fffaf0'),air:0.007, glow:0.7,shine:0.86},
-  glow:   {top:C('#0b1030'),mid:C('#1c2a4a'),bot:C('#12203a'),hemi:C('#7f9fe0'),sun:C('#bcd0ff'),air:0.018, glow:0.44,shine:0.3},    /* night, by moonlight */
+  glow:   {top:C('#02040c'),mid:C('#050915'),bot:C('#040711'),hemi:C('#5f7fd0'),sun:C('#9fb6ff'),air:0.02,  glow:0.17,shine:0.1},     /* deep night: almost all the light comes from the things that glow */
   giant:  {top:C('#3f9fe8'),mid:C('#e3f4c8'),bot:C('#a8d47a'),hemi:C('#fbffe0'),sun:C('#fff4c8'),air:0.011, glow:0.84,shine:0.9},    /* sunny and green-gold, as it looks from down in the grass */
   pond:   {top:C('#7fb4e8'),mid:C('#d8e8f8'),bot:C('#9fc0e8'),hemi:C('#eef4ff'),sun:C('#ffffff'),air:0.012, glow:0.86,shine:0.7},    /* sky above and sky below */
   crystal:{top:C('#141024'),mid:C('#2a2440'),bot:C('#1c1830'),hemi:C('#b8a8ff'),sun:C('#cfd8ff'),air:0.03,  glow:0.52,shine:0.15},   /* inside the mountain */
@@ -3866,6 +3874,7 @@ function frame(now){
   { const nk=nightK*(1-caveK)*(1-thK); moon.visible=stars.visible=nk>0.02; moon.material.opacity=nk; stars.material.opacity=nk*0.9;
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
+  glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
   updateSkyWeather(party.s,mistK); updateCurtains(); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
@@ -3882,7 +3891,7 @@ function frame(now){
   for(let i=0;i<MOTES;i++){ const b=moteBase[i], x=wrap(b[0]+Math.sin(time*0.2+b[3])*0.9,target.x), z=wrap(b[2]+Math.cos(time*0.17+b[3])*0.9,target.z);
     motePos[i*3]=x; motePos[i*3+1]=trailY(z)+0.5+((b[1]-moteFall)%6.5+6.5)%6.5+Math.sin(time*0.5+b[3]*2)*0.35; motePos[i*3+2]=z; }
   moteGeo.attributes.position.needsUpdate=true;
-  motes.material.opacity=0.6+0.2*Math.sin(time*1.3); motes.material.size=0.14+0.1*fallK;
+  motes.material.opacity=0.6+0.2*Math.sin(time*1.3); motes.material.size=(0.14+0.1*fallK)*(1+1.3*nightK);   /* fireflies, in the glow-wood */
 
   /* HUD */
   const txt=fmtDist(Math.max(0,party.s)); if(txt!==lastAltText){ altValue.textContent=txt; lastAltText=txt; }
