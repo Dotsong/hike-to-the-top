@@ -2782,11 +2782,11 @@ function buildHome(){
         tri:(pts,c)=>{ const sh=new THREE.Shape(); sh.moveTo(pts[0][0],pts[0][1]); pts.slice(1).forEach(p=>sh.lineTo(p[0],p[1])); sh.closePath(); return put2(new THREE.ShapeGeometry(sh),c,0,0); },
         who:(k,px2,py2,r2,dress)=>{ if(dress) P2.tri([[px2-r2*1.2,py2-r2*2.6],[px2,py2-r2*0.6],[px2+r2*1.2,py2-r2*2.6]],dress); P2.dot(px2,py2+r2*0.25,r2*1.12,HR[k]); P2.dot(px2,py2,r2,SK[k]);
           if(k==='june'){ P2.dot(px2-r2*1.15,py2-r2*0.1,r2*0.45,HR[k]); P2.dot(px2+r2*1.15,py2-r2*0.1,r2*0.45,HR[k]); } if(k==='pip'||k==='lumi') P2.dot(px2,py2+r2*1.25,r2*0.5,HR[k]); if(k==='mom') P2.rect(px2,py2-r2*0.9,r2*2.5,r2*1.4,HR[k]).position.z-=0.0045;
-          P2.dot(px2-r2*0.35,py2,r2*0.1,'#2a1c26'); P2.dot(px2+r2*0.35,py2,r2*0.1,'#2a1c26'); if(k==='dad'){ P2.dot(px2-r2*0.35,py2,r2*0.24,'#2e2433').material.wireframe=true; P2.dot(px2+r2*0.35,py2,r2*0.24,'#2e2433').material.wireframe=true; } } };
+          P2.dot(px2-r2*0.35,py2,r2*0.1,'#2a1c26'); P2.dot(px2+r2*0.35,py2,r2*0.1,'#2a1c26'); if(k==='dad'){ [-1,1].forEach(sg=>put2(new THREE.RingGeometry(r2*0.19,r2*0.25,18),'#2e2433',px2+sg*r2*0.35,py2)); P2.rect(px2,py2,r2*0.24,r2*0.05,'#2e2433'); } } };   /* his glasses: two flat rings and a bridge, painted on like the rest of the picture */
       draw(P2,w,h); };
     const night=0x26335f, day=0x9fd0f0;
     pic(0,3.25,2.0,1.35,0xffe9cf,(p)=>{ p.rect(0,-0.55,2,0.25,'#8fbf5f'); p.who('mom',-0.62,0.12,0.2,'#e58fa6'); p.who('dad',0.6,0.16,0.2,'#6f8fd0'); p.who('june',-0.15,-0.1,0.16,'#ff8a7a'); p.who('pip',0.2,-0.18,0.14,'#b79cff'); },'#c9a03c');   /* all four of them, in the middle */
-    pic(-2.3,3.4,1.5,1.2,night,(p)=>{ p.dot(0,-1.05,1.0,'#c9cbd8'); p.dot(-0.45,-0.42,0.09,'#a9abbc'); p.dot(0.5,-0.5,0.07,'#a9abbc'); p.dot(0.55,0.4,0.14,'#4f8fdc'); [[-0.6,0.45],[-0.2,0.5],[0.25,0.3],[-0.5,0.1]].forEach(([a,b])=>p.dot(a,b,0.015,'#ffffff'));
+    pic(-2.3,3.4,1.5,1.2,night,(p)=>{ p.dot(0,-0.45,0.75,'#c9cbd8').scale.y=0.25; p.dot(-0.45,-0.42,0.09,'#a9abbc'); p.dot(0.5,-0.5,0.07,'#a9abbc'); p.dot(0.55,0.4,0.14,'#4f8fdc'); [[-0.6,0.45],[-0.2,0.5],[0.25,0.3],[-0.5,0.1]].forEach(([a,b])=>p.dot(a,b,0.015,'#ffffff'));
       p.who('june',-0.34,0.02,0.13,'#ff8a7a'); p.who('lumi',0,0.08,0.14,'#c9d2f0'); p.who('pip',0.33,-0.02,0.12,'#b79cff'); },'#b79cff');                                                              /* June and Pip with Lumi, on the Moon */
     pic(2.35,3.35,1.5,1.3,night,(p)=>{ p.dot(-0.5,0.42,0.13,'#fff6dc'); [[0.5,0.5],[0.1,0.55],[-0.1,0.2],[0.6,0.1]].forEach(([a,b])=>p.dot(a,b,0.015,'#ffffff')); p.rect(0,-0.58,1.5,0.14,'#1f3f44');
       [['#ff8a7a',-0.22,0.3],['#ffd27a',0.02,0.42],['#9fd8ff',0.26,0.3],['#b79cff',-0.06,0.22],['#8ff5d6',0.16,0.18]].forEach(([c,a,b])=>{ p.rect(a*0.5+0.03,b/2-0.12,0.008,b+0.2,'#fff6ec').rotation.z=-a*0.6; p.dot(a,b,0.11,c); });
@@ -2913,8 +2913,12 @@ function updateHome(dt,rawDt){
   const r=7.8*zoom*aspectBoost, ph=clamp(0.24+userPhi,0.05,1.15);
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
   target.set(0,1.5,-0.2); camera.position.copy(target).add(off); camera.lookAt(target);
+  /* whatever the camera is standing in or right up against (the stairs, the fridge, the armchair, a wall of pictures) is cut away, well clear of the lens */
+  { const dxr=target.x-camera.position.x, dzr=target.z-camera.position.z, L2=Math.hypot(dxr,dzr)||1, ux=dxr/L2, uz=dzr/L2, HWb=5.6, HDb=4.3, ZCb=-0.1;   /* how far along the line of sight the camera is from being inside the room */
+    const tx=Math.abs(ux)>1e-4?((ux>0?-HWb:HWb)-camera.position.x)/ux:-1e9, tz=Math.abs(uz)>1e-4?((uz>0?ZCb-HDb:ZCb+HDb)-camera.position.z)/uz:-1e9, enter=Math.max(0,tx,tz)*Math.cos(Math.asin(clamp(off.y/r,-1,1)));
+    const nr=clamp(Math.max(r*0.3,enter+1.5),0.3,r-2.2); if(Math.abs(camera.near-nr)>0.01){ camera.near=nr; camera.updateProjectionMatrix(); } }
 }
-function leaveHome(){ $('phoneDock').hidden=true; bubbles[5].head=nobody.head; bubbles[5].root=nobody.g; home.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); june.pack.visible=pip.pack.visible=true;
+function leaveHome(){ camera.near=0.3; camera.updateProjectionMatrix(); $('phoneDock').hidden=true; bubbles[5].head=nobody.head; bubbles[5].root=nobody.g; home.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); june.pack.visible=pip.pack.visible=true;
   bubbles[3].head=bubbles[4].head=nobody.head; bubbles[3].root=bubbles[4].root=nobody.g; home.dispose(); home=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
 /* the friend's offer at the summit, accepted */
 /* The four ways home. Each builds what it needs on the summit and returns a function that, given the seconds since the girls said yes, puts
