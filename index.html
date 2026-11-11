@@ -114,15 +114,6 @@ h1{font-size:clamp(2.5rem, 8vw, 4.8rem)}
 .caption{position:fixed;z-index:3;left:max(16px, env(safe-area-inset-left, 0px));bottom:calc(20px + env(safe-area-inset-bottom, 0px));
   max-width:min(30rem, calc(100vw - 190px));display:flex;flex-direction:column;gap:6px;opacity:0;transform:translateY(8px);transition:opacity 1.6s ease, transform 1.6s ease;pointer-events:none}
 .caption.show{opacity:1;transform:none}
-.dad-note{--tilt:-2deg;position:fixed;z-index:3;left:max(14px, env(safe-area-inset-left, 0px));top:calc(92px + env(safe-area-inset-top, 0px));width:min(250px,62vw);padding:12px 14px 10px;
-  background:#f6ead0;color:#3a2540;border-radius:3px 9px 4px 8px;box-shadow:0 8px 22px rgba(10,8,30,.35);font-family:var(--hand);transform:rotate(var(--tilt)) translateY(-10px) scale(.94);transform-origin:20% 0;
-  opacity:0;pointer-events:none;transition:opacity .7s ease, transform .7s ease}
-.dad-note.show{opacity:1;transform:rotate(var(--tilt))}
-body.is-paused .dad-note{opacity:0}
-.dad-note .dn-head{display:block;font:700 .62rem/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:#a0738a;margin-bottom:5px}
-.dad-note p{margin:0;font-size:1.22rem;line-height:1.22}
-.dad-note .dn-sign{display:block;text-align:right;font-size:.95rem;color:#8a5a3c;margin-top:3px}
-@media (max-width:640px){ .dad-note{top:calc(150px + env(safe-area-inset-top, 0px))} }
 .cap-title{font-size:clamp(1.5rem, 4.6vw, 2.3rem);text-shadow:0 2px 18px rgba(10,8,30,.6)}
 .cap-body{margin:0;font-size:.98rem;line-height:1.5;color:var(--ink-soft);text-shadow:0 1px 10px rgba(10,8,30,.7)}
 
@@ -326,7 +317,8 @@ body.is-paused .dad-note{opacity:0}
 /* the narrator: a line of the story at the top of the screen, in the same storybook face as the place names at the bottom left */
 .narrator{position:fixed;z-index:3;left:50%;top:calc(20px + env(safe-area-inset-top, 0px));transform:translate(-50%,-8px);width:min(44rem, calc(100vw - 220px));margin:0;
   text-align:center;text-wrap:balance;font:400 clamp(1.35rem, 3.2vw, 1.85rem)/1.28 var(--display);color:var(--ink);
-  text-shadow:0 2px 18px rgba(10,8,30,.7), 0 1px 3px rgba(10,8,30,.55);opacity:0;pointer-events:none;transition:opacity 1.3s ease, transform 1.3s ease}
+  -webkit-text-stroke:5px rgba(34,24,52,.92);paint-order:stroke fill;   /* a thick dark outline, drawn behind the letters, and a soft warm glow round the whole line */
+  text-shadow:0 0 14px rgba(255,226,170,.6), 0 0 30px rgba(255,214,150,.38), 0 2px 5px rgba(10,8,30,.6);opacity:0;pointer-events:none;transition:opacity 1.3s ease, transform 1.3s ease}
 .narrator.show{opacity:1;transform:translate(-50%,0)}
 body.is-paused .narrator{opacity:0}
 @media (max-width:640px){ .narrator{top:calc(86px + env(safe-area-inset-top, 0px));width:calc(100vw - 40px)} }
@@ -375,8 +367,6 @@ body.is-paused .narrator{opacity:0}
 <div class="say dad" id="bubDad" aria-live="polite"><div class="bub"><span class="who">Dad</span><span class="txt"></span></div></div>
 
 <p class="narrator" id="narrator" aria-live="polite"></p>
-
-<div class="dad-note" id="dadNote" aria-live="polite"><span class="dn-head">Written on Dad&#8217;s map</span><p id="dadNoteText"></p><span class="dn-sign">&#8212; me, age 8</span></div>
 
 <div class="caption" id="caption" aria-live="polite">
   <h2 class="cap-title" id="capTitle"></h2>
@@ -945,11 +935,6 @@ const REST_LOOKS={
 BIO.mtn=Object.assign({},BIO.alpine,{gate:null,reveal:null,
   lines:[['My legs say we\'re nearly there.','Your legs said that an hour ago.'],'The path is all stones now.',['Is that a cloud? Coming DOWN?','We\'re going up to meet it.'],['I can see the top!','So can I. Keep walking.']],
   narr:['The trail was nothing but stone now, and it only went one way: up.','Below them, the places they had walked through lay folded like a map.']});
-/* why each gateway is where it is: something runs right across the mountain there, and the gateway is the one way through it */
-Object.entries({winter:'The firs stand shoulder to shoulder all along that rise. That gap is the only way under them.',grass:'Somebody planted that hedge long ago, to keep the wind off the meadow. The gap is where its gate used to be.',
-  marsh:'The reeds grow right across, where the ground turns to water. The path is the only dry way in.',alpine:'That\'s a band of cliff, the whole way across. The steps are the only way up it.',
-  glow:'There\'s a bank of rock right across, and that old tree grew in the only gap. So the path goes through its trunk.',giant:'Those leaves hang over the path like a roof, all along the bank. And everything past them looks... bigger.',
-  pond:'The willows trail their branches all along the shore. Behind them the ground stops and the water starts.',crystal:'The mountainside is solid rock there. The cave is the only way in.'}).forEach(([k,v])=>BIO[k].gate.why=v);
 BIO.winter.coat='up'; BIO.alpine.coat=BIO.mtn.coat=BIO.sky.coat=BIO.glow.coat=BIO.crystal.coat='down';   /* where it is cold enough for a parka, and whether the hood is up */
 for(const k in BIO){ const g=BIO[k].gate; if(g){ g.pal=(g.cols||g.rock||[]).map(C); if(g.glow) g.glowC=C(g.glow); } }
 const TOP_GATE={kind:'arch',pal:pal(['#8b8f8a','#9a9a94','#7d807c'])};   /* the last cave */
@@ -1046,19 +1031,19 @@ const FOLK={
   glow:{name:'Glim',kind:'lantern-folk',village:'Lanternhollow',col:'#8ff5d6',ride:'a moonbeam',btn:'Ride the moonbeam home',
     cap:'A village of lantern-folk. Every house is a mushroom with its light left on.',narr:'In the middle of the glow-wood stood a village no bigger than a picnic, and every house in it was a lamp.',
     meet:[[1,'June! Tiny houses! With their lights on!'],[0,'And tiny people. Hello! We\'re June and Pip.'],[2,'Glim! Glim-glim. That means: welcome to Lanternhollow.'],[1,'It TALKS. June, it talks!'],[2,'It is a long way to the top. Glim will keep a light on for you.'],[0,'Thank you, Glim.']],
-    summit:[[2,'Glim-glim!'],[1,'GLIM! You followed us!'],[2,'A boy came this way once, with that very map. He promised he would come back.'],[0,'That was our DAD.'],[2,'He did not come. But you did.'],[2,'Lantern-folk like to see people safely home. Glim knows a moonbeam that slides right down to your door.'],[1,'Can we, June? Can we?'],[0,'Well... it IS nearly dinner time.']],go:'Hold on tight. Moonbeams are slippery!'},
+    summit:[[2,'Glim-glim!'],[1,'GLIM! You followed us!'],[0,'All the way up the mountain?'],[2,'Lantern-folk like to see people safely home. Glim knows a moonbeam that slides right down to your door.'],[1,'Can we, June? Can we?'],[0,'Well... it IS nearly dinner time.']],go:'Hold on tight. Moonbeams are slippery!'},
   giant:{name:'Dot',kind:'buttonbugs',village:'Thimbleton',col:'#d9534a',ride:'a dandelion seed',btn:'Float home on the dandelion seed',
     cap:'A village of buttonbugs, in acorn-cap houses under the daisies.',narr:'Under the tallest daisy stood a village of acorn houses, and somebody small and spotted lived in every one.',
     meet:[[1,'June, look! Houses made of ACORNS!'],[0,'And ladybirds with faces. Hello! We\'re June and Pip.'],[2,'Dot! I\'m Dot. You are very big for being so small.'],[1,'We shrank! It was the best thing ever.'],[2,'Mind the snail on your way out. He has the right of way.'],[0,'We will. Thank you, Dot.']],
-    summit:[[2,'Yoo-hoo! Up here!'],[1,'DOT! You followed us!'],[2,'A boy came this way once, with that very map. He promised he would come back.'],[0,'That was our DAD.'],[2,'He did not come. But you did.'],[2,'I flew the last bit. And I brought a dandelion seed, big enough for two. It floats all the way down to your garden.'],[1,'Can we, June? Can we?'],[0,'Well... it IS nearly dinner time.']],go:'Hold the stalk with both hands. Off we blow!'},
+    summit:[[2,'Yoo-hoo! Up here!'],[1,'DOT! You followed us!'],[0,'All the way up the mountain?'],[2,'I flew the last bit. And I brought a dandelion seed, big enough for two. It floats all the way down to your garden.'],[1,'Can we, June? Can we?'],[0,'Well... it IS nearly dinner time.']],go:'Hold the stalk with both hands. Off we blow!'},
   pond:{name:'Plip',kind:'ripplings',village:'Lilypad Landing',col:'#7fc4ee',ride:'a bubble',btn:'Float home in the bubble',
     cap:'A village of ripplings, with a house on every lily pad, and the same village again upside down in the sky.',narr:'Out on the lily pads stood a village of round little houses, and above it hung the same village, the other way up.',
     meet:[[1,'June! Houses on the lily pads!'],[0,'And up there, too. Hello! We\'re June and Pip.'],[2,'Plip! I am Plip. Are you the right way up, or the other way?'],[1,'I don\'t know any more!'],[2,'Nobody does, here. It is very restful.'],[0,'It was lovely to meet you, Plip.']],
-    summit:[[2,'Plip! Plip!'],[1,'PLIP! You followed us!'],[2,'A boy came this way once, with that very map. He promised he would come back.'],[0,'That was our DAD.'],[2,'He did not come. But you did.'],[2,'Water goes everywhere, in the end. Plip has blown a bubble with room for two. It will float you down to your own front step.'],[1,'Can we, June? Can we?'],[0,'Well... it IS nearly dinner time.']],go:'Step in. Do not poke the sides!'},
+    summit:[[2,'Plip! Plip!'],[1,'PLIP! You followed us!'],[0,'All the way up the mountain?'],[2,'Water goes everywhere, in the end. Plip has blown a bubble with room for two. It will float you down to your own front step.'],[1,'Can we, June? Can we?'],[0,'Well... it IS nearly dinner time.']],go:'Step in. Do not poke the sides!'},
   crystal:{name:'Ting',kind:'chimelings',village:'Geode Row',col:'#b79cff',ride:'a door made of chimes',btn:'Step through the chime door',
     cap:'A village of chimelings. Their houses are geodes, and every doorway glows.',narr:'Deep in the hollow stood a row of round stone houses, each cracked open like an egg, with a light inside.',
     meet:[[1,'June! The rocks have DOORS!'],[0,'And somebody is home. Hello! We\'re June and Pip.'],[2,'Ting! I am Ting. You may ring one crystal each. Gently.'],[1,'Ting!'],[2,'Very good. That one means: come again.'],[0,'We will. Thank you, Ting.']],
-    summit:[[2,'Ting-a-ling!'],[1,'TING! You followed us!'],[2,'A boy came this way once, with that very map. He promised he would come back.'],[0,'That was our DAD.'],[2,'He did not come. But you did.'],[2,'Chimelings go wherever a mountain goes. Ting can ring a door open: one chime, and you are standing in your own house.'],[1,'Can we, June? Can we?'],[0,'Well... it IS nearly dinner time.']],go:'Stand close. One, two... TING!'}};
+    summit:[[2,'Ting-a-ling!'],[1,'TING! You followed us!'],[0,'All the way up the mountain?'],[2,'Chimelings go wherever a mountain goes. Ting can ring a door open: one chime, and you are standing in your own house.'],[1,'Can we, June? Can we?'],[0,'Well... it IS nearly dinner time.']],go:'Stand close. One, two... TING!'}};
 /* the houses: where each stands, measured from the middle of the village (metres along the trail, metres across, size). Most are on the
    walker's right; two stand well back on the other side, clear of the camera. */
 const VILLAGE=[[-9,-6.2,1],[-5,-9.8,1.25],[-1,-5.6,0.9],[3,-8.8,1.15],[7,-6,1],[10.5,-9.4,1.3],[-3.5,12.5,1.05],[6,13.5,1.15]];
@@ -1513,17 +1498,17 @@ function addPack(girl,col,flap){
 addPack(june,'#4fa3a0','#3d8683'); addPack(pip,'#ffd27a','#eab44f');
 /* flashlights for dark places. Each girl carries one in her waving hand; it stays out of sight until it is needed.
    (The light itself is always in the scene, just turned down to nothing, so switching it on never makes the game stutter.) */
-const torchBeamGeo=new THREE.ConeGeometry(0.95,4.2,14,1,true); torchBeamGeo.translate(0,-2.1,0);
+const torchBeamGeo=new THREE.ConeGeometry(1.45,6,14,1,true); torchBeamGeo.translate(0,-3,0);
 function addTorch(girl,hand,col){
   const arm=hand>0?girl.armR:girl.armL, g=new THREE.Group();
   const body=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.045,0.17,8),L(col)); body.position.y=-0.37;
   const lens=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.04,0.045,10),new THREE.MeshBasicMaterial({color:0xfff6d8})); lens.position.y=-0.475;
   const beam=new THREE.Mesh(torchBeamGeo,new THREE.MeshBasicMaterial({color:0xfff2c8,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false})); beam.position.y=-0.49; beam.renderOrder=3;
-  const light=new THREE.SpotLight(0xfff2c8,0,15,0.5,0.6,1.4), aim=new THREE.Object3D(); light.position.set(0,-0.49,0); aim.position.set(0,-4,0); light.target=aim;
+  const light=new THREE.SpotLight(0xfff2c8,0,30,0.62,0.55,1.1), aim=new THREE.Object3D(); light.position.set(0,-0.49,0); aim.position.set(0,-4,0); light.target=aim;
   body.visible=lens.visible=beam.visible=false; g.add(body,lens,beam,light,aim); arm.add(g); girl.torch={body,lens,beam,light};
 }
 addTorch(june,1,'#d9534a'); addTorch(pip,-1,'#4fa3a0');
-function setTorches(k){ const on=k>0.15; [june,pip].forEach(g=>{ const t=g.torch; t.body.visible=t.lens.visible=t.beam.visible=on; t.light.intensity=1.8*k; t.beam.material.opacity=0.1*k; }); juneB.torch=pipB.torch=on; }
+function setTorches(k){ const on=k>0.15; [june,pip].forEach(g=>{ const t=g.torch; t.body.visible=t.lens.visible=t.beam.visible=on; t.light.intensity=9*k; t.beam.material.opacity=0.4*k; }); juneB.torch=pipB.torch=on; }
 /* The folk themselves: one small figure per kind, built from a few shapes. `bob` is the part that bobs, hops or sways; `head` is where a
    speech bubble hangs. */
 function makeFolk(key,sc){ const F=FOLK[key], g=new THREE.Group(), bob=new THREE.Group(), head=new THREE.Group(); g.add(bob);
@@ -1565,7 +1550,7 @@ function updateVillagers(){ if(!folk.list.length) return; const near=Math.abs(pa
 const nobody={head:new THREE.Object3D(),g:new THREE.Object3D()}; nobody.g.visible=false;
 function setFriendBubble(f){ bubbles[2].head=f.head; bubbles[2].root=f.g; $('bubFriend').querySelector('.who').textContent=FOLK[f.key]?FOLK[f.key].name:''; }
 /* walking into the village: the girls stop, somebody small comes out, and they all say hello */
-function onVillage(){ const key=legKey(2), F=FOLK[key], hd=heading(party.s); if(!F||!folk.list.length) return; dadNote('village_'+key); setFriendBubble(folk.list[0]);
+function onVillage(){ const key=legKey(2), F=FOLK[key], hd=heading(party.s); if(!F||!folk.list.length) return; setFriendBubble(folk.list[0]);
   hushBubbles(); narrate(F.narr); showCaption({t:F.village,b:F.cap}); playScript(F.meet);
   party.vT=0; party.rest=F.meet.reduce((t,l)=>t+lineTime(l[1])+0.45,3.5); speakIn=party.rest+6; EVT.inT=Math.max(EVT.inT,party.rest+12);
   juneB.skip=pipB.skip=0; BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.queue.push({k:'pose',pose:'idle',dur:1+i*0.3},{k:'pose',pose:i?'wave':'look',dur:4,face:hd-1.25},{k:'pose',pose:i?'look':'wave',dur:Math.max(1,party.rest-6.5),face:hd-1.25}); }); }
@@ -1597,11 +1582,25 @@ function setOutfit(girl,m){ const p=girl.parka; if(p.mode===m) return; p.pop=p.m
   girl.pack.position.z=m>0?-0.085:0; }   /* the backpack goes on over the coat */
 [june,pip].forEach(g=>setOutfit(g,0));
 function outfitWanted(){ if(mode==='summit') return 1; if(mode==='home') return 0; let k=bioKeyAt(party.s);
-  if(mode==='trail'){ const g=gateInfo(party.s); if(g.i>0&&g.i<3&&g.in>0.4&&picks[g.i]) k=legKey(g.i);   /* coats go on (or come off) in the dark of the gateway, before the new place opens up */
+  if(mode==='trail'){ const g=gateInfo(party.s); if(g.i>0&&g.i<3&&g.in>0.4&&picks[g.i]&&!BIO[legKey(g.i)].coat) k=legKey(g.i);   /* coats go on (or come off) in the dark of the gateway, before the new place opens up */
     if(k==='mtn'&&party.s<MTN+4) k=prevKeyAt(party.s); }                                                  /* and on the mountain trail when June says so */
   const c=BIO[k]&&BIO[k].coat; return c==='up'?2:c?1:0; }
-function updateOutfit(dt){ const m=outfitWanted();
-  [june,pip].forEach(g=>{ setOutfit(g,m); const p=g.parka; if(p.pop>0||p.coat.scale.x!==1){ p.pop=Math.max(0,p.pop-dt/0.45); const sc=1+0.2*Math.sin(Math.PI*p.pop); p.coat.scale.setScalar(sc); p.up.scale.setScalar(sc); } }); }   /* a little puff as it goes on */
+/* Putting the parkas on is an occasion. The first time it is cold enough, the girls stop on the trail and take turns: June spins round and
+   there is her parka; then Pip spins, and there is hers. (Hoods going up or down later, and coats coming off, just happen.) */
+const coatUp={on:false,m:0,t:0};
+function startCoats(m){ coatUp.on=true; coatUp.m=m; coatUp.t=0; const hd=heading(party.s);
+  party.vT=0; party.rest=7.6; juneB.skip=pipB.skip=0; BRAINS.forEach(b=>{ b.queue.length=0; b.cur=null; });
+  juneB.queue.push({k:'pose',pose:'idle',dur:0.9,face:hd+2.2},{k:'pose',pose:'spin',dur:1.7,coat:true},{k:'pose',pose:'look',dur:4.6,face:hd+2.4});
+  pipB.queue.push({k:'pose',pose:'look',dur:3.2,face:hd-0.9},{k:'pose',pose:'spin',dur:1.7,coat:true},{k:'pose',pose:'hop',dur:1.6,face:hd-0.9});
+  narrate('It was cold enough for parkas. So they stopped, and on they went: first June\'s, then Pip\'s.');
+  tell([[0,'Brr! Parkas on, Pip. Watch this.'],[1,'Me next! Me next!'],[1,m>1?'Ta-da! Hood up!':'Ta-da!']]); speakIn=14; }
+function updateOutfit(dt){ const m=outfitWanted(), walking=mode==='trail'&&state.started;
+  if(walking&&m>0&&june.parka.mode===0&&!coatUp.on&&fork.stage===4&&party.rest<=0&&gateK(party.s)<0.25) startCoats(m);
+  if(coatUp.on){ coatUp.t+=dt; if(!walking||coatUp.t>9||coatUp.t>1&&june.parka.mode>0&&pip.parka.mode>0&&!pipB.cur) coatUp.on=false; }
+  [june,pip].forEach((g,i)=>{ const b=BRAINS[i]; let want=m;
+    if(coatUp.on) want=g.parka.mode>0||b.cur&&b.cur.coat&&b.t>0.8?coatUp.m:0;      /* hers appears halfway through her spin */
+    else if(walking&&m>0&&g.parka.mode===0&&fork.stage!==2) want=0;                 /* not yet: they will stop and do it properly in a moment */
+    setOutfit(g,want); const p=g.parka; if(p.pop>0||p.coat.scale.x!==1){ p.pop=Math.max(0,p.pop-dt/0.45); const sc=1+0.2*Math.sin(Math.PI*p.pop); p.coat.scale.setScalar(sc); p.up.scale.setScalar(sc); } }); }   /* a little puff as it goes on */
 scene.add(june.g,pip.g);
 [june.g,pip.g].forEach(root=>root.traverse(o=>{ if(o.isMesh){ o.castShadow=o.material.type!=='MeshBasicMaterial'; o.receiveShadow=true; } }));
 
@@ -2047,7 +2046,7 @@ function startHike(){
 }
 function backToStart(){
   if(bookOpen) closeBook(); $('zoneScrim').hidden=true; autoPaused=false; setPaused(false);
-  restToken++; $('fade').classList.remove('on'); hushNarrator(); hushNotes();
+  restToken++; $('fade').classList.remove('on'); hushNarrator();
   state.started=false; hushBubbles(); capEl.classList.remove('show'); $('pauseBtn').hidden=true;
   ['alt','controls'].forEach(id=>$(id).classList.add('hud-off'));
   party.vT=0; party.rest=0; hideFork(); BRAINS.forEach(b=>{ b.queue.length=0; b.cur=null; b.skip=0; });
@@ -2076,7 +2075,6 @@ function warp(name,s,p,tail){
   picks[0]=p[0]; picks[1]=p[1]; picks[2]=p[2]; choice=p[0]; syncRoute();
   const n=p[2]?3:p[1]?2:p[0]?1:0; fork.site=Math.max(0,n-1); fork.stage=n===0?0:s<SITES[fork.site].b+1.2?3:4; fork.tail=tail||0;
   if(s==='home'){ fork.site=2; fork.stage=4; fork.tail=5; fork.village=true; party.s=TOP_B-3; placeGirls(); enterHome(); return; }
-  if(s>20) notes.seen.start=true;
   fork.village=s>VILLAGE_Z+5; fork.river=s>=39; fork.deepSaid=s>=57; fork.hopSaid=s>60; fork.entered=true; fork.gateEvt=n>1||s>GATE_OB;
   party.s=s; party.v=party.vT=WALK; party.restIn=60+Math.random()*30; lookBack=s<5?1:0; hikeT=s<5?0:99;
   placeGirls(); groundRow=forestRow=null; camHd=heading(s); EVT.inT=20; speakIn=6;
@@ -2093,36 +2091,12 @@ $('zoneScrim').addEventListener('click',e=>{ if(e.target===$('zoneScrim')){ clos
   const b=e.target.closest('button[data-z]'); if(!b) return; const [gi,i]=b.dataset.z.split(',').map(Number), z=zoneList()[gi][1][i];
   $('zoneScrim').hidden=true; autoPaused=false; setPaused(false); warp(z[0],z[1],z[2],z[3]); });
 /* things the girls notice on the way to the rest site */
-/* ---------- notes from Dad ---------- */
-/* Dad made the map when he was eight, the summer he climbed the mountain by himself, and he wrote on it as he went. Whichever way the girls
-   go, there is a note of his for it; each one turns up, on a scrap of paper, as they reach the place it was written. He meant every word.
-   (He does not remember writing any of them.) */
-const DAD_NOTES={
-  start:'MY MAP. By me. I am going ALL the way to the top. Do not tell Mom.',river:'River. Too wide to jump. I tried. One sock is wet now.',deep:'Very big trees. I am not scared. (I am a little bit scared.)',
-  rest0:'Good log for sitting. I ate my sandwich here. There are TWO ways to go!! One day I will do both.',
-  aspen:'The white trees have eyes. I waved at them. They are nice.',autumn:'It is fall in here even though it is summer. I jumped in a leaf pile 11 times.',
-  rest1:'Second sitting place. My legs are tired but I am NOT turning back.',
-  winter:'SNOW!!! In JULY!!! I made a snowman. His name is Gerald.',grass:'You can see all the way to forever. I rolled down a hill and lost my hat.',marsh:'The wood path goes clonk. A frog looked at me. I looked back at it.',alpine:'The wind tried to take my map. I shouted and the mountain shouted back.',
-  rest2:'Third sitting place. I can see the top! It looks close. It is not close.',
-  glow:'It is NIGHT here and everything glows. This is the best place in the whole world.',giant:'I got small. Or everything got big. One mushroom is bigger than our house.',pond:'There is a forest in the water and a forest in the sky and I do not know which one I am in.',crystal:'A cave made of jewels. I only took one tiny one. (I put it back.)',
-  village_glow:'LAMP PEOPLE live here!! One is called Glim. Glim is my friend FOREVER. I promised I would come back.',village_giant:'Ladybug people!! One is called Dot. I promised Dot I would come back and visit.',
-  village_pond:'Water people with hats on. One is called Plip. I promised I would never ever forget Plip.',village_crystal:'Jewel people that ring like bells. One is called Ting. I promised to come back.',
-  mtn:'All rocks now. My legs say STOP. I say NO, LEGS.',mist:'I can not see my feet. I am walking inside a cloud. I am being brave.',sky:'I am ABOVE THE CLOUDS. Nobody will believe me. I will remember this even when I am old.',
-  cave:'One more cave. It is very dark. I am very brave.',top:'I DID IT. I am at the TOP. I can see my house!! I am going to come back every single year.'};
-const noteEl=$('dadNote'), notes={q:[],t:0,gap:0,seen:{}};
-function dadNote(key){ if(!state.started||notes.seen[key]||!DAD_NOTES[key]) return; notes.seen[key]=true; notes.q.push(key); }
-function updateNotes(dt){
-  if(notes.t>0){ notes.t-=dt; if(notes.t<=0){ noteEl.classList.remove('show'); notes.gap=1.2; } }
-  else if(notes.gap>0) notes.gap-=dt;
-  else if(notes.q.length&&mode!=='home'){ const tx=DAD_NOTES[notes.q.shift()]; $('dadNoteText').textContent=tx; noteEl.style.setProperty('--tilt',(Math.random()*5-2.5).toFixed(1)+'deg'); noteEl.classList.add('show'); notes.t=6+tx.length*0.07; }
-}
-function hushNotes(){ notes.q.length=0; notes.t=0; notes.gap=0; notes.seen={}; noteEl.classList.remove('show'); }
-function onRiver(){ dadNote('river'); narrate('But the trail could not go straight for long. A river had got there first.'); playScript([[1,'A river!'],[0,'We can\'t cross here. The trail goes round to the right.'],[1,'Into the trees!']]); speakIn=14;
+function onRiver(){ narrate('But the trail could not go straight for long. A river had got there first.'); playScript([[1,'A river!'],[0,'We can\'t cross here. The trail goes round to the right.'],[1,'Into the trees!']]); speakIn=14;
   showCaption({t:'The river bend',b:'The water is too wide to cross, so the trail turns right, straight into the woods.'}); }
-function onDeep(){ dadNote('deep'); narrate('So into the deep woods they went, where the trees were older than anyone they knew.'); playScript([[1,'The trees are HUGE in here.'],[0,'It\'s like the forest swallowed us up.'],[1,'I can\'t see where the trail goes!']]); speakIn=16;
+function onDeep(){ narrate('So into the deep woods they went, where the trees were older than anyone they knew.'); playScript([[1,'The trees are HUGE in here.'],[0,'It\'s like the forest swallowed us up.'],[1,'I can\'t see where the trail goes!']]); speakIn=16;
   showCaption({t:'The deep woods',b:'Big old trees close in on every side. The trail winds between them, and you can never see far ahead.'}); }
 /* arriving at the rest site: a few words, then the screen fades and the rest scene takes over */
-function onForkArrive(){ dadNote('rest'+fork.site); narrate('By and by they came to a clearing that seemed to have been waiting for them.'); hushBubbles(); playScript([[0,'Phew. Let\'s take a break here.'],[1,'Yes, please. My legs are noodles.']]); }
+function onForkArrive(){ narrate('By and by they came to a clearing that seemed to have been waiting for them.'); hushBubbles(); playScript([[0,'Phew. Let\'s take a break here.'],[1,'Yes, please. My legs are noodles.']]); }
 function onForkReady(){ capEl.classList.remove('show'); enterRest(); }
 
 /* ---------- the rest site: a small scene of its own ---------- */
@@ -2133,7 +2107,7 @@ let mode='trail', rest=null, restToken=0;
 const REST_SEATS=[[-0.55,0],[0.62,0]];   /* June and Pip on the log */
 const REST_SPOTS=[[-3.6,4.2,'crouch'],[3.2,5,'look'],[-2.6,6.2,'point'],[0.9,5.6,'look'],[4.2,2.4,'scoop'],[-4.4,2.6,'crouch'],[1.7,3.4,'spin'],[-1.3,3.1,'hop']];   /* things worth getting up for */
 const REST_ARRIVE=[[0,'Ahh. That\'s better.'],[1,'This log is exactly my size.'],[0,'Listen. You can hear the whole forest.']];
-const REST_PATHS=[[1,'June, look! The trail splits in two.'],[0,'One goes into that thicket: the little trees have grown right across the gully. The other goes through that ridge of rock, by a little cave.'],[1,'Which one do we take?']];
+const REST_PATHS=[[1,'June, look! The trail splits in two.'],[0,'One goes into that thicket. The other goes into a little cave.'],[1,'Which one do we take?']];
 function buildRest(si){
   const LK=si>0?REST_LOOKS[legKey(si-1)]:null, KIT=kitFor(si);   /* later rest sites stand in whichever place the girls have reached, and look like it */
   let sd=4242; const r=()=>{ sd=(sd*16807)%2147483647; return (sd-1)/2147483646; };
@@ -2351,8 +2325,7 @@ function gateIcon(G){ const c=G.cols||G.rock, sh='<ellipse cx="32" cy="50" rx="2
   return `<svg class="fork-ic" viewBox="0 0 64 56" aria-hidden="true">${sh}<g fill="${c[0]}"><circle cx="14" cy="34" r="13"/><circle cx="50" cy="34" r="13"/><circle cx="23" cy="20" r="13"/><circle cx="41" cy="20" r="13"/></g><g fill="${c[1]}"><circle cx="18" cy="24" r="6"/><circle cx="44" cy="16" r="6"/><circle cx="50" cy="30" r="5"/></g><path d="M20 50V38a12 12 0 0 1 24 0v12z" fill="#16241b"/><g fill="#fffaf0"><circle cx="28" cy="38" r="3.4"/><circle cx="36" cy="38" r="3.4"/></g><g fill="#2a1a33"><circle cx="28.8" cy="38.6" r="1.5"/><circle cx="36.8" cy="38.6" r="1.5"/></g></svg>`; }
 function setDock(si){ const O=optionsAt(si); [['autumnBtn',O[0]],['aspenBtn',O[1]]].forEach(([id,key])=>{ $(id).innerHTML=si===0?DOCK0[id]:gateIcon(BIO[key].gate)+'<span>'+BIO[key].gate.label+'</span>'; }); }
 function restPathLines(){ if(fork.site===0) return REST_PATHS; const O=optionsAt(fork.site);
-  const gl=BIO[O[0]].gate, gr=BIO[O[1]].gate;
-  return [[1,pick(['June! Two paths again!','Look, June! The trail can\'t make up its mind again.'])],[0,'One goes '+gl.say+'. '+gl.why],[0,'The other goes '+gr.say+'. '+gr.why],[1,'Which one? Which one?']]; }
+  return [[1,pick(['June! Two paths again!','Look, June! The trail can\'t make up its mind again.'])],[0,'One goes '+BIO[O[0]].gate.say+'. The other goes '+BIO[O[1]].gate.say+'.'],[1,'Which one? Which one?']]; }
 /* the player taps one of the two buttons */
 function chooseTrail(c){
   if(mode!=='rest'||!rest.ready||rest.leaving) return;
@@ -2380,7 +2353,6 @@ function onGateEnter(){ playScript(fork.site?BIO[legKey(fork.site)].gate.enter:c
 function onGateObstacle(){ narrate(choice<0?'The branches hung low, and the sisters had to make themselves small.':'It was dark in the cave, but two flashlights are braver than one.'); tell(choice<0?[[1,'Duck!'],[0,'I AM ducking.']]:[[0,'Squeeze past the big rock.'],[1,'Look! The mushrooms are glowing!']]); }
 /* coming out the far side: wind, leaves, light, and a first look at the new forest. The girls keep walking while they take it in. */
 function onReveal(){
-  dadNote(legKey(fork.site));
   if(fork.site){ const key=legKey(fork.site), R=BIO[key].reveal; hushBubbles(); startGust(GUSTS[key]||FALLEN,party.s); Music.gust(); revealT=0; speakIn=16;
     narrate(R.narr); playScript(R.lines); showCaption({t:R.t,b:R.b}); EVT.inT=Math.max(EVT.inT,26); return; }
   hushBubbles(); startGust(choice,party.s); Music.gust(); revealT=0; speakIn=16;
@@ -2463,7 +2435,7 @@ function enterSummit(){
     BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(i?0.8:-0.7,i?0.2:0.6); b.face=b.faceT=0; b.actIn=6+i*3;
       b.queue.push({k:'pose',pose:i?'hop':'wave',dur:3.2,face:0},{k:'pose',pose:'look',dur:5,face:i?0.6:-0.5}); });
     hushBubbles(); playScript(SUMMIT_SCRIPT); speakIn=8;
-    narrate('And there it was: the whole world, all the way round, with two sisters standing on top of it.'); dadNote('top');
+    narrate('And there it was: the whole world, all the way round, with two sisters standing on top of it.');
     showCaption({t:'The top of the mountain',b:'Every place they walked through is down there somewhere. So is home.'});
     $('fade').classList.remove('on'); },950);
 }
@@ -2490,8 +2462,7 @@ function updateSummit(dt,rawDt){
 function leaveSummit(){ $('homeDock').hidden=true; bubbles[2].head=nobody.head; bubbles[2].root=nobody.g; summit.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); summit.dispose(); summit=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
 /* the last stretch: the mountain trail, the mist, the sky garden, the last cave, the top */
 function onTail(what){
-  dadNote({trail:'mtn',mist:'mist',sky:'sky',cave:'cave'}[what]);
-  if(what==='trail'){ narrate('Higher still, the path turned to stone and the air grew thin and bright.'); if(!BIO[prevKeyAt(party.s)].coat){ playScript([[0,'Brr. The wind is cold up here. Parkas on, Pip!'],[1,'Hood down. I want to see EVERYTHING.']]); speakIn=14; } showCaption({t:'The mountain trail',b:'Steep and stony now. A bank of cloud is coming down to meet it.'}); }
+  if(what==='trail'){ narrate('Higher still, the path turned to stone and the air grew thin and bright.'); showCaption({t:'The mountain trail',b:'Steep and stony now. A bank of cloud is coming down to meet it.'}); }
   else if(what==='mist'){ playScript(BIO.sky.gate.enter); speakIn=14; narrate('Then the cloud closed round them, soft and white and very quiet.'); }
   else if(what==='sky'){ const R=BIO.sky.reveal; hushBubbles(); startGust(BIO.sky.fall,party.s); Music.gust(); revealT=0; speakIn=16; narrate(R.narr); playScript(R.lines); showCaption({t:R.t,b:R.b}); }
   else if(what==='cave'){ narrate('One last cave, and it was the steepest and the darkest of all.'); playScript([[0,'One more cave, Pip. Flashlights on.'],[1,'I can feel wind! The top must be close.']]); speakIn=14;
@@ -2509,8 +2480,8 @@ function homeScript(){ const k=[0,1,2].map(i=>legKey(i)||['autumn','winter','glo
   return [[3,'So, my mountain climbers. How was it?'],[1,'We went ALL the way to the top!'],[4,'All the way up! Well done, you two. That\'s a proper walk.'],
     [0,'First we walked through '+PLACE_SAID[k[0]]+'. Then '+PLACE_SAID[k[1]]+'.'],[4,'Mm-hm. Lovely. Pass the cheese, would you, Pip?'],
     [1,'And then '+PLACE_SAID[k[2]]+'! With a VILLAGE! Of '+F.kind+'!'],[4,'A village of '+F.kind+'. Goodness. What imaginations you two have.'],
-    [0,'It isn\'t imagination, Dad. It\'s on YOUR map. You wrote: "'+F.name+' is my friend forever."'],[4,'Did I? I must have been about eight. I drew dragons on everything back then.'],
-    [1,F.name+' says you promised to come back.'],[4,'I\'m sure I did, sweetheart. Now eat up, before it goes cold.'],[0,F.name+' sent us home by '+F.ride+'. That\'s why we weren\'t late.'],
+    [0,'It isn\'t imagination, Dad. It\'s all on the map now. We drew it in.'],[4,'On my old map? There\'s nothing on that but a dotted line. It\'s woods, and then it\'s the top.'],
+    [1,'That\'s because you walked in a straight line and didn\'t LOOK.'],[4,'Ha! Very likely, sweetheart. Now eat up, before it goes cold.'],[0,F.name+' sent us home by '+F.ride+'. That\'s why we weren\'t late.'],
     [4,'Well, however you managed it, you were right on time. I\'m proud of you both.'],[3,'I think it sounds wonderful. More spaghetti?'],[1,'Yes, please.'],
     [0,'We have to tell Michelle. SHE\'ll believe us.'],[1,'Tomorrow! First thing! And Lumi, too.'],[4,'Good plan. And next time, bring me a photo of this village, hm?']]; }
 function buildHome(){
@@ -2632,7 +2603,7 @@ function onHop(){ narrate('A fallen log lay across the path. That was no trouble
 function onRestStop(){ narrate('It was a good moment to stop, so they stopped.'); }
 
 /* ---------- Dad's map ---------- */
-/* Drawn fresh each time it unrolls. It fills in as the girls go: a crossroads and its two ways on appear when they reach it, and what lies
+/* Drawn fresh each time it unrolls. All Dad ever put on it was a checkered line from the woods straight to the top. It fills in, and grows wider, as the girls go: a crossroads and its two ways on appear when they reach it, and what lies
    along each way is a blank with a question mark until they have actually come out into it, when it is drawn in and named. The way they
    have walked is inked in red, the villages they find are added in Pip's crayon, and June and Pip are the two dots. */
 const MAP_A='M62 322 C92 300 122 286 150 272 C170 262 184 276 198 282 C216 289 232 270 250 262';
@@ -2671,16 +2642,21 @@ function drawMap(){
   if(k0) walked.push([MAP_LEG0[k0],REST_C,SITES[1].rest]); if(k1) walked.push([MAP_LEG1[k1],SITES[1].rest,SITES[2].rest]);
   if(k2&&r3) walked.push([line(r3,k2),SITES[2].rest,VILLAGE_Z],[line(k2,'M'),VILLAGE_Z,MTN],[MAP_UP,MTN,TOP_B]);
   const sNow=mode==='summit'||mode==='home'?TOP_B:Math.max(0,party.s), skyKnown=fork.site===2&&fork.tail>=3||mode==='summit'||mode==='home';
-  svg.setAttribute('viewBox','0 0 720 428');
+  /* Dad's map was only ever this: home, the woods, and a checkered line straight to the top, which is all he saw of the mountain. Everything
+     else is the girls' doing. The sheet starts narrow, with the mountain drawn right beside the woods, and each new stretch they reach
+     unfolds another strip of paper between the two. */
+  const open=[arrived(0),arrived(1)&&!!r2,arrived(2)&&!!r3,!!k2&&reached(2)||done], WIDE=[90,110,94,72], dx=-Math.round(WIDE.reduce((t,w,i)=>t+(open[i]?0:w*0.85),0)), W=720+dx;
+  svg.setAttribute('viewBox',`0 0 ${W} 428`); $('mapScroll').style.maxWidth=Math.round(760*W/720)+'px';
   svg.innerHTML=`
-    <rect width="720" height="428" fill="#f6ead0"/>
-    <path d="M0 0h720v428H0z" fill="none" stroke="#d9c39a" stroke-width="10"/>
-    <path d="M586 318 L682 62 L716 318Z" fill="#eadcbb" stroke="${ink}" stroke-width="1.4" stroke-dasharray="1 7" opacity=".8"/>
+    <rect width="${W}" height="428" fill="#f6ead0"/>
+    <path d="M0 0h${W}v428H0z" fill="none" stroke="#d9c39a" stroke-width="10"/>
+    <path transform="translate(${dx} 0)" d="M586 318 L682 62 L716 318Z" fill="#eadcbb" stroke="${ink}" stroke-width="1.4" stroke-dasharray="1 7" opacity=".8"/>
     <path d="M18 170 C80 176 142 196 160 232 C166 244 178 242 182 228 C192 190 204 120 218 26" fill="none" stroke="#8cc4dc" stroke-width="13" stroke-linecap="round"/>
     <path d="M18 170 C80 176 142 196 160 232 C166 244 178 242 182 228 C192 190 204 120 218 26" fill="none" stroke="#dff0f6" stroke-width="2" stroke-dasharray="10 12"/>
     <path d="M172 262 C196 232 250 232 268 250 C282 266 274 296 250 302 C222 308 186 304 174 288 C168 278 168 270 172 262Z" fill="#5f8a5a" opacity=".5"/>
     ${dots([[188,262],[206,250],[228,246],[190,288],[214,296],[240,290],[252,246]],7,'#3f6f4a')}
     ${dots([[92,268],[116,250],[84,348],[128,318],[104,362]],3,'#e58fa6')}${dots([[100,282],[130,266],[146,300]],3,'#ffd27a')}
+    <path d="M250 262 L${682+dx} 82" fill="none" stroke="#fffaf0" stroke-width="5"/><path d="M250 262 L${682+dx} 82" fill="none" stroke="${ink}" stroke-width="5" stroke-dasharray="7 7" opacity=".85"/>
     ${all.map(dash).join('')}
     ${walked.map(([d],i)=>`<path id="mapW${i}" d="${d}" fill="none" stroke="#d0607a" stroke-width="4.5" stroke-linecap="round"/>`).join('')}
     <g><path d="M36 336v-16l14-12 14 12v16z" fill="#f6ead8" stroke="${ink}" stroke-width="2" stroke-linejoin="round"/><path d="M32 322l18-16 18 16" fill="none" stroke="#c96a55" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><rect x="46" y="324" width="8" height="12" fill="#8a5a3c"/></g>
@@ -2691,8 +2667,7 @@ function drawMap(){
     ${fork.village&&k2&&N[k2]?`<g transform="translate(${N[k2][0]+16} ${N[k2][1]+4})"><path d="M-6 6v-8l6-6 6 6v8z" fill="#fff6ec" stroke="#d0607a" stroke-width="1.8" stroke-linejoin="round"/><text x="12" y="6" font-size="13" style="fill:#d0607a">${FOLK[k2].village}</text></g>`:''}
     ${mistKnown?`<g fill="none" stroke="#8aa0b4" stroke-width="2.4" stroke-linecap="round"><path d="M630 204 q8 -6 16 0 t16 0 t16 0"/><path d="M636 194 q8 -6 16 0 t16 0 t16 0"/></g><text x="706" y="212" font-size="13" text-anchor="end">Mist</text>`:''}
     ${done||fork.site===2&&fork.tail>=4?`<g><path d="M667 122c0-9 5-13 9-13s9 4 9 13z" fill="#9a9a94" stroke="${ink}" stroke-width="1.4" stroke-linejoin="round"/><path d="M672 122a4 5 0 0 1 8 0z" fill="#1d2228"/></g>`:''}
-    <g><path d="M682 80v-22" stroke="${ink}" stroke-width="2"/><path d="M682 58l14 5-14 5z" fill="#d0607a"/></g>
-    <text x="682" y="46" font-size="17" text-anchor="middle">The top</text>
+    <g transform="translate(${dx} 0)"><path d="M682 80v-22" stroke="${ink}" stroke-width="2"/><path d="M682 58l14 5-14 5z" fill="#d0607a"/><text x="682" y="46" font-size="17" text-anchor="middle">The top</text></g>
     ${upKnown?`<text x="652" y="304" font-size="14" text-anchor="middle">Mountain trail</text>`:''}
     ${skyKnown?`<text x="648" y="160" font-size="14" text-anchor="end">Sky garden</text>`:mistKnown?`<text x="652" y="166" font-size="18" text-anchor="end" opacity=".7">?</text>`:''}
     <text x="24" y="44" font-size="32">Dad&#8217;s map</text>
@@ -3378,7 +3353,7 @@ function frame(now){
   hemi.color.copy(skyNow.hemi); sun.color.copy(skyNow.sun);
   hemi.intensity=glw*(1-0.55*thK-0.66*caveK)+0.16*bloom;
   sun.intensity=shn*(1-0.8*thK-0.85*caveK-0.5*mistK)+0.12*bloom;
-  cave.glow.intensity=1.2*(gNow.i===0?caveK:0); setTorches(Math.max(gNow.in,darkK));   /* flashlights on inside every gateway (tunnels, caves, hollow tree, the mist), and all through the crystal hollow */
+  cave.glow.intensity=1.2*(gNow.i===0?caveK:0); setTorches(Math.max(gNow.in,darkK)); hemi.intensity+=0.3*Math.max(gNow.in,darkK); scene.fog.density-=0.03*Math.max(thK,caveK);   /* and their light fills the place a little, and reaches further into the dark */   /* flashlights on inside every gateway (tunnels, caves, hollow tree, the mist), and all through the crystal hollow */
   { const nk=nightK*(1-caveK)*(1-thK); moon.visible=stars.visible=nk>0.02; moon.material.opacity=nk; stars.material.opacity=nk*0.9;
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK;
@@ -3406,7 +3381,7 @@ function frame(now){
   }
   if(mode==='trail') updatePrints();
   updateMarks();
-  updateSpeech(dt); updateNarrator(dt); updateNotes(dt); if(state.started&&mode==='trail'&&party.s>7) dadNote('start');
+  updateSpeech(dt); updateNarrator(dt);
   if(wall.state!=='closed'||(frameNo++%20)===0) renderer.render(mode==='rest'?rest.scene:mode==='summit'?summit.scene:mode==='home'?home.scene:scene,camera);   /* behind the closed wall of leaves, only now and then */
   requestAnimationFrame(frame);
 }
