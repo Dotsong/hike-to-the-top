@@ -1967,6 +1967,14 @@ const Music=(()=>{
       v.frequency.value=6; vg.gain.value=16; v.connect(vg); vg.connect(o.frequency);
       g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.045,t+0.4); g.gain.linearRampToValueAtTime(0.0001,t+3.2);
       o.connect(g); g.connect(master); g.connect(reverb); o.start(t); v.start(t); o.stop(t+3.3); v.stop(t+3.3); }
+    if(kind==='whale'){   /* a sky whale, a long way off in the cloud: two slow rising-and-falling notes, the second sinking away at the end */
+      [[0,3.6,[150,265,205]],[4.6,4.6,[185,330,160]]].forEach(([at,len,f])=>{ const t0=t+at, g=ctx.createGain(), lp=ctx.createBiquadFilter(), v=ctx.createOscillator(), vg=ctx.createGain(); lp.type='lowpass'; lp.frequency.value=900;
+        v.frequency.value=4.2; vg.gain.value=3.5; v.connect(vg); v.start(t0); v.stop(t0+len+0.1);
+        [[1,1],[2,0.22],[3,0.07]].forEach(([m,a])=>{ const o=ctx.createOscillator(), og=ctx.createGain(); o.type='sine'; og.gain.value=a;
+          o.frequency.setValueAtTime(f[0]*m,t0); o.frequency.exponentialRampToValueAtTime(f[1]*m,t0+len*0.45); o.frequency.exponentialRampToValueAtTime(f[2]*m,t0+len);
+          vg.connect(o.frequency); o.connect(og); og.connect(g); o.start(t0); o.stop(t0+len+0.1); });
+        g.gain.setValueAtTime(0.0001,t0); g.gain.linearRampToValueAtTime(0.075,t0+len*0.3); g.gain.linearRampToValueAtTime(0.05,t0+len*0.7); g.gain.linearRampToValueAtTime(0.0001,t0+len);
+        const dry=ctx.createGain(); dry.gain.value=0.45; g.connect(lp); lp.connect(dry); dry.connect(master); lp.connect(reverb); }); }
     if(kind==='knock'){ for(let i=0;i<9;i++){ const tt=t+i*0.058, o=ctx.createOscillator(), g=ctx.createGain();   /* a woodpecker drumming */
       o.type='triangle'; o.frequency.setValueAtTime(1150,tt); o.frequency.exponentialRampToValueAtTime(520,tt+0.03);
       g.gain.setValueAtTime(0.0001,tt); g.gain.linearRampToValueAtTime(0.05,tt+0.004); g.gain.exponentialRampToValueAtTime(0.0001,tt+0.04);
@@ -3181,7 +3189,7 @@ function leaveFalls(){ fallsS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -3911,6 +3919,28 @@ const curtainTex=alphaTex(128,(u,v)=>{ const top=0.84+0.07*Math.sin(u*19)+0.05*M
 const curtainGeo=new THREE.PlaneGeometry(460,110), curtains=[];   /* wide and tall enough, and reaching far enough down the slopes, that nothing shows round, over or under them */
 for(let i=0;i<12;i++){ const m=new THREE.Mesh(curtainGeo,new THREE.MeshBasicMaterial({color:0xffffff,map:curtainTex,transparent:true,opacity:0.62,depthWrite:false,side:THREE.DoubleSide}));
   m.visible=false; m.renderOrder=2; if(i%2) m.scale.x=-1; scene.add(m); curtains.push({m,ahead:i<6,k:i%6,dx:(rnd()-0.5)*40,dy:rnd()*5}); }
+/* The sky whale. As the girls come up to the wall of mist, something very large swims slowly across inside it: only a shape, a shade darker
+   than the cloud, with its tail rising and falling. It calls twice, a long way off, and is gone. Once on each hike. */
+const whale=(()=>{ const c=document.createElement('canvas'); c.width=512; c.height=208; const g=c.getContext('2d'); g.fillStyle='#fff'; g.shadowColor='#fff'; g.shadowBlur=9;
+  g.beginPath(); g.moveTo(498,102); g.bezierCurveTo(482,62,384,46,300,56); g.lineTo(214,64); g.quadraticCurveTo(200,46,186,54); g.quadraticCurveTo(190,62,186,70);   /* the back, with a small fin */
+  g.bezierCurveTo(150,78,110,90,72,96); g.quadraticCurveTo(44,86,20,56); g.quadraticCurveTo(26,84,44,101); g.quadraticCurveTo(26,120,18,148); g.quadraticCurveTo(46,124,74,108);   /* the tail and its flukes */
+  g.bezierCurveTo(150,124,240,152,330,148); g.quadraticCurveTo(306,176,262,196); g.quadraticCurveTo(330,190,372,146); g.bezierCurveTo(432,142,490,128,498,102); g.closePath(); g.fill(); g.fill();   /* the belly, and one long flipper */
+  const geo=new THREE.PlaneGeometry(46,18.7,28,1), base=Float32Array.from(geo.attributes.position.array);
+  const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),color:0x66727f,transparent:true,opacity:0,fog:false,depthWrite:false,side:THREE.DoubleSide}));
+  m.visible=false; m.renderOrder=2; m.frustumCulled=false; scene.add(m); return {m,base,state:0,t:0,dir:1}; })();
+const WHALE_LASTS=30; let whaleCam=0;
+function startWhale(){ whale.state=1; whale.t=0; whale.dir=Math.cos(camTheta)>0?1:-1; Music.sfx('whale');
+  narrate('Something very large and very slow went by inside the cloud, singing to nobody in particular.'); playScript([[1,'June... what is THAT?'],[0,'...I think it\'s a whale. A whale in the sky.'],[1,'It sounds lonely. HELLO, WHALE!']]); speakIn=18; }
+function updateWhale(dt){ const W=whale;
+  if(W.state===0&&state.started&&mode==='trail'&&fork.site===2&&fork.stage===4&&!skyOpen&&party.s>SKY_A-40&&party.s<SKY_A-12) startWhale();
+  if(W.state!==1){ if(W.state===2&&party.s<SKY_A-60) W.state=0; if(W.m.visible) W.m.visible=false; return; }
+  W.t+=dt; const u=W.t/WHALE_LASTS; if(u>=1||skyOpen){ W.state=2; W.m.visible=false; return; }
+  const z=SKY_A+9.5, hd=heading(SKY_A), ax=Math.cos(hd), az=-Math.sin(hd), lat=(u*2-1)*62*W.dir;   /* across the trail, a little way inside the mist */
+  W.m.visible=true; W.m.position.set(trailX(z)+ax*lat,trailY(z)+21+2.5*Math.sin(W.t*0.5)+6*u,z+az*lat);
+  W.m.rotation.set(0,Math.atan2(camera.position.x-W.m.position.x,camera.position.z-W.m.position.z),0.07*Math.sin(W.t*0.5+1)); W.m.scale.x=(ax*Math.cos(W.m.rotation.y)-az*Math.sin(W.m.rotation.y))*W.dir<0?-1:1;   /* it faces the eye, nose first the way it is going */
+  W.m.material.opacity=0.58*smooth(0,0.12,u)*(1-smooth(0.8,1,u)); W.m.material.color.copy(scene.fog.color).multiplyScalar(0.52);
+  const p=W.m.geometry.attributes.position, b=W.base; for(let i=0;i<p.count;i++){ const x=b[i*3], k=clamp((6-x)/29,0,1); p.setY(i,b[i*3+1]+Math.sin(W.t*1.25+x*0.11)*2.6*k*k); } p.needsUpdate=true;   /* the tail beats slowly: a wave that grows toward the flukes */
+}
 function updateCurtains(){ const rise=fork.site===2&&!skyShut?smooth(BOULDER_S-4,BOULDER_S+1,party.s):0;   /* over the boulder: the mist stays shut behind them, over the hill and the place below it */
   for(const c of curtains){ const on=c.ahead?!skyOpen&&party.s>SKY_A-190:skyShut||rise>0.01; c.m.visible=on; if(!on) continue; c.m.material.opacity=0.62*(c.ahead||skyShut?1:rise);
     const z=c.ahead?SKY_A+8+c.k*3:skyShut?SKY_B-2-c.k*2.5:MTN+53-c.k*2.2; c.m.position.set(trailX(z)+c.dx,trailY(z)+17+c.dy,z); c.m.material.color.copy(scene.fog.color).lerp(WHITE,0.45); } }
@@ -4026,6 +4056,9 @@ function frame(now){
   let th=camHd+camTheta*(1-lookBack)+Math.sin(time*0.06)*0.28*swayK*motion*(1-lookBack);   /* straight ahead of the girls on the trail, looking back past them */
   const aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
   let r=8.6*zoom*aspectBoost, ph=clamp(0.2+userPhi,-0.1,1.2);
+  /* while the sky whale goes by, the view swings round behind the girls and tips up, so the mist ahead and the shape in it fill the sky (a finger on the screen takes the view back) */
+  whaleCam=damp(whaleCam,whale.state===1&&whale.t<WHALE_LASTS-5&&!pointers.size?1:0,0.9,dt);
+  if(whaleCam>0.001){ let d=camHd+Math.PI-th; d=Math.atan2(Math.sin(d),Math.cos(d)); th+=d*whaleCam; ph=lerp(ph,0.04,whaleCam); r*=1+0.12*whaleCam; }
   const gK=gateK(party.s), inK=insideK(party.s), wK=woodsK(party.s);
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
   target.set(trailX(party.s),trailY(party.s)+1.15,party.s);
@@ -4037,6 +4070,7 @@ function frame(now){
     camera.position.lerp(chase,wK); target.lerp(look,wK); }
   { const gy=groundY(camera.position.x,camera.position.z); if(camera.position.y<gy+0.7) camera.position.y=gy+0.7;
     if(inK>0) camera.position.y=lerp(camera.position.y,clamp(camera.position.y,gy+0.9,gy+1.9),inK); }   /* stay under the roof */
+  if(whaleCam>0.001) target.y+=3.1*whaleCam;
   camera.lookAt(target);
   sky.position.copy(camera.position);
   homeG.visible=party.s<22;   /* home is left behind once they are well on their way */
@@ -4064,7 +4098,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
