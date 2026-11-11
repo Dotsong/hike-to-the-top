@@ -1669,8 +1669,9 @@ const nobody={head:new THREE.Object3D(),g:new THREE.Object3D()}; nobody.g.visibl
 function setFriendBubble(f){ bubbles[2].head=f.head; bubbles[2].root=f.g; $('bubFriend').querySelector('.who').textContent=FOLK[f.key]?FOLK[f.key].name:''; }
 /* walking into the village: the girls stop, somebody small comes out, and they all say hello */
 function onVillage(){ const key=legKey(2), F=FOLK[key], hd=heading(party.s); if(!F||!folk.list.length) return; setFriendBubble(folk.list[0]);
-  hushBubbles(); narrate(F.narr); showCaption({t:F.village,b:F.cap}); playScript(F.meet);
-  party.vT=0; party.rest=F.meet.reduce((t,l)=>t+lineTime(l[1])+0.45,3.5); speakIn=party.rest+6; EVT.inT=Math.max(EVT.inT,party.rest+12);
+  const meet=known.friends.includes(key)?F.meet.concat([[1,F.name+'! It\'s us again!'],[0,'Hello again! Are you coming to dinner this time too?']]):F.meet;   /* an old friend */
+  hushBubbles(); narrate(F.narr); showCaption({t:F.village,b:F.cap}); playScript(meet);
+  party.vT=0; party.rest=meet.reduce((t,l)=>t+lineTime(l[1])+0.45,3.5); speakIn=party.rest+6; EVT.inT=Math.max(EVT.inT,party.rest+12);
   juneB.skip=pipB.skip=0; BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.queue.push({k:'pose',pose:'idle',dur:1+i*0.3},{k:'pose',pose:i?'wave':'look',dur:4,face:hd-1.25},{k:'pose',pose:i?'look':'wave',dur:Math.max(1,party.rest-6.5),face:hd-1.25}); }); }
 /* Parkas for the cold places: a puffy coat over the dress with a fur hem, sleeves with fur cuffs, mittens, and a fur-trimmed hood.
    In the winter forest the hood is up (and pigtails and topknot are tucked inside it); in the other cold places (the alpine rock garden,
@@ -2171,6 +2172,7 @@ function closeDoors(){
 function startHike(quiet){
   if(state.started) return;
   resetHike();   /* the leaves are shut, so nobody sees the walk go back to the trailhead */
+  recall();      /* what the girls know from earlier hikes */
   state.started=true; idle=0; $('pauseBtn').hidden=false; Music.start(); Music.unlock(); keepAwake();
   const intro=$('intro'); intro.classList.add('gone'); setTimeout(()=>{ if(state.started) intro.hidden=true; },1000);
   openDoors();
@@ -2178,7 +2180,9 @@ function startHike(quiet){
   if(quiet===true) return;   /* carrying on from a rest site: the opening is not played again */
   hushBubbles(); speakIn=9; EVT.inT=18; BRAINS.forEach(b=>{ b.actIn=12+Math.random()*10; });
   setTimeout(()=>{ if(state.started) narrate('One bright morning, June and Pip set out to climb the little mountain behind their house.'); },1400);
-  say(0,'Come on, Pip! The trail starts here.'); say(1,'Right behind you, Captain June!'); say(1,'Bye, house! Back by dinner!');
+  if(known.top){ say(0,'Up the mountain again, Pip?'); say(1,'Again! I know the way now. Mostly.'); say(1,known.secret?'Bye, house! Tell Lumi we said hi if she calls!':'Bye, house! Back by dinner!'); }
+  else if(known.places.length){ say(0,'Come on, Pip! Today we go all the way to the top.'); say(1,'All the way! I packed TEN snacks this time.'); say(1,'Bye, house! Back by dinner!'); }
+  else { say(0,'Come on, Pip! The trail starts here.'); say(1,'Right behind you, Captain June!'); say(1,'Bye, house! Back by dinner!'); }
   pipB.queue.push({k:'pose',pose:'idle',dur:5.2},{k:'pose',pose:'wave',dur:2.4,face:heading(4)+Math.PI});   /* Pip turns round to wave at it */
   setTimeout(()=>{ if(state.started) showCaption({t:'The edge of the woods',b:'Trees on one side, open meadow on the other. There is no hurry at all.'}); },2600);
 }
@@ -2486,7 +2490,7 @@ function updateRest(dt,rawDt){
   rest.t+=dt;
   BRAINS.forEach(b=>updateRestBrain(b,dt));
   /* the scene: sit down and sigh, look around for a while, notice the two paths, then the buttons appear */
-  if(rest.phase===0&&rest.t>4.5){ rest.phase=1; playScript(REST_ARRIVE); }
+  if(rest.phase===0&&rest.t>4.5){ rest.phase=1; playScript(REST_ARRIVE.concat(known.notes.length&&saved.notes.length<ALL_NOTES.length?[[1,'I bet Dad hid another note here. He always does.'],[0,'Have a look around, then.']]:[])); }
   else if(rest.phase===1&&rest.t>8&&quiet()){ rest.phase=2; rest.t2=rest.t; rest.canAct=true; speakIn=6; narrate('For a while nobody said anything important. That is what rest sites are for.'); }
   else if(rest.phase===2&&rest.t>rest.t2+12&&!(note.state===1)){ rest.canAct=false; if(quiet()&&!BRAINS.some(b=>b.cur||b.queue.length)){ rest.phase=3; narrate(fork.site?'And once again, the trail had two ideas about where to go next.':'Then Pip noticed something. The trail had two ideas about where to go next.'); playScript(restPathLines());
       pipB.queue.push({k:'pose',pose:'sitpoint',dur:5,face:0}); juneB.queue.push({k:'pose',pose:'sit',dur:3},{k:'pose',pose:'sitlook',dur:4,face:0}); } }
@@ -2520,8 +2524,9 @@ function gateIcon(G){ const c=G.cols||G.rock, sh='<ellipse cx="32" cy="50" rx="2
   if(G.kind==='arch') return `<svg class="fork-ic" viewBox="0 0 64 56" aria-hidden="true">${sh}<path d="M5 50C5 26 16 8 32 8s27 18 27 42z" fill="${c[0]}"/><path d="M12 30c3-10 9-17 16-19-6 7-8 14-9 22z" fill="${c[1]}"/><path d="M18 50V36a14 14 0 0 1 28 0v14z" fill="#1d2228"/><circle cx="32" cy="39" r="11" fill="${lit}" opacity=".22"/><path d="M27 47l5-14 5 14z" fill="${lit}"/><path d="M36 48l3-8 3 8z" fill="${lit}" opacity=".7"/></svg>`;
   return `<svg class="fork-ic" viewBox="0 0 64 56" aria-hidden="true">${sh}<g fill="${c[0]}"><circle cx="14" cy="34" r="13"/><circle cx="50" cy="34" r="13"/><circle cx="23" cy="20" r="13"/><circle cx="41" cy="20" r="13"/></g><g fill="${c[1]}"><circle cx="18" cy="24" r="6"/><circle cx="44" cy="16" r="6"/><circle cx="50" cy="30" r="5"/></g><path d="M20 50V38a12 12 0 0 1 24 0v12z" fill="#16241b"/><g fill="#fffaf0"><circle cx="28" cy="38" r="3.4"/><circle cx="36" cy="38" r="3.4"/></g><g fill="#2a1a33"><circle cx="28.8" cy="38.6" r="1.5"/><circle cx="36.8" cy="38.6" r="1.5"/></g></svg>`; }
 function setDock(si){ const O=optionsAt(si); [['autumnBtn',O[0]],['aspenBtn',O[1]]].forEach(([id,key])=>{ $(id).innerHTML=si===0?DOCK0[id]:gateIcon(BIO[key].gate)+'<span>'+BIO[key].gate.label+'</span>'; }); }
-function restPathLines(){ if(fork.site===0) return REST_PATHS; const O=optionsAt(fork.site);
-  return [[1,pick(['June! Two paths again!','Look, June! The trail can\'t make up its mind again.'])],[0,'One goes '+BIO[O[0]].gate.say+'. The other goes '+BIO[O[1]].gate.say+'.'],[1,'Which one? Which one?']]; }
+function restPathLines(){ if(fork.site===0) return REST_PATHS.concat(forkMemory()); const O=optionsAt(fork.site);
+  return forkMemoryAfter([[1,pick(['June! Two paths again!','Look, June! The trail can\'t make up its mind again.'])],[0,'One goes '+BIO[O[0]].gate.say+'. The other goes '+BIO[O[1]].gate.say+'.'],[1,'Which one? Which one?']]); }
+function forkMemoryAfter(lines){ const m=forkMemory(); return m.length?lines.slice(0,-1).concat(m):lines; }
 /* the player taps one of the two buttons */
 function chooseTrail(c){
   if(mode!=='rest'||!rest.ready||rest.leaving) return;
@@ -2551,12 +2556,12 @@ function onGateObstacle(){ narrate(choice<0?'The branches hung low, and the sist
 function onReveal(){
   remember('places',legKey(fork.site));
   if(fork.site){ const key=legKey(fork.site), R=BIO[key].reveal; hushBubbles(); startGust(GUSTS[key]||FALLEN,party.s); Music.gust(); revealT=0; speakIn=16;
-    narrate(R.narr); playScript(R.lines); showCaption({t:R.t,b:R.b}); EVT.inT=Math.max(EVT.inT,26); return; }
+    narrate(R.narr); playScript(R.lines.concat(placeMemory(key))); showCaption({t:R.t,b:R.b}); EVT.inT=Math.max(EVT.inT,26); return; }
   hushBubbles(); startGust(choice,party.s); Music.gust(); revealT=0; speakIn=16;
   narrate(choice<0?'And then the dark was behind them, and the whole world turned white and gold.':'And then the dark was behind them, and the whole world was the color of a campfire.');
   const lines=choice<0?[[1,'WHOA.'],[0,'An aspen grove! Look at all the white trunks.'],[1,'The leaves are clapping for us!']]
     :[[1,'June. JUNE. Everything is orange!'],[0,'The autumn woods. It\'s like walking into a sunset.'],[1,'It\'s raining leaves!']];
-  playScript(lines);
+  playScript(lines.concat(placeMemory(legKey(0))));
   showCaption(choice<0?{t:'The aspen grove',b:'Slim white trunks, and gold leaves that shiver in the smallest breeze.'}:{t:'The autumn woods',b:'Red, orange and gold, with leaves drifting down like slow confetti.'});
   EVT.inT=Math.max(EVT.inT,26);
 }
@@ -3193,7 +3198,7 @@ function leaveFalls(){ fallsS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -3389,12 +3394,86 @@ function speak(line,i){ if(i===undefined) i=Math.random()<0.5?0:1;
   if(Array.isArray(line)) script.push([i,line[0]],[1-i,line[1]]); else script.push([i,line]); }
 const quiet=()=>!curLine&&!script.length;
 function sayIf(b,text){ if(quiet()) say(BRAINS.indexOf(b),text); }
+/* ---------- what the girls remember ---------- */
+/* On a later hike the sisters know things: the facts already in the book, the places they have been, the friends they have brought home, the
+   notes Dad left. What they knew when this hike began is noted down at the start, and it changes what they say and do along the way. Pip
+   remembers most of each fact, in her own words, and usually goes to have a look at the thing itself. */
+let known={facts:[],places:[],friends:[],notes:[],top:false,secret:false}; const knowUsed=new Set();
+function recall(){ known={facts:found.slice(),places:saved.places.slice(),friends:saved.friends.slice(),notes:saved.notes.slice(),top:saved.top,secret:saved.secret}; knowUsed.clear(); }
+const knowAt=()=>({[TRAILK]:['home','deep'],[TREES]:['home','deep'],[FLOORK]:['home','deep'],[GULLYK]:['deep'],[ABOVE]:['home','aspen','autumn'],[ASPENK]:['aspen'],[AUTK]:['autumn'],[WINK]:['winter'],[WHEATK]:['grass'],[MARSHK]:['marsh'],[ALPK]:['alpine'],[GLOWK]:['glow'],[GIANTK]:['giant'],[PONDK]:['pond'],[CRYSK]:['crystal'],[SKYK]:['mtn','sky']});   /* (built when asked for: the chapter names are declared further down) */
+/* who speaks first (0 June, 1 Pip), what the two of them say, and what the speaker does about it */
+const KNOW={
+  tree:[1,['I\'m going to count this stump\'s birthdays.','One ring for every year. Go on, then.'],'crouch'],
+  leaves:[1,['The yellow was hiding in there all summer!','Under the green. You remembered.'],'point'],
+  pine:[1,['Pine cones can tell the weather. This one says... dry.','It\'s open, so it\'s right.'],'scoop'],
+  mushroom:[1,['Hello, wood wide web! Tell the trees we said hi.','And we never, ever eat it.'],'crouch'],
+  moss:[1,['Moss is older than the dinosaurs. Be polite to it.','Good morning, moss.'],'crouch'],
+  flower:[1,['The flowers have secret stripes that only bees can see.','Like a runway. Bzzz, coming in to land.'],'crouch'],
+  sign:[1,['As long as we can see the next marker, we\'re not lost.','That\'s the rule.'],'point'],
+  birds:[0,['Hear that? Each one is saying "this tree is mine."','That one is saying it the LOUDEST.'],'look'],
+  canopy:[1,['The trees are hogging all the sunshine up there.','That\'s why it\'s so cool down here.'],'look'],
+  sunbeam:[1,['I can see the beams because of the mist. Light needs something to bump into.','Exactly right.'],'point'],
+  mountain:[1,['It\'ll be colder at the top. Six degrees for every thousand steps.','Every thousand meters. But yes.'],'point'],
+  aspen:[1,['They\'re all ONE tree, June. One tree with a million legs.','One set of roots. Say hi to all of it.'],'wave'],
+  quake:[1,['Flat stalks! That\'s why the leaves shiver.','Like little ribbons.'],'look'],
+  bark:[1,['The white comes off on my hand. Tree sunscreen!','Don\'t use it all.'],'scoop'],
+  eye:[1,['The trees are looking at us. But it\'s only where branches used to be.','Wave anyway. To be safe.'],'wave'],
+  shoot:[1,['This baby one will be taller than me by next summer.','Most things will, Pip.'],'crouch'],
+  red:[1,['Red leaves are made of leftover sugar.','The same red as cherries.'],'point'],
+  leaffall:[1,['The trees are letting go on purpose. They put in a tiny cork.','And keep the good stuff for spring.'],'look'],
+  samara:[1,['Helicopter seed! Watch it spin!','It\'s trying to get far away from home.'],'hop'],
+  acorn:[1,['A squirrel forgot this one. So now it gets to be a tree.','Squirrels are accidental gardeners.'],'crouch'],
+  litter:[1,['There are a zillion tiny things eating this pile.','Turning it into soil. Mind where you step.'],'crouch'],
+  snowflake:[1,['Six sides! Every single one! I checked three.','Check a hundred. Still six.'],'scoop'],
+  hush:[1,['The snow is eating the sound.','It\'s full of tiny pockets of air.'],'look'],
+  breath:[1,['I\'m making clouds. Small ones.','Same recipe as the big ones.'],'hop'],
+  wheat:[1,['This is basically a field of spaghetti.','Before it\'s spaghetti. But yes.'],'scoop'],
+  ripple:[1,['That wave is the wind showing us where it\'s going.','Here it comes!'],'point'],
+  apple:[1,['There\'s a star inside every one. I don\'t even have to cut it. I KNOW.','Five points.'],'point'],
+  reeds:[1,['Thank you, reeds, for cleaning the water.','They do work hard.'],'wave'],
+  frog:[1,['Frogs drink with their SKIN.','So they\'re always having a drink.'],'crouch'],
+  marshmist:[1,['The mist is because the water stayed warm and the air didn\'t.','It\'ll go when the sun finds it.'],'look'],
+  treeline:[1,['The little bendy trees are called crumble-holz.','Krummholz. But I like yours better.'],'point'],
+  cushion:[1,['The flowers are keeping warm in a huddle.','Out of the wind. Clever flowers.'],'crouch'],
+  cairn:[1,['I\'m NOT adding a stone. Somebody might go the wrong way.','Good remembering.'],'point'],
+  biolum:[1,['Bio-loomy-nessence! Light with no heat in it.','Bioluminescence. You were close.'],'crouch'],
+  firefly:[1,['They\'re talking in flashes. That one said hello.','What did you say back?'],'wave'],
+  moonlight:[1,['The Moon is only borrowing the sunshine.','And lending it to us.'],'look'],
+  daisy:[1,['This daisy is a whole crowd of flowers.','Hello, everybody.'],'look'],
+  spores:[1,['There\'s dust coming out from under the roof. Baby mushrooms!','Spores. Millions of them.'],'look'],
+  blades:[1,['Grass grows from the bottom. That\'s why goats can never win.','Or lawnmowers.'],'look'],
+  mirror:[1,['The water is being a mirror because nobody is wiggling it.','Then don\'t wiggle it.'],'crouch'],
+  lily:[1,['Lily pads are full of air. Like tiny boats.','Boats with a flower on top.'],'point'],
+  willow:[1,['Willows are thirsty. That\'s why they live here.','And they hold the bank together.'],'look'],
+  crystal:[1,['They grow by stacking. Very, very, very slowly.','The most patient building blocks in the world.'],'crouch'],
+  geode:[1,['Any of these rocks could have crystals inside. ANY of them.','We are not cracking them all open.'],'scoop'],
+  prism:[1,['My flashlight has all the colors in it. The crystal just sorts them out.','Like a rainbow does.'],'point'],
+  fog:[1,['We\'re inside a cloud. I\'m going to eat some.','It\'s only tiny drops. Go ahead.'],'hop'],
+  cloudsea:[1,['The clouds are stuck under a lid of warm air.','So we get to look down on them.'],'look'],
+  aurora:[1,['The Sun is throwing sparkles at the Earth\'s magnet.','That\'s... actually about right.'],'look']};
+function knowLine(){ if(!known.facts.length||Math.random()>0.45||gateK(party.s)>0.2||party.rest>0) return false;
+  const here=bioKeyAt(party.s)||(party.s>57?'deep':'home'), KNOW_AT=knowAt(), c=known.facts.filter(f=>KNOW[f]&&!knowUsed.has(f)&&(KNOW_AT[FACTS[f].kicker]||[]).includes(here)&&(f!=='fog'||hillMistK(party.s)>0.6));
+  if(!c.length) return false; const f=pick(c), K=KNOW[f], b=BRAINS[K[0]]; knowUsed.add(f); speak(K[1],K[0]);
+  if(!b.cur&&!b.queue.length){ const hd=heading(party.s), pose=K[2];   /* and she goes to see it for herself */
+    if(pose==='hop'||pose==='wave'||pose==='spin') b.queue.push({k:'pose',pose,dur:2.4,face:hd});
+    else { const sd=b.d<0?-1:1, at=party.s+4.2; b.queue.push({k:'walk',to:pt(at,sd*1.8),speed:1.75},{k:'pose',pose,dur:3.6,face:heading(at)+sd*(pose==='look'?0.5:1.35)}); } }
+  return true; }
+/* arriving somewhere: have they been here before? */
+function placeMemory(key){ if(!known.places.length) return [];
+  return known.places.includes(key)?pick([[[1,'I remember this place!'],[0,'I think it remembers you too.']],[[1,'We\'ve been here before! I know where everything is.'],[0,'Lead the way, then.']],[[0,'Here again. It\'s just as good the second time.'],[1,'Better. I know where to look.']]])
+    :[[1,'We have NEVER been here before.'],[0,'One more place for Dad\'s map.']]; }
+/* at a fork: which ways have they already tried? */
+function forkMemory(){ const O=optionsAt(fork.site), been=O.map(k=>known.places.includes(k)), way=k=>fork.site===0?'into the '+(k==='autumn'?'autumn woods':'aspen grove'):BIO[k].gate.say.replace(/\b(those|that)\b/,m=>m==='those'?'the':'the');
+  if(been[0]&&been[1]) return [[0,'We\'ve been both ways from here.'],[1,'Then I get to pick my favorite!']];
+  if(been[0]||been[1]) return [[0,'Last time we went '+way(O[been[0]?0:1])+'.'],[1,'So the other way is brand new!']];
+  return []; }
 function chatter(){
   if(mode==='rest'){ if(rest.phase===2||rest.phase===4) speak(nextLine('rest',REST_LINES)); return; }
   if(mode==='summit'){ speak(nextLine('summit',SUMMIT_LINES)); return; }
   if(mode==='home'){ if(home.phase<1) speak(nextLine('home',HOME_LINES)); return; }
   if(mode==='moon'){ speak(nextLine('moon',MOON_LINES)); return; }
   if(mode==='cave'||mode==='falls'||riverAsk) return;
+  if(knowLine()) return;   /* something they learned on an earlier hike */
   { const k=bioKeyAt(party.s), ls=k==='aspen'?ASPEN_LINES:k==='autumn'?AUTUMN_LINES:BIO[k]&&BIO[k].lines;   /* things to say about wherever they are */
     if(ls&&gateK(party.s)<0.2&&Math.random()<(BIO[k].tree?0.75:0.5)){ speak(nextLine(k,ls)); return; } }
   speak(nextLine('trail',TRAIL_LINES));
