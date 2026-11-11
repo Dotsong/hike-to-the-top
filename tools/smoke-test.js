@@ -56,7 +56,12 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
     await p.evaluate(m=>window.hikeDebug.walkTo(m),at);
     await p.waitForFunction(()=>window.hikeDebug.mode()==='rest'&&window.hikeDebug.ready()&&!document.getElementById('forkDock').hidden,null,{timeout:120000});
     if(await p.evaluate(()=>window.hikeDebug.site())!==i) errs.push('rest site '+(i+1)+' was not reached');
-    if(!await p.evaluate(()=>document.getElementById('dadNoteText').textContent.length>20)) errs.push('no note from Dad at rest site '+(i+1));
+    // Dad's note: its question-mark button is hidden from the usual view, shows when the camera is turned to the right side, and picking it up shows the note
+    if(await p.evaluate(()=>window.hikeDebug.noteShown())) errs.push('the note button was showing without turning the camera, at rest site '+(i+1));
+    if(i===1){ await p.evaluate(()=>window.hikeDebug.turnToNote()); await p.waitForFunction(()=>window.hikeDebug.noteShown(),null,{timeout:8000}).catch(()=>errs.push('the note button never appeared after turning the camera'));
+      await p.evaluate(()=>document.getElementById('noteBtn').click());
+      await p.waitForFunction(()=>document.getElementById('dadNote').classList.contains('show')&&document.getElementById('dadNoteText').textContent.length>20,null,{timeout:30000}).catch(()=>errs.push('picking up the note did not show it'));
+      await p.waitForTimeout(3000); }
     await p.screenshot({path:require('os').tmpdir()+'/hike-dock-'+ROUTE+'-'+i+'.png'});
     await p.evaluate(id=>document.getElementById(id).click(),ROUTE[i]==='L'?'autumnBtn':'aspenBtn');
     await p.waitForFunction(()=>window.hikeDebug.mode()==='trail'&&window.hikeDebug.stage()===3,null,{timeout:20000});
@@ -106,7 +111,7 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   await p.evaluate(()=>document.getElementById('foundAll').click()); await p.reload(); await p.waitForTimeout(900);
   if(!await p.evaluate(()=>{ const j=JSON.parse(window.hikeDebug.saved()); return j.places.length===10&&j.friends.length===4&&j.sites.length===7&&j.top; })) errs.push('"Mark everything as found" did not stick');
   await p.evaluate(()=>document.getElementById('foundNone').click());
-  if(await p.evaluate(()=>window.hikeDebug.saved())!=='{"places":[],"friends":[],"sites":[],"top":false,"secret":false}') errs.push('"Forget all progress" did not clear it');
+  if(await p.evaluate(()=>window.hikeDebug.saved())!=='{"places":[],"friends":[],"sites":[],"notes":[],"top":false,"secret":false}') errs.push('"Forget all progress" did not clear it');
   await p.evaluate(b=>{ localStorage.setItem('trail-to-the-top-found',b); },before).catch(()=>{}); await p.reload(); await p.waitForTimeout(900);
   await p.click('#splashBtn'); await p.waitForTimeout(1500); await p.click('#beginBtn'); await p.waitForTimeout(2500);
   await p.evaluate(()=>document.getElementById('goodnightBtn').click()); await p.waitForTimeout(1600);

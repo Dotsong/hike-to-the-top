@@ -575,9 +575,9 @@ const trailX=s=>x0(s)+choice*spread(s-FORK);       /* the path the girls are on 
 const SITES=[{rest:REST_C,a:GATE_A,b:GATE_B},{rest:250,a:276,b:288},{rest:398,a:424,b:436}];
 const MTN=500, HILL_B=MTN+72, BOULDER_S=MTN+59, SKY_A=HILL_B+60, SKY_B=SKY_A+15, TOP_A=SKY_B+92, TOP_B=TOP_A+12;
 /* Between the last of the three places and the mountain trail there is a steep hill (MTN to HILL_B). The trail climbs it in switchbacks,
-   the place below thins out into bare rock on the way up, near the top it runs into a bank of mist with a boulder across it to be climbed
-   over, and beyond the boulder the mist clears and the mountain trail proper begins. */
-const hillMistK=s=>smooth(MTN+40,MTN+49,s)*(1-smooth(BOULDER_S+3,HILL_B+2,s));
+   the place below thins out into bare rock on the way up, about halfway up the mist settles over everything, near the top there is a
+   boulder across the trail to be climbed over, and beyond the boulder the mist clears and the mountain trail proper begins. */
+const hillMistK=s=>smooth(MTN+24,MTN+35,s)*(1-smooth(BOULDER_S+3,HILL_B+2,s));
 const GA=[GATE_A,276,424,SKY_A,TOP_A], GB=[GATE_B,288,436,SKY_B,TOP_B], BOUNDS=[GATE_B,288,436,MTN,SKY_B];   /* where each gateway starts and ends, and where each new place begins */
 const VILLAGE_Z=466;   /* each of the last four places has a village, here */
 const picks=[0,0,0];   /* what was chosen at each rest site: 1 the left-hand button, -1 the right-hand one */
@@ -1768,6 +1768,7 @@ function updateParty(dt){
     else { party.restIn-=dt; if(party.restIn<=0&&!nearStop(30)&&gateK(party.s)<0.05&&!juneB.cur&&!pipB.cur&&!juneB.queue.length&&!pipB.queue.length&&quiet()) startRest(); }
   }
   if(state.started&&fork.site===2&&fork.stage===4&&!fork.village&&party.rest<=0&&party.s>=VILLAGE_Z-3.5&&party.s<VILLAGE_Z+5){ fork.village=true; onVillage(); }   /* the village: stop and say hello */
+  if(state.started&&fork.site===2&&fork.stage===4&&!fork.cloud&&party.s>=MTN+26&&party.s<MTN+50){ fork.cloud=true; onCloud(); }   /* halfway up the hill: the mist settles */
   if(state.started&&fork.site===2&&fork.stage===4&&fork.tail<7&&party.s>=TAIL_AT[fork.tail]) onTail(TAIL_EV[fork.tail++]);   /* the mountain trail, the mist, the sky garden, the last cave, the top */
   if(state.started&&fork.stage===3&&!fork.entered&&party.s>=SITES[fork.site].a-2){ fork.entered=true; onGateEnter(); }
   if(state.started&&fork.site===0&&fork.stage===3&&!fork.gateEvt&&party.s>=GATE_OB-2){ fork.gateEvt=true; onGateObstacle(); }
@@ -2152,7 +2153,7 @@ function backToStart(){
 }
 function resetHike(){
   if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); if(mode==='moon') leaveMoon(); if(mode==='cave') leaveCave(); if(mode==='falls') leaveFalls(); riverAsk=0; forceRiver=false; $('riverDock').hidden=true; forceSecret=false; $('homeDock').hidden=true; $('phoneDock').hidden=true; $('endDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
-  clearPrints(); fork.village=false; choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
+  note.found=0; clearPrints(); fork.village=false; fork.cloud=false; choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
 }
 /* ---------- zone select (for testing): jump straight to any place on the mountain ---------- */
@@ -2176,7 +2177,7 @@ function warp(name,s,p,tail){
   if(s==='river'){ forceRiver=true; s=33; }   /* a few steps before the river, with the crossing allowed */
   if(s==='falls'){ party.s=39; placeGirls(); enterFalls(); return; }
   if(s==='home'){ fork.site=2; fork.stage=4; fork.tail=7; fork.village=true; party.s=TOP_B-3; placeGirls(); enterHome(); return; }
-  fork.village=s>VILLAGE_Z+5; fork.river=s>=39; fork.deepSaid=s>=57; fork.hopSaid=s>60; fork.entered=true; fork.gateEvt=n>1||s>GATE_OB;
+  fork.village=s>VILLAGE_Z+5; fork.cloud=s>MTN+30; fork.river=s>=39; fork.deepSaid=s>=57; fork.hopSaid=s>60; fork.entered=true; fork.gateEvt=n>1||s>GATE_OB;
   party.s=s; party.v=party.vT=WALK; party.restIn=60+Math.random()*30; lookBack=s<5?1:0; hikeT=s<5?0:99;
   placeGirls(); groundRow=forestRow=null; camHd=heading(s); EVT.inT=20; speakIn=6;
   if(fork.stage===3) onGateEnter();
@@ -2223,8 +2224,28 @@ const DAD_NOTES={
   marsh:'The wood path goes over water for miles. A frog said good morning to me. I think. I am not telling anybody, because nobody would believe it.',
   alpine:'I shouted HELLO and the mountain shouted back something DIFFERENT. I do not understand this mountain at all. Nobody will believe me.'};
 const noteEl=$('dadNote'); let noteT=0;
+/* The note is something to be found. It lies on the ground just behind the left-hand end of the seat, where the usual view of the rest site
+   never shows it. Turn the camera round to that side and a small button with a question mark appears over it; press that, and Pip goes
+   and picks it up. (state: 0 lying there, 1 Pip is fetching it, 2 found.) */
+const NOTE_AT=new THREE.Vector3(-2.15,0.12,-0.75), NOTE_TH=-1.9, NOTE_WIDE=0.42, note={state:0,k:0,found:0};
+const noteMark=document.createElement('div'); noteMark.className='fm'; noteMark.hidden=true;
+{ const b=document.createElement('button'); b.type='button'; b.className='fm-btn'; b.id='noteBtn'; b.style.setProperty('--tint','#c9a03c'); b.setAttribute('aria-label','Something is lying here. Pick it up.');
+  b.innerHTML='<svg class="bi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" style="fill:var(--tint)"/><path d="M9 9.2a3.1 3.1 0 1 1 4.6 2.7c-1 .6-1.6 1.2-1.6 2.4" fill="none" stroke="#fffaf0" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1.3" fill="#fffaf0"/></svg><span class="lbl">What is that?</span>';
+  b.addEventListener('pointerdown',e=>e.stopPropagation()); b.addEventListener('click',e=>{ e.stopPropagation(); pickUpNote(); }); noteMark.appendChild(b); $('marks').appendChild(noteMark); }
+function pickUpNote(){ if(mode!=='rest'||!rest||note.state!==0||rest.leaving||rest.phase<2) return; note.state=1; noteMark.hidden=true; hushBubbles(); speakIn=30;
+  pipB.queue.length=0; pipB.cur=null; pipB.queue.push({k:'walk',to:[NOTE_AT.x+0.45,NOTE_AT.z+0.1],speed:1.3},{k:'pose',pose:'crouch',dur:2.2,face:-1.6,note:true},{k:'pose',pose:'hop',dur:1.4,face:0.6});
+  juneB.queue.length=0; juneB.cur=null; juneB.queue.push({k:'pose',pose:'sitlook',dur:6,face:-2.2});
+  playScript([[1,'June! There\'s something back here!']]); }
+function updateNoteMark(th){
+  if(note.state===1&&pipB.cur&&pipB.cur.note&&pipB.t>1.1){ note.state=2; note.found++; if(rest.paper) rest.paper.visible=false; const key=fork.site?legKey(fork.site-1):'deep'; remember('notes',key); showDadNote(key);
+    narrate('It was a scrap of paper, soft with age, in handwriting they both knew. Somebody had been here before them.');
+    playScript([[1,'It\'s a note!'],[0,'That\'s Dad\'s writing. From when he was little!'],[1,pick(['He saw it TOO!','He was here! Right here!','Dad had adventures?!'])],[0,'Keep it safe, Pip. We\'re showing him at dinner.']]); speakIn=20; }
+  let d=th-NOTE_TH; d=Math.abs(Math.atan2(Math.sin(d),Math.cos(d))); const want=note.state===0&&rest.phase>=2&&!rest.leaving&&!paused&&d<NOTE_WIDE?1:0;   /* only from round that side */
+  note.k=damp(note.k,want,6,0.05); const on=note.k>0.05; noteMark.hidden=!on; if(!on) return;
+  mv.copy(NOTE_AT); mv.y+=0.95; mv.project(camera); noteMark.style.transform=`translate3d(${((mv.x*0.5+0.5)*innerWidth).toFixed(1)}px,${((-mv.y*0.5+0.5)*innerHeight).toFixed(1)}px,0)`; noteMark.style.opacity=note.k.toFixed(2);
+}
 function showDadNote(key){ if(!DAD_NOTES[key]) return; $('dadNoteText').textContent=DAD_NOTES[key]; noteEl.classList.add('show'); noteT=15; }
-function hideDadNote(){ noteT=0; noteEl.classList.remove('show'); }
+function hideDadNote(){ noteT=0; noteEl.classList.remove('show'); noteMark.hidden=true; }
 function buildRest(si){
   const LK=si>0?REST_LOOKS[legKey(si-1)]:null, KIT=kitFor(si);   /* later rest sites stand in whichever place the girls have reached, and look like it */
   let sd=4242; const r=()=>{ sd=(sd*16807)%2147483647; return (sd-1)/2147483646; };
@@ -2345,6 +2366,7 @@ function buildRest(si){
   if(si===0){ tunnelMark(PATHS[1],DARKS); archMark(PATHS[2],['#8b8f8a','#9a9a94','#7d807c','#a6a39a']); }
   else { const O=optionsAt(si), mark=(P1,key)=>{ const G=BIO[key].gate; if(G.kind==='arch') archMark(P1,G.rock,G.glow); else tunnelMark(P1,G.pal); }; mark(PATHS[1],O[1]); mark(PATHS[2],O[0]); }
 
+  const paper=new THREE.Mesh(new THREE.PlaneGeometry(0.34,0.26),new THREE.MeshLambertMaterial({color:0xf6ead0,side:THREE.DoubleSide})); paper.position.copy(NOTE_AT); paper.position.y=restFloor(NOTE_AT.x,NOTE_AT.z)+0.03; paper.rotation.set(-1.45,0,0.5); sc.add(paper);   /* Dad's note, lying where it fell */
   /* sunbeams, mist and butterflies */
   const bm=beamMat.clone(), pm=poolMat.clone(); bm.opacity=0.2; pm.opacity=0.24;
   REST_KIT.beams.forEach(([x,z,w])=>{
@@ -2357,7 +2379,7 @@ function buildRest(si){
     const wl=new THREE.Mesh(wingGeo,m), wr=new THREE.Mesh(wingGeo,m); wr.scale.x=-1; g.add(wl,wr); g.scale.set(0.34,0.34,0.7); sc.add(g); return {g,wl,wr,x,z,ph:r()*6}; });
 
   const SHARED=new Set([trunkGeo,blobGeo,coneGeo,rockGeo,stemGeo,capGeo,petalGeo,leafGeo,logGeo,beamGeo,poolGeo,wingGeo]);
-  return {scene:sc,
+  return {scene:sc,paper,
     update(dt,t){
       rsky.position.copy(camera.position);
       bm.opacity=0.19+0.035*Math.sin(t*0.7); pm.opacity=bm.opacity*1.2;
@@ -2396,7 +2418,7 @@ function updateRestBrain(b,dt){
 function enterRest(){
   const tok=++restToken; $('fade').classList.add('on');
   setTimeout(()=>{ if(tok!==restToken||!state.started) return;
-    setDock(fork.site); rest=buildRest(fork.site); Object.assign(rest,{t:0,phase:0,t2:0,ready:false,canAct:false,leaving:null,th:0.6,cam0:camTheta,focus:0,fx:0,fk:0});
+    note.state=0; note.k=0; setDock(fork.site); rest=buildRest(fork.site); Object.assign(rest,{t:0,phase:0,t2:0,ready:false,canAct:false,leaving:null,th:0.6,cam0:camTheta,focus:0,fx:0,fk:0});
     scene.remove(june.g,pip.g); rest.scene.add(june.g,pip.g); june.pack.visible=pip.pack.visible=false;
     mode='rest'; landY=()=>0; zoom=1; userPhi=0;
     BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(REST_SEATS[i][0],1.3+i*0.4); b.face=b.faceT=Math.PI; b.actIn=7+i*5+Math.random()*4; });   /* standing in front of the log, about to sit down */
@@ -2408,10 +2430,8 @@ function updateRest(dt,rawDt){
   BRAINS.forEach(b=>updateRestBrain(b,dt));
   /* the scene: sit down and sigh, look around for a while, notice the two paths, then the buttons appear */
   if(rest.phase===0&&rest.t>4.5){ rest.phase=1; playScript(REST_ARRIVE); }
-  else if(rest.phase===1&&rest.t>8&&quiet()){ rest.phase=2; rest.t2=rest.t; rest.canAct=true; speakIn=20;   /* Pip finds a note of Dad's about the place they have just come through */
-    narrate('Tucked under the seat was a scrap of paper, soft with age. Somebody had been here before them.'); showDadNote(fork.site?legKey(fork.site-1):'deep');
-    playScript([[1,'June! There\'s a note under here!'],[0,'That\'s Dad\'s writing. From when he was little!'],[1,pick(['He saw it TOO!','He was here! Right here!','Dad had adventures?!'])],[0,'Keep it safe, Pip. We\'re showing him at dinner.']]); }
-  else if(rest.phase===2&&rest.t>rest.t2+19){ rest.canAct=false; if(quiet()&&!BRAINS.some(b=>b.cur||b.queue.length)){ rest.phase=3; narrate(fork.site?'And once again, the trail had two ideas about where to go next.':'Then Pip noticed something. The trail had two ideas about where to go next.'); playScript(restPathLines());
+  else if(rest.phase===1&&rest.t>8&&quiet()){ rest.phase=2; rest.t2=rest.t; rest.canAct=true; speakIn=6; narrate('For a while nobody said anything important. That is what rest sites are for.'); }
+  else if(rest.phase===2&&rest.t>rest.t2+12&&!(note.state===1)){ rest.canAct=false; if(quiet()&&!BRAINS.some(b=>b.cur||b.queue.length)){ rest.phase=3; narrate(fork.site?'And once again, the trail had two ideas about where to go next.':'Then Pip noticed something. The trail had two ideas about where to go next.'); playScript(restPathLines());
       pipB.queue.push({k:'pose',pose:'sitpoint',dur:5,face:0}); juneB.queue.push({k:'pose',pose:'sit',dur:3},{k:'pose',pose:'sitlook',dur:4,face:0}); } }
   else if(rest.phase===3&&quiet()){ rest.phase=4; rest.ready=true; rest.canAct=true; speakIn=9; $('forkDock').hidden=false; }
   if(rest.leaving){ const lv=rest.leaving; lv.t+=dt;   /* off they go: a few steps toward the chosen path, then fade back to the trail */
@@ -2433,7 +2453,7 @@ function updateRest(dt,rawDt){
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
   target.set(0.05,1.05,0.4); camera.position.copy(target).add(off); if(camera.position.y<0.6) camera.position.y=0.6;
   if(fk>0.001){ look.set(Math.sin(rest.fx*0.6)*19,1.9,Math.cos(0.6)*19); target.lerp(look,0.5*fk); }
-  camera.lookAt(target);
+  camera.lookAt(target); rest.thNow=th; updateNoteMark(th);
 }
 let chirpRest=3;
 function hideFork(){ $('forkDock').hidden=true; }
@@ -2677,10 +2697,11 @@ function updateSummit(dt,rawDt){
 }
 function leaveSummit(){ $('homeDock').hidden=true; june.g.scale.setScalar(june.scale); pip.g.scale.setScalar(pip.scale); june.g.rotation.z=pip.g.rotation.z=0; bubbles[2].head=nobody.head; bubbles[2].root=nobody.g; summit.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); summit.dispose(); summit=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
 /* the last stretch: the mountain trail, the mist, the sky garden, the last cave, the top */
+function onCloud(){ narrate('About halfway up, the cloud came down and settled over them, soft and white, until the hill was only as big as the next few steps.'); tell([[1,'June? Where did everything go?'],[0,'It\'s only cloud. Keep to the path, and keep climbing.']]); }
 function onTail(what){
   if(what==='hill'){ narrate('And there the ground simply stood up. The trail did not go round the hill, or through it. It went up it, this way and that.'); playScript([[1,'It goes STRAIGHT UP.'],[0,'It zigzags. That\'s how you climb something steep.'],[1,'Zig. Zag. Zig.']]); speakIn=16;
     showCaption({t:'The steep climb',b:'Switchbacks up a hill so high that its top is lost in cloud.'}); return; }
-  if(what==='boulder'){ narrate('Near the top the cloud came down to meet them, and in the middle of the cloud, right across the trail, sat a boulder.'); playScript([[0,'I can hardly see. Hold on... there\'s a rock in the way.'],[1,'Over it! I\'ll go first!'],[0,'Hands and knees, Pip.']]); speakIn=14; return; }
+  if(what==='boulder'){ narrate('And then, right across the trail in the middle of all that white, sat a boulder.'); playScript([[0,'I can hardly see. Hold on... there\'s a rock in the way.'],[1,'Over it! I\'ll go first!'],[0,'Hands and knees, Pip.']]); speakIn=14; return; }
   if(what==='trail'){ narrate('Higher still, the path turned to stone and the air grew thin and bright.'); showCaption({t:'The mountain trail',b:'The cloud is behind them now. Bare stone, thin bright air, and the top not far off.'}); }
   else if(what==='mist'){ playScript(BIO.sky.gate.enter); speakIn=14; narrate('Then the cloud closed round them, soft and white and very quiet.'); }
   else if(what==='sky'){ const R=BIO.sky.reveal; hushBubbles(); startGust(BIO.sky.fall,party.s); Music.gust(); revealT=0; speakIn=16; narrate(R.narr); playScript(R.lines); showCaption({t:R.t,b:R.b}); }
@@ -2695,15 +2716,16 @@ let home=null;
    will not keep it, the game simply forgets between visits.) */
 const SAVE_KEY='trail-to-the-top-found', ALL_PLACES=['aspen','autumn','winter','grass','marsh','alpine','glow','giant','pond','crystal'], ALL_FRIENDS=['glow','giant','pond','crystal'];
 const ALL_SITES=['R1','RA','RB','RW','RG','RM','RL'];   /* the crossroads, by their names on the map */
-let saved={places:[],friends:[],sites:[],top:false,secret:false}, forceSecret=false, forceRiver=false;
-try{ const j=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(j&&Array.isArray(j.places)&&Array.isArray(j.friends)) saved={places:j.places.filter(k=>ALL_PLACES.includes(k)),friends:j.friends.filter(k=>ALL_FRIENDS.includes(k)),sites:(Array.isArray(j.sites)?j.sites:[]).filter(k=>ALL_SITES.includes(k)),top:!!j.top,secret:!!j.secret}; }catch(e){}
+const ALL_NOTES=['deep','aspen','autumn','winter','grass','marsh','alpine'];
+let saved={places:[],friends:[],sites:[],notes:[],top:false,secret:false}, forceSecret=false, forceRiver=false;
+try{ const j=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(j&&Array.isArray(j.places)&&Array.isArray(j.friends)) saved={places:j.places.filter(k=>ALL_PLACES.includes(k)),friends:j.friends.filter(k=>ALL_FRIENDS.includes(k)),sites:(Array.isArray(j.sites)?j.sites:[]).filter(k=>ALL_SITES.includes(k)),notes:(Array.isArray(j.notes)?j.notes:[]).filter(k=>ALL_NOTES.includes(k)),top:!!j.top,secret:!!j.secret}; }catch(e){}
 function storeFound(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(saved)); return true; }catch(e){ return false; } }
-function showFound(){ const el=$('foundNow'); if(el) el.textContent=`Places found: ${saved.places.length} of 10. Friends brought home: ${saved.friends.length} of 4. Crossroads on the map: ${saved.sites.length} of 7.`+(secretReady()?' The secret ending is unlocked: finish any hike and the telephone will ring.':'')+(saved.secret?' The secret ending has been seen: on the next hike the river can be crossed.':''); }
+function showFound(){ const el=$('foundNow'); if(el) el.textContent=`Places found: ${saved.places.length} of 10. Friends brought home: ${saved.friends.length} of 4. Crossroads on the map: ${saved.sites.length} of 7. Dad's notes: ${saved.notes.length} of 7.`+(secretReady()?' The secret ending is unlocked: finish any hike and the telephone will ring.':'')+(saved.secret?' The secret ending has been seen: on the next hike the river can be crossed.':''); }
 /* for testing: set every flag the secret ending needs, or clear them all */
-$('foundAll').addEventListener('click',()=>{ saved={places:ALL_PLACES.slice(),friends:ALL_FRIENDS.slice(),sites:ALL_SITES.slice(),top:true,secret:saved.secret}; const ok=storeFound(); showFound(); if(!ok) $('foundNow').textContent+=' (This browser would not save it, so it lasts only until the page is closed.)'; });
-$('foundNone').addEventListener('click',()=>{ saved={places:[],friends:[],sites:[],top:false,secret:false}; storeFound(); showFound(); });
+$('foundAll').addEventListener('click',()=>{ saved={places:ALL_PLACES.slice(),friends:ALL_FRIENDS.slice(),sites:ALL_SITES.slice(),notes:ALL_NOTES.slice(),top:true,secret:saved.secret}; const ok=storeFound(); showFound(); if(!ok) $('foundNow').textContent+=' (This browser would not save it, so it lasts only until the page is closed.)'; });
+$('foundNone').addEventListener('click',()=>{ saved={places:[],friends:[],sites:[],notes:[],top:false,secret:false}; storeFound(); showFound(); });
 $('foundSecret').addEventListener('click',()=>{ saved.secret=true; storeFound(); showFound(); });
-function remember(kind,key){ if(!key||!({places:ALL_PLACES,friends:ALL_FRIENDS,sites:ALL_SITES})[kind].includes(key)||saved[kind].includes(key)) return; saved[kind].push(key); storeFound(); }   /* written to the browser's storage the moment it happens */
+function remember(kind,key){ if(!key||!({places:ALL_PLACES,friends:ALL_FRIENDS,sites:ALL_SITES,notes:ALL_NOTES})[kind].includes(key)||saved[kind].includes(key)) return; saved[kind].push(key); storeFound(); }   /* written to the browser's storage the moment it happens */
 const friendsHome=()=>forceSecret?ALL_FRIENDS.slice():ALL_FRIENDS.filter(k=>saved.friends.includes(k));
 const secretReady=()=>forceSecret||ALL_PLACES.every(k=>saved.places.includes(k))&&ALL_FRIENDS.every(k=>saved.friends.includes(k));
 const PLACE_SAID={aspen:'an aspen grove, all white and gold',autumn:'the autumn woods, where it rained leaves',winter:'a forest full of SNOW',grass:'a wheat field that never ends',marsh:'a marsh with a wooden path over it',
@@ -2713,8 +2735,9 @@ function homeScript(){ const k=[0,1,2].map(i=>legKey(i)||['autumn','winter','glo
   return [[3,'So, my mountain climbers. How was it?'],[1,'We went ALL the way to the top!'],[4,'All the way up! Well done, you two. That\'s a proper walk.'],
     [0,'First we walked through '+PLACE_SAID[k[0]]+'. Then '+PLACE_SAID[k[1]]+'.'],[4,'Mm-hm. Lovely. Pass the cheese, would you, Pip?'],
     [1,'And then '+PLACE_SAID[k[2]]+'! With a VILLAGE! Of '+F.kind+'!'],[4,'A village of '+F.kind+'. Goodness. What imaginations you two have.'],
-    [0,'It isn\'t imagination, Dad. You saw it too! We found your notes. You wrote that nobody would ever believe you.'],[4,'My notes? Good grief. I wrote all sorts of stories when I was eight.'],
-    [1,'They aren\'t stories. It\'s all REAL.'],[4,'Of course it is, sweetheart. I had quite an imagination myself, once. Now eat up, before it goes cold.'],[0,F.name+' sent us home by '+F.ride+'. That\'s why we weren\'t late.'],
+    ...(note.found?[[0,'It isn\'t imagination, Dad. You saw it too! We found '+(note.found>1?'your notes':'your note')+'. You wrote that nobody would ever believe you.'],[4,'My notes? Good grief. I wrote all sorts of stories when I was eight.'],
+    [1,'They aren\'t stories. It\'s all REAL.'],[4,'Of course it is, sweetheart. I had quite an imagination myself, once. Now eat up, before it goes cold.']]
+      :[[0,'It isn\'t imagination, Dad. It\'s all on the map now. We drew it in.'],[4,'On my old map? There\'s nothing on that but a dotted line. It\'s woods, and then it\'s the top.'],[1,'That\'s because you walked in a straight line and didn\'t LOOK.'],[4,'Ha! Very likely, sweetheart. Now eat up, before it goes cold.']]),[0,F.name+' sent us home by '+F.ride+'. That\'s why we weren\'t late.'],
     [4,'Well, however you managed it, you were right on time. I\'m proud of you both.'],[3,'I think it sounds wonderful. More spaghetti?'],[1,'Yes, please.'],
     [0,'We have to tell Michelle. SHE\'ll believe us.'],[1,'Tomorrow! First thing! And Lumi, too.'],[4,'Good plan. And next time, bring me a photo of this village, hm?']]; }
 function buildHome(){
@@ -2879,7 +2902,7 @@ function updateHome(dt,rawDt){
     if(secretReady()){ home.phase=1; narrate('And then, in the corner by the hall door, the telephone began to ring. Only two people at the table heard it.'); Music.sfx('ring'); $('phoneDock').hidden=false; }
     else { const nf=friendsHome().length, np=ALL_PLACES.filter(k=>saved.places.includes(k)).length;
       narrate('Dad smiled, and went on eating. He did not look at the window. If he had, he would have seen someone small there, waving.');
-      theEnd(`Friends who have come home with you: ${nf} of 4. Places found on the mountain: ${np} of 10.`); } }
+      theEnd(`Friends who have come home with you: ${nf} of 4. Places found: ${np} of 10. Dad's notes found: ${saved.notes.length} of 7.`); } }
   if(home.phase===1){ const k=0.5+0.5*Math.sin(time*14); home.phM.emissiveIntensity=k*0.9; home.ringGlow.intensity=k*1.3; home.phone.rotation.z=Math.sin(time*40)*0.05; if(Math.floor(time/2.6)!==Math.floor((time-dt)/2.6)) Music.sfx('ring'); }
   else if(home.phase>=2){ home.phM.emissiveIntensity=0.25; home.ringGlow.intensity=0.5; home.phone.rotation.z=0; bubbles[5].head=home.phone; bubbles[5].root=home.phone;
     if(home.phase===2&&home.t>home.pt+6&&quiet()){ home.phase=3; home.pt=home.t; narrate('So Glim and Dot and Plip and Ting joined hands, more or less, and the dining room filled up with light.'); Music.gust(); }
@@ -3109,7 +3132,7 @@ function leaveFalls(){ fallsS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
