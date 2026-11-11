@@ -1898,6 +1898,30 @@ const Music=(()=>{
   const BEAT=0.55, PER=16;
   const CHORDS=[{bass:41,notes:[57,60,64,67],pcs:[5,9,0,4,7,2]},{bass:40,notes:[55,59,62,67],pcs:[4,7,11,2,9]},{bass:38,notes:[57,60,64,65],pcs:[2,5,9,0,4]},{bass:36,notes:[55,59,62,64],pcs:[0,4,7,11,2,9]}];
   const SCALE=[67,69,72,74,76,79,81,84,86,88,91];
+  /* Every place has its own version of the music. The tune and its slow chords are the same everywhere; what changes is who is playing: each
+     place turns particular instruments up or down (bells, harp, choir, flute, glass chimes, a wooden marimba, strings, a low drone), and two of
+     them change the harmony as well: the mountain trail (stranger, more open chords) and the sky garden (bright and grand). The game says
+     which place the girls are in, or which two they are between and how far across; the mix follows over a few bars, so one version melts
+     into the next. 'rise' is how close they are to the last cave: the choir grows, sopranos and basses join, and the harp plays twice as fast. */
+  const CH_MYST=[{bass:45,notes:[57,60,64,71],pcs:[9,0,4,11,2,7]},{bass:41,notes:[57,60,64,71],pcs:[5,9,0,4,11,7]},{bass:40,notes:[55,59,62,69],pcs:[4,7,11,2,9]},{bass:38,notes:[57,62,64,69],pcs:[2,9,4,0,7]}];
+  const CH_SKY=[{bass:36,notes:[60,64,67,72],pcs:[0,4,7,2,9]},{bass:35,notes:[59,62,67,74],pcs:[7,11,2,9,4]},{bass:33,notes:[57,60,64,67],pcs:[9,0,4,7,2]},{bass:41,notes:[57,60,65,67],pcs:[5,9,0,7,2,4]}];
+  const MOODS={home:{bell:1},deep:{bell:0.85,drone:0.35,glass:0.15},
+    aspen:{bell:1,glass:0.35,flute:0.45},            /* bright and airy: chimes and a flute over the bells */
+    autumn:{bell:0.8,strings:0.55,wood:0.3},         /* warm strings, a little wood */
+    winter:{bell:0.45,glass:1,choir:0.12},           /* icy glass chimes, very still */
+    grass:{bell:0.5,strings:0.7,flute:0.6,harp:0.25},/* wide open: strings and a flute */
+    marsh:{bell:0.5,wood:0.8,flute:0.3},             /* plopping marimba */
+    alpine:{bell:0.4,flute:0.9,drone:0.4},           /* one lonely flute over a drone */
+    glow:{bell:0.55,glass:0.6,choir:0.28,drone:0.3}, /* night: glass, a far-off hum of voices */
+    giant:{bell:0.5,wood:1,harp:0.3},                /* bouncy and wooden */
+    pond:{bell:0.4,harp:0.8,glass:0.45},             /* watery harp */
+    crystal:{bell:0.7,glass:1,drone:0.3},            /* all chimes */
+    mtn:{bell:0.25,glass:0.45,choir:0.32,drone:0.9,flute:0.25,myst:1},   /* ethereal and mysterious */
+    sky:{bell:0.35,harp:1,choir:0.55,strings:0.35,sky:1},               /* harps and a full choir */
+    cave:{bell:0.15,glass:0.3,drone:0.8,myst:1}};
+  const LAYERS=['bell','harp','choir','flute','glass','wood','strings','drone','myst','sky'], mix={}, tgt={}; LAYERS.forEach(l=>{ mix[l]=tgt[l]=l==='bell'?1:0; });
+  let rise=0, riseT=0, arpI=0, harpBus, choirBus, strBus, moodNow='home';
+  function mood(a,b,k,r){ const A=MOODS[a]||MOODS.home, B=MOODS[b]||A; k=k||0; LAYERS.forEach(l=>{ tgt[l]=(A[l]||0)*(1-k)+(B[l]||0)*k; }); riseT=r||0; moodNow=a+(k>0?'>'+b+':'+k.toFixed(2):'')+(r?' rise '+r.toFixed(2):''); }
   const mtof=m=>440*Math.pow(2,(m-69)/12);
   function impulse(sec,decay){const r=ctx.sampleRate,len=Math.floor(r*sec),b=ctx.createBuffer(2,len,r);
     for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}return b;}
@@ -1920,6 +1944,10 @@ const Music=(()=>{
     dl.delayTime.value=BEAT*1.5; fb.gain.value=0.38; df.type='lowpass'; df.frequency.value=2600;
     bellBus.connect(dl); dl.connect(df); df.connect(fb); fb.connect(dl); df.connect(master); df.connect(reverb);
     const bs=ctx.createGain(); bs.gain.value=0.7; bellBus.connect(bs); bs.connect(reverb);
+    /* the other players: plucked and blown things (dry, with a little hall), the choir (mostly hall), and the strings */
+    const bus=(dry,wet)=>{ const b=ctx.createGain(), d=ctx.createGain(), w=ctx.createGain(); d.gain.value=dry; w.gain.value=wet; b.connect(d); d.connect(master); b.connect(w); w.connect(reverb); return b; };
+    harpBus=bus(0.8,0.6); choirBus=bus(0.42,1); strBus=bus(0.45,0.9);
+    try{ meter=ctx.createAnalyser(); meter.fftSize=2048; comp.connect(meter); }catch(e){}
     const nb=ctx.createBuffer(1,ctx.sampleRate*4,ctx.sampleRate), nd=nb.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
     const ns=ctx.createBufferSource(); ns.buffer=nb; ns.loop=true;
     const wf=ctx.createBiquadFilter(); wf.type='bandpass'; wf.frequency.value=420; wf.Q.value=0.7;
@@ -1947,16 +1975,73 @@ const Music=(()=>{
     let out=g; if(ctx.createStereoPanner){const p=ctx.createStereoPanner();p.pan.value=(Math.random()*2-1)*0.6;g.connect(p);out=p;}
     out.connect(bellBus);
     [[1,1],[2,0.22],[3,0.07],[4.2,0.035]].forEach(([r,a])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type='sine';o.frequency.value=f*r;og.gain.value=a;o.connect(og);og.connect(g);o.start(t);o.stop(t+3.5);});}
+  let meter=null;
+  const env=(g,t,a,v,hold,r)=>{ g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(v,t+a); g.gain.setValueAtTime(v,t+a+hold); g.gain.linearRampToValueAtTime(0.0001,t+a+hold+r); };
+  const panned=g=>{ if(!ctx.createStereoPanner) return g; const p=ctx.createStereoPanner(); p.pan.value=(Math.random()*2-1)*0.6; g.connect(p); return p; };
+  /* a harp string: plucked, bright at first, ringing down */
+  function harp(m,t,v){ const f=mtof(m), g=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(4200,t); lp.frequency.exponentialRampToValueAtTime(900,t+1.6);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.006); g.gain.exponentialRampToValueAtTime(0.0001,t+2.4); g.connect(lp); panned(lp).connect(harpBus);
+    [[1,'triangle',1],[2,'sine',0.3],[3,'sine',0.1]].forEach(([r,ty,a])=>{ const o=ctx.createOscillator(), og=ctx.createGain(); o.type=ty; o.frequency.value=f*r; og.gain.value=a; o.connect(og); og.connect(g); o.start(t); o.stop(t+2.5); }); }
+  /* a glass chime: an octave up, slightly out of true, and a long time dying away */
+  function glass(m,t,v){ const f=mtof(m+12), g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(v,t+0.015); g.gain.exponentialRampToValueAtTime(0.0001,t+5.5); panned(g).connect(bellBus);
+    [[1,1],[2.76,0.18],[5.4,0.06]].forEach(([r,a])=>{ const o=ctx.createOscillator(), og=ctx.createGain(); o.type='sine'; o.frequency.value=f*r; og.gain.value=a; o.connect(og); og.connect(g); o.start(t); o.stop(t+5.6); }); }
+  /* a wooden bar, struck: a knock and a short round note */
+  function wood(m,t,v){ const f=mtof(m), g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.004); g.gain.exponentialRampToValueAtTime(0.0001,t+0.42); panned(g).connect(harpBus);
+    const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f; o.connect(g); o.start(t); o.stop(t+0.45);
+    const k=ctx.createOscillator(), kg=ctx.createGain(); k.type='sine'; k.frequency.value=f*4; kg.gain.setValueAtTime(0.35,t); kg.gain.exponentialRampToValueAtTime(0.0001,t+0.05); k.connect(kg); kg.connect(g); k.start(t); k.stop(t+0.07); }
+  /* a flute: a soft held note with a little breath in it, and a waver that comes in late */
+  function flute(m,t,dur,v){ const f=mtof(m), g=ctx.createGain(); env(g,t,0.16,v,Math.max(0.1,dur-0.5),0.55); g.connect(harpBus);
+    const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=5; vg.gain.setValueAtTime(0,t); vg.gain.linearRampToValueAtTime(7,t+0.9); vib.connect(vg); vib.start(t); vib.stop(t+dur+0.4);
+    [[1,1],[2,0.12],[3,0.04]].forEach(([r,a])=>{ const o=ctx.createOscillator(), og=ctx.createGain(); o.type='sine'; o.frequency.value=f*r; og.gain.value=a; vg.connect(o.detune); o.connect(og); og.connect(g); o.start(t); o.stop(t+dur+0.4); });
+    const n=ctx.createBufferSource(), bf=ctx.createBiquadFilter(), ng=ctx.createGain(); n.buffer=noiseBuf; bf.type='bandpass'; bf.frequency.value=f*2; bf.Q.value=1.6; ng.gain.value=0.22; n.connect(bf); bf.connect(ng); ng.connect(g); n.start(t,Math.random()*3); n.stop(t+dur+0.4); }
+  /* strings: an octave above the pad, brighter, swelling in slowly */
+  function strings(m,t,dur,amp){ const f=mtof(m), g=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2300; env(g,t,3.4,amp,Math.max(0.1,dur-3.4),3.6); g.connect(lp); lp.connect(strBus);
+    [-9,9].forEach(det=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=det; o.connect(g); o.start(t); o.stop(t+dur+3.8); }); }
+  /* a drone: the bass note and the fifth above it, an octave down, breathing slowly */
+  function drone(m,t,dur,amp){ const g=ctx.createGain(), tr=ctx.createOscillator(), tg=ctx.createGain(); env(g,t,3,0.05*amp,Math.max(0.1,dur-3),3.5); g.connect(master); g.connect(reverb);
+    tr.frequency.value=0.13; tg.gain.value=0.015*amp; tr.connect(tg); tg.connect(g.gain); tr.start(t); tr.stop(t+dur+3.7);
+    [[m-12,'sine',1],[m-5,'sine',0.55],[m,'triangle',0.16]].forEach(([n,ty,a])=>{ const o=ctx.createOscillator(), og=ctx.createGain(); o.type=ty; o.frequency.value=mtof(n); og.gain.value=a; o.connect(og); og.connect(g); o.start(t); o.stop(t+dur+3.7); }); }
+  /* the choir: each voice is a buzzing note sung through the three resonances of a vowel, with a slow waver. Far off it hums "oo"; as it
+     grows it opens to "ah", and higher and lower voices come in. */
+  function choir(notes,t,dur,amp,r){ const ah=clamp(mix.sky*0.45+r*0.6,0,1), F=[lerp(360,760,ah),lerp(780,1180,ah),lerp(2500,2900,ah)], G=[1,0.5,0.16];
+    const vs=notes.slice(); if(r>0.3) vs.push(notes[notes.length-1]+12); if(r>0.55) vs.push(notes[1]+12); if(r>0.75) vs.push(notes[0]-12);
+    const a=0.014*amp*(0.5+1.9*r);
+    vs.forEach((m,i)=>{ const f=mtof(m), t0=t+i*0.13, g=ctx.createGain(), src=ctx.createGain(); env(g,t0,3.1,a,Math.max(0.1,dur-3.3),3.4); g.connect(choirBus);
+      const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=4.4+Math.random()*1.2; vg.gain.value=9; vib.connect(vg); vib.start(t0); vib.stop(t0+dur+3.6);
+      [-8,8].forEach(det=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.detune.value=det; vg.connect(o.detune); o.connect(src); o.start(t0); o.stop(t0+dur+3.6); });
+      F.forEach((fq,j)=>{ const bp=ctx.createBiquadFilter(), bg=ctx.createGain(); bp.type='bandpass'; bp.frequency.value=fq; bp.Q.value=5; bg.gain.value=G[j]*2.4; src.connect(bp); bp.connect(bg); bg.connect(g); }); }); }
+  /* a soft drum far below, for when the choir is at its fullest */
+  function drum(t,v){ const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.setValueAtTime(72,t); o.frequency.exponentialRampToValueAtTime(44,t+0.5);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+1.5); o.connect(g); g.connect(master); g.connect(reverb); o.start(t); o.stop(t+1.6); }
   function step(t){
-    if(beat%PER===0){ cur=CHORDS[chordIdx%4]; chordIdx++; cur.notes.forEach(n=>pad(n,t,PER*BEAT-0.4,0.042)); bass(cur.bass,t,PER*BEAT); }
-    const pos=beat%PER; let prob=state.started?0.46:0.32; if(pos%8===0) prob=0.92;
+    LAYERS.forEach(l=>{ mix[l]+=(tgt[l]-mix[l])*0.14; }); rise+=(riseT-rise)*0.14;   /* the mix drifts toward wherever the girls are now */
+    const dur=PER*BEAT, pos=beat%PER, grand=mix.sky>0.5;
+    if(pos===0){ cur=(grand?CH_SKY:mix.myst>0.5?CH_MYST:CHORDS)[chordIdx%4]; chordIdx++;
+      const thin=1-0.45*Math.min(1,mix.choir+0.6*mix.strings);   /* the plain pad steps back when voices or strings are carrying the chord */
+      cur.notes.forEach(n=>pad(n,t,dur-0.4,0.042*thin)); bass(cur.bass,t,dur);
+      if(mix.drone>0.05) drone(cur.bass,t,dur,mix.drone);
+      if(mix.strings>0.05) cur.notes.forEach(n=>strings(n+12,t,dur-0.4,0.011*mix.strings*(1+1.6*rise)));
+      if(mix.choir>0.05) choir(cur.notes,t,dur,mix.choir,rise);
+      if(grand&&rise>0.3) for(let i=0;i<8;i++) harp(SCALE[i+(chordIdx%2)],t+i*0.07,0.02+0.02*rise);   /* a sweep up the harp to open each bar */
+    }
+    if(grand&&rise>0.6&&pos%8===0) drum(t,0.05+0.07*rise);
+    /* the tune: the same wandering melody everywhere, handed to whichever instruments this place has */
+    let prob=state.started?0.46:0.32; if(pos%8===0) prob=0.92; prob*=clamp(0.3+0.7*(mix.bell+0.7*mix.glass+0.6*mix.flute+0.5*mix.wood),0.3,1.1)*(1-0.35*mix.myst);
     if(Math.random()<prob){ melIdx=clamp(melIdx+Math.round((Math.random()*2-1)*2),0,SCALE.length-1);
       if(!cur.pcs.includes(SCALE[melIdx]%12)) melIdx=melIdx+1<SCALE.length?melIdx+1:melIdx-1;
-      bell(SCALE[melIdx],t+(Math.random()<0.25?BEAT*0.5:0),0.05+Math.random()*0.05); }
+      const m=SCALE[melIdx], at=t+(Math.random()<0.25?BEAT*0.5:0), v=0.05+Math.random()*0.05; let x=Math.random()*(mix.bell+mix.glass+mix.flute+mix.wood+0.001);
+      if((x-=mix.bell)<0) bell(m,at,v);
+      else if((x-=mix.glass)<0) glass(m,at,v*0.8);
+      else if((x-=mix.flute)<0) flute(m-12,at,BEAT*(1.6+Math.random()*2),v*0.75);
+      else wood(m-12,at,v*1.5); }
+    if(mix.wood>0.05&&Math.random()<0.42*mix.wood) wood(cur.notes[Math.floor(Math.random()*4)]-(Math.random()<0.5?12:0),t+BEAT*0.5,0.07*mix.wood);   /* and the marimba bounces along in between */
+    if(mix.harp>0.05){ const tones=[cur.bass+12,cur.bass+19].concat(cur.notes,cur.notes.map(n=>n+12)).sort((a,b)=>a-b), n=tones.length, tri=i=>{ const q=i%(2*n-2); return q<n?q:2*n-2-q; }, hv=0.05*mix.harp*(1+0.4*rise);
+      if(Math.random()<0.5+0.4*mix.harp+0.3*rise){ harp(tones[tri(arpI++)],t,hv); if(grand&&rise>0.45) harp(tones[tri(arpI++)],t+BEAT*0.5,hv*0.85); } }   /* the harp runs up and down the chord; twice as fast near the top */
   }
   /* a soft breeze in the leaves once the hike is under way */
   function tick(){ if(!ctx) return; while(nextT<ctx.currentTime+0.4){ step(nextT); nextT+=BEAT; beat++; }
-    const gusting=ctx.currentTime<gustUntil; windGain.gain.setTargetAtTime(gusting?0.11:state.started?0.016:0.006,ctx.currentTime,gusting?0.45:1.5); }
+    const gusting=ctx.currentTime<gustUntil; windGain.gain.setTargetAtTime(solo?0:gusting?0.11:state.started?0.016:0.006,ctx.currentTime,gusting?0.45:1.5); if(solo){ leafGain.gain.value=0; riverGain.gain.value=0; ambBus.gain.value=0; } }
+  let solo=false;   /* (testing: the music with no wind, leaves, river or birds, so its level can be measured) */
   let gustUntil=0;
   function gust(){ if(ctx) gustUntil=ctx.currentTime+2.4; }
   function river(k){ if(ctx) riverGain.gain.setTargetAtTime(0.055*k,ctx.currentTime,0.6); }
@@ -2037,7 +2122,8 @@ const Music=(()=>{
     try{ if(!silentEl){ silentEl=new Audio('data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA=='); silentEl.loop=true; silentEl.volume=0.01; silentEl.setAttribute('playsinline',''); }
       silentEl.play().catch(()=>{}); }catch(e){}
   }
-  return {start,toggle,resume,sfx,amb,ambience,setPaused,unlock,gust,river,running:()=>!!ctx&&ctx.state==='running'};
+  function level(only){ if(only!==undefined) solo=!!only; if(!meter) return null; const d=new Float32Array(meter.fftSize); meter.getFloatTimeDomainData(d); let pk=0, sq=0; for(const v of d){ pk=Math.max(pk,Math.abs(v)); sq+=v*v; } return [pk,Math.sqrt(sq/d.length)]; }
+  return {mood,level,moodNow:()=>moodNow+' | '+LAYERS.filter(l=>mix[l]>0.03).map(l=>l+' '+mix[l].toFixed(2)).join(', ')+(rise>0.02?' | rise '+rise.toFixed(2):''),start,toggle,resume,sfx,amb,ambience,setPaused,unlock,gust,river,running:()=>!!ctx&&ctx.state==='running'};
 })();
 
 
@@ -3198,7 +3284,7 @@ function leaveFalls(){ fallsS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={music:()=>Music.moodNow(),musicLevel:only=>Music.level(only),musicMood:(a,b,k,r)=>{ window.__moodLock=[a,b,k,r]; },known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -3696,7 +3782,21 @@ let chirpIn=10;
 const AMB={home:['warble','warble','feebee','trill','cricket','cricket','bee','rustle'],deep:['cuckoo','dove','warble','drip','drip','rustle','rustle','tap','feebee'],
   rest:['warble','warble','feebee','trill','cuckoo','dove','cricket','rustle','rustle','drip','bee','tap']};
 let ambIn=2.5, ambK=-1, ambLast='';
+/* which version of the music is playing: the place the girls are in, or a blend of two while they cross from one to the next */
+function updateMood(){ let a='home', b='home', k=0, r=0; const s=party.s;
+  if(!state.started||mode==='home'||mode==='falls'){}
+  else if(mode==='moon') a='glow';
+  else if(mode==='cave'){ a='sky'; b='cave'; k=0.8; r=1; }
+  else if(mode==='summit'){ a='sky'; r=1; }
+  else { const key=bioKeyAt(s);
+    if(fork.site===2&&fork.stage===4&&s>MTN&&s<=HILL_B+4){ a=legKey(2)||'home'; b='mtn'; k=smooth(MTN+3,BOULDER_S+2,s); }      /* up the hill, the last place's music turns into the mountain trail's */
+    else if(key==='mtn'){ a='mtn'; b='sky'; k=smooth(SKY_A-34,SKY_B+3,s); }                                                 /* which, through the mist, turns into the sky garden's */
+    else if(key==='sky'){ a='sky'; r=smooth(SKY_B+6,TOP_A-3,s); }                                                           /* and that grows all the way to the last cave */
+    else a=key||(s>57?'deep':'home'); }
+  if(window.__moodLock){ Music.mood(...window.__moodLock); return; }   /* (testing: hold one version) */
+  Music.mood(a,b,k,r); }
 function updateAmbient(dt){
+  updateMood();
   const first=state.started&&(mode==='rest'?fork.site===0:mode==='trail'&&party.s<GATE_A-3), wheat=state.started&&mode==='trail'&&bioKeyAt(party.s)==='grass'&&gateK(party.s)<0.3;
   const k=wheat?1:!first?0:mode==='rest'?1:0.5+0.4*deep(party.s);
   if(Math.abs(k-ambK)>0.04){ ambK=k; Music.ambience(k); }
