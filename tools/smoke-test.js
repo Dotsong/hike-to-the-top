@@ -80,7 +80,7 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   const zoneNames=await p.evaluate(()=>[...document.querySelectorAll('#zoneList button')].map(b=>b.textContent));
   if(zoneNames.length<30) errs.push('the zone list is short: '+zoneNames.length);
   await p.evaluate(()=>document.getElementById('zoneClose').click());
-  for(const z of zoneNames.filter(z=>!/secret|Dinner/.test(z))){ if(!await p.evaluate(z=>window.hikeDebug.warp(z),z)) errs.push('no zone called '+z); await p.waitForTimeout(700);
+  for(const z of zoneNames.filter(z=>!/secret|Dinner|river|waterfall/.test(z))){ if(!await p.evaluate(z=>window.hikeDebug.warp(z),z)) errs.push('no zone called '+z); await p.waitForTimeout(700);
     if(await p.evaluate(()=>window.hikeDebug.mode())!=='trail') errs.push('jumping to '+z+' did not land on the trail'); }
   // and by the button: the summit is one tap and a few steps away
   await p.evaluate(()=>document.getElementById('zoneBtn').click()); await p.waitForTimeout(300);
@@ -91,6 +91,13 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   await p.waitForFunction(()=>!document.getElementById('phoneDock').hidden,null,{timeout:120000}).catch(()=>errs.push('the telephone never rang'));
   await p.evaluate(()=>document.getElementById('phoneBtn').click());
   const secret=await p.waitForFunction(()=>window.hikeDebug.mode()==='moon'&&window.hikeDebug.moonDone(),null,{timeout:150000}).then(()=>true).catch(()=>{ errs.push('the party on the Moon never happened'); return false; });
+  // after the secret ending: stop at the river, choose to cross, and meet the man behind the waterfall
+  await p.evaluate(()=>document.getElementById('nightBtn').click()); await p.waitForTimeout(1600);
+  await p.click('#beginBtn'); await p.waitForTimeout(2500); await p.evaluate(()=>window.hikeDebug.pace(4));
+  await p.evaluate(()=>window.hikeDebug.warp('The river, with the crossing open'));
+  await p.waitForFunction(()=>!document.getElementById('riverDock').hidden,null,{timeout:90000}).catch(()=>errs.push('the girls never offered to cross the river'));
+  await p.evaluate(()=>document.getElementById('riverYes').click());
+  const waterfall=await p.waitForFunction(()=>window.hikeDebug.mode()==='falls'&&window.hikeDebug.fallsDone(),null,{timeout:180000}).then(()=>true).catch(()=>{ errs.push('the man behind the waterfall was never reached'); return false; });
   // The End holds, with a Good Night button that goes back to the title page; progress is in storage and survives a reload; the testing buttons set and clear it
   if(await p.evaluate(()=>document.getElementById('endDock').hidden||!document.getElementById('caption').classList.contains('show'))) errs.push('The End did not hold with its Good Night button');
   await p.evaluate(()=>document.getElementById('nightBtn').click()); await p.waitForTimeout(1600);
@@ -99,12 +106,12 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   await p.evaluate(()=>document.getElementById('foundAll').click()); await p.reload(); await p.waitForTimeout(900);
   if(!await p.evaluate(()=>{ const j=JSON.parse(window.hikeDebug.saved()); return j.places.length===10&&j.friends.length===4&&j.sites.length===7&&j.top; })) errs.push('"Mark everything as found" did not stick');
   await p.evaluate(()=>document.getElementById('foundNone').click());
-  if(await p.evaluate(()=>window.hikeDebug.saved())!=='{"places":[],"friends":[],"sites":[],"top":false}') errs.push('"Forget all progress" did not clear it');
+  if(await p.evaluate(()=>window.hikeDebug.saved())!=='{"places":[],"friends":[],"sites":[],"top":false,"secret":false}') errs.push('"Forget all progress" did not clear it');
   await p.evaluate(b=>{ localStorage.setItem('trail-to-the-top-found',b); },before).catch(()=>{}); await p.reload(); await p.waitForTimeout(900);
   await p.click('#splashBtn'); await p.waitForTimeout(1500); await p.click('#beginBtn'); await p.waitForTimeout(2500);
   await p.evaluate(()=>document.getElementById('goodnightBtn').click()); await p.waitForTimeout(1600);
   const backToStart=await p.evaluate(()=>!document.getElementById('intro').hidden);
-  console.log({route:ROUTE,hikeStarted:true,bookOpen,mapOpen,restScene,forkChosen,revealed,places:places.join(' > '),summit,offer,dinner,zones:zones&&zoneNames.length,secret,found:await p.evaluate(()=>window.hikeDebug.saved()).catch(()=>''),backToStart});
+  console.log({route:ROUTE,hikeStarted:true,bookOpen,mapOpen,restScene,forkChosen,revealed,places:places.join(' > '),summit,offer,dinner,zones:zones&&zoneNames.length,secret,waterfall,found:await p.evaluate(()=>window.hikeDebug.saved()).catch(()=>''),backToStart});
   console.log(errs.length?errs.join('\n'):'no errors');
   await b.close(); process.exit(errs.length?1:0);
 })();
