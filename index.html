@@ -365,6 +365,7 @@ body.is-paused .narrator{opacity:0}
 <div class="say friend" id="bubFriend" aria-live="polite"><div class="bub"><span class="who"></span><span class="txt"></span></div></div>
 <div class="say mom" id="bubMom" aria-live="polite"><div class="bub"><span class="who">Mom</span><span class="txt"></span></div></div>
 <div class="say dad" id="bubDad" aria-live="polite"><div class="bub"><span class="who">Dad</span><span class="txt"></span></div></div>
+<div class="say lumi" id="bubLumi" aria-live="polite"><div class="bub"><span class="who">Lumi</span><span class="txt"></span></div></div>
 
 <p class="narrator" id="narrator" aria-live="polite"></p>
 
@@ -424,6 +425,10 @@ body.is-paused .narrator{opacity:0}
   <div class="map-rod"></div>
   <button class="map-sheet" id="mapSheet" type="button" tabindex="-1" aria-label="Dad's map of the trail. Tap to roll it up."><svg id="mapSvg" viewBox="0 0 720 428" role="img" aria-label="A hand-drawn map of the trail"></svg></button>
   <div class="map-rod"></div>
+</div>
+<div class="fork-dock" id="phoneDock" hidden>
+  <span class="fork-q">The telephone is ringing!</span>
+  <button id="phoneBtn" type="button">Answer the telephone</button>
 </div>
 <div class="fork-dock" id="homeDock" hidden>
   <span class="fork-q">Time to go home?</span>
@@ -915,8 +920,8 @@ const BIO={
       if(R.n(66)<0.55){ const p=R.at(1.9+R.n(67)*1.8,68), col=pk(BLOOM,R.n(69)); for(let k=0;k<6;k++) put(P.petal,p.x+(R.n(70+k)-0.5)*0.9,p.y+0.12,p.z+(R.n(76+k)-0.5)*0.9,1,1,1,0,k%3?col:pk(PETALS,R.n(82+k))); }   /* and the garden itself: small flowers between the rocks */
       for(let j=0;j<3;j++){ const d=11+R.n(84+j)*30, z=R.z0+R.n(86+j)*3, x=trailX(z)+R.side*d, w=5+R.n(88+j)*5;                                             /* cloud lapping at the slopes */
         put(P.blobF,x,trailY(z)-8.5-d*0.1-R.n(102+j)*2,z,w,1.9+R.n(104+j)*1.4,w*0.75,R.n(106+j)*6,WHITE); } },
-    lines:[['We\'re ABOVE the clouds.','They look like the softest bed in the world.'],['Don\'t look down.','I\'m looking down. It\'s all fluffy!'],'The sun is right there. I could almost touch it.',['Can I pick one flower for Mom?','Just one. From the path side.'],['Michelle is never going to believe this.','We\'ll bring her a petal.']],
-    narr:['Someone had laid a path of planks where only the sky could see it.','On either side the clouds rolled away like a slow white sea.','Small flowers grew between the rocks, as if the mountain kept a garden up here just for itself.'],
+    lines:[['We\'re ABOVE the clouds.','They look like the softest bed in the world.'],['June! The sky is GREEN!','Those are the northern lights. Dad says they\'re the sky showing off.'],['Don\'t look down.','I\'m looking down. It\'s all fluffy!'],'The sun is right there. I could almost touch it.',['Can I pick one flower for Mom?','Just one. From the path side.'],['Michelle is never going to believe this.','We\'ll bring her a petal.']],
+    narr:['Someone had laid a path of planks where only the sky could see it.','Overhead, green and violet light hung in the sky like washing on a line.','On either side the clouds rolled away like a slow white sea.','Small flowers grew between the rocks, as if the mountain kept a garden up here just for itself.'],
     reveal:{t:'The sky garden',b:'A narrow path along the spine of the mountain, with the clouds falling away on both sides.',narr:'The mist thinned, and there was the path: a ribbon of planks along the very top of the world, with nothing but cloud on either side.',lines:[[1,'June... are those CLOUDS? Down THERE?'],[0,'We climbed right through them. Hold the rail, Pip.'],[1,'I\'m walking on top of the sky!']]},
     gate:{kind:'mist',label:'Into the mist',enter:[[0,'Stay close. The mist is thick here.'],[1,'I can\'t see my own feet!']]}},
   aspen:{gate:{kind:'tunnel',cols:['#3f7a4a','#35703f','#4a8552']}},
@@ -1581,7 +1586,7 @@ function setOutfit(girl,m){ const p=girl.parka; if(p.mode===m) return; p.pop=p.m
   p.coat.visible=m>0; p.sleeves.forEach(sl=>sl.visible=m>0); p.down.visible=m===1; p.up.visible=m===2; p.tuck.forEach(o=>o.visible=m!==2);
   girl.pack.position.z=m>0?-0.085:0; }   /* the backpack goes on over the coat */
 [june,pip].forEach(g=>setOutfit(g,0));
-function outfitWanted(){ if(mode==='summit') return 1; if(mode==='home') return 0; let k=bioKeyAt(party.s);
+function outfitWanted(){ if(mode==='summit') return 1; if(mode==='home'||mode==='moon') return 0; let k=bioKeyAt(party.s);
   if(mode==='trail'){ const g=gateInfo(party.s); if(g.i>0&&g.i<3&&g.in>0.4&&picks[g.i]&&!BIO[legKey(g.i)].coat) k=legKey(g.i);   /* coats go on (or come off) in the dark of the gateway, before the new place opens up */
     if(k==='mtn'&&party.s<MTN+4) k=prevKeyAt(party.s); }                                                  /* and on the mountain trail when June says so */
   const c=BIO[k]&&BIO[k].coat; return c==='up'?2:c?1:0; }
@@ -1858,6 +1863,9 @@ const Music=(()=>{
       o.type='sine'; o.frequency.setValueAtTime(392,tt); o.frequency.linearRampToValueAtTime(366,tt+len);
       g.gain.setValueAtTime(0.0001,tt); g.gain.linearRampToValueAtTime(0.06,tt+0.05); g.gain.setValueAtTime(0.06,tt+len-0.06); g.gain.linearRampToValueAtTime(0.0001,tt+len);
       o.connect(g); g.connect(master); g.connect(reverb); o.start(tt); o.stop(tt+len+0.02); }); }
+    if(kind==='ring'){ for(let k=0;k<2;k++) for(let i=0;i<14;i++){ const tt=t+k*0.55+i*0.03, o=ctx.createOscillator(), g=ctx.createGain();   /* an old telephone: two bursts of bell */
+      o.type='sine'; o.frequency.value=i%2?1480:1180; g.gain.setValueAtTime(0.0001,tt); g.gain.linearRampToValueAtTime(0.03,tt+0.004); g.gain.exponentialRampToValueAtTime(0.0001,tt+0.03);
+      o.connect(g); g.connect(master); g.connect(reverb); o.start(tt); o.stop(tt+0.035); } }
     if(kind==='honk'){ [0,0.26].forEach((at,i)=>{ const tt=t+at, o=ctx.createOscillator(), lp=ctx.createBiquadFilter(), g=ctx.createGain(), f=i?392:466;   /* a goose, a long way up: two nasal notes */
       o.type='sawtooth'; o.frequency.setValueAtTime(f*0.94,tt); o.frequency.linearRampToValueAtTime(f,tt+0.06); lp.type='bandpass'; lp.frequency.value=1100; lp.Q.value=2.2;
       g.gain.setValueAtTime(0.0001,tt); g.gain.linearRampToValueAtTime(0.035,tt+0.03); g.gain.linearRampToValueAtTime(0.0001,tt+0.2);
@@ -2054,7 +2062,7 @@ function backToStart(){
   const intro=$('intro'); intro.hidden=false; requestAnimationFrame(()=>intro.classList.remove('gone'));
 }
 function resetHike(){
-  if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); $('homeDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
+  if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); if(mode==='moon') leaveMoon(); forceSecret=false; $('homeDock').hidden=true; $('phoneDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
   clearPrints(); fork.village=false; choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
 }
@@ -2069,11 +2077,12 @@ function zoneList(){ const c=choice||1, p1=picks[1]||1, p2=picks[2]||1, A=GATE_A
       ['Third rest site, after winter',R3,[1,1,0]],['Third rest site, after grassland',R3,[1,-1,0]],['Third rest site, after marsh',R3,[-1,1,0]],['Third rest site, after alpine',R3,[-1,-1,0]]]],
     ['After the third fork',[['Moonlit glow-wood',D,[1,p1,1]],['Giant garden',D,[1,p1,-1]],['Upside-down pond',D,[-1,p1,1]],['Crystal hollow',D,[-1,p1,-1]],
       ['Lantern-folk village',VILLAGE_Z-12,[1,p1,1]],['Buttonbug village',VILLAGE_Z-12,[1,p1,-1]],['Rippling village',VILLAGE_Z-12,[-1,p1,1]],['Chimeling village',VILLAGE_Z-12,[-1,p1,-1]]]],
-    ['The way to the top',[['Mountain trail',MTN-3,[c,p1,p2],0],['Into the mist',SKY_A-5,[c,p1,p2],1],['Sky garden',SKY_B-1,[c,p1,p2],2],['Last cave',TOP_A-5,[c,p1,p2],3],['Summit',TOP_B-3.5,[c,p1,p2],4],['Dinner at home','home',[c,p1,p2]]]]]; }
+    ['The way to the top',[['Mountain trail',MTN-3,[c,p1,p2],0],['Into the mist',SKY_A-5,[c,p1,p2],1],['Sky garden',SKY_B-1,[c,p1,p2],2],['Last cave',TOP_A-5,[c,p1,p2],3],['Summit',TOP_B-3.5,[c,p1,p2],4],['Dinner at home','home',[c,p1,p2]],['The secret ending (as if everything were found)','secret',[c,p1,p2]]]]]; }
 function warp(name,s,p,tail){
   resetHike(); p=p||[0,0,0];
   picks[0]=p[0]; picks[1]=p[1]; picks[2]=p[2]; choice=p[0]; syncRoute();
   const n=p[2]?3:p[1]?2:p[0]?1:0; fork.site=Math.max(0,n-1); fork.stage=n===0?0:s<SITES[fork.site].b+1.2?3:4; fork.tail=tail||0;
+  if(s==='secret'){ forceSecret=true; s='home'; }
   if(s==='home'){ fork.site=2; fork.stage=4; fork.tail=5; fork.village=true; party.s=TOP_B-3; placeGirls(); enterHome(); return; }
   fork.village=s>VILLAGE_Z+5; fork.river=s>=39; fork.deepSaid=s>=57; fork.hopSaid=s>60; fork.entered=true; fork.gateEvt=n>1||s>GATE_OB;
   party.s=s; party.v=party.vT=WALK; party.restIn=60+Math.random()*30; lookBack=s<5?1:0; hikeT=s<5?0:99;
@@ -2353,6 +2362,7 @@ function onGateEnter(){ playScript(fork.site?BIO[legKey(fork.site)].gate.enter:c
 function onGateObstacle(){ narrate(choice<0?'The branches hung low, and the sisters had to make themselves small.':'It was dark in the cave, but two flashlights are braver than one.'); tell(choice<0?[[1,'Duck!'],[0,'I AM ducking.']]:[[0,'Squeeze past the big rock.'],[1,'Look! The mushrooms are glowing!']]); }
 /* coming out the far side: wind, leaves, light, and a first look at the new forest. The girls keep walking while they take it in. */
 function onReveal(){
+  remember('places',legKey(fork.site));
   if(fork.site){ const key=legKey(fork.site), R=BIO[key].reveal; hushBubbles(); startGust(GUSTS[key]||FALLEN,party.s); Music.gust(); revealT=0; speakIn=16;
     narrate(R.narr); playScript(R.lines); showCaption({t:R.t,b:R.b}); EVT.inT=Math.max(EVT.inT,26); return; }
   hushBubbles(); startGust(choice,party.s); Music.gust(); revealT=0; speakIn=16;
@@ -2473,6 +2483,14 @@ function onTail(what){
 /* The last scene. The girls are back at their own table with Mom and Dad, eating spaghetti and telling the whole story: where they went
    (whichever way that was), who they met, how they got home, and that Michelle has to hear about it. */
 let home=null;
+/* What has been found, across every hike on this device: the places come out into, and the village friends brought home. (If the browser
+   will not keep it, the game simply forgets between visits.) */
+const SAVE_KEY='trail-to-the-top-found', ALL_PLACES=['aspen','autumn','winter','grass','marsh','alpine','glow','giant','pond','crystal'], ALL_FRIENDS=['glow','giant','pond','crystal'];
+let saved={places:[],friends:[]}, forceSecret=false;
+try{ const j=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(j&&Array.isArray(j.places)&&Array.isArray(j.friends)) saved={places:j.places.filter(k=>ALL_PLACES.includes(k)),friends:j.friends.filter(k=>ALL_FRIENDS.includes(k))}; }catch(e){}
+function remember(kind,key){ if(!key||saved[kind].includes(key)) return; saved[kind].push(key); try{ localStorage.setItem(SAVE_KEY,JSON.stringify(saved)); }catch(e){} }
+const friendsHome=()=>forceSecret?ALL_FRIENDS.slice():ALL_FRIENDS.filter(k=>saved.friends.includes(k));
+const secretReady=()=>forceSecret||ALL_PLACES.every(k=>saved.places.includes(k))&&ALL_FRIENDS.every(k=>saved.friends.includes(k));
 const PLACE_SAID={aspen:'an aspen grove, all white and gold',autumn:'the autumn woods, where it rained leaves',winter:'a forest full of SNOW',grass:'a meadow as big as the sky',marsh:'a marsh with a wooden path over it',
   alpine:'a garden made of rocks, where the wind lives',glow:'a forest that glows in the dark',giant:'a garden where we were TINY',pond:'a pond that was upside down',crystal:'a cave full of crystals that ring'};
 const HOME_LINES=['This is the best spaghetti in the whole world.',['Can we go again tomorrow?','After we tell Michelle.'],'My legs are still walking under the table.',['Dad, your map was right about everything.','Almost everything. It didn\'t say there\'d be a village.'],['Snack number nine was at the top.','I know. I counted.']];
@@ -2505,7 +2523,15 @@ function buildHome(){
   { box(1.5,1.15,0.07,'#8a5a3c',2.6,2.6,-3.38); box(1.32,0.97,0.06,'#fff6ec',2.6,2.6,-3.35);   /* Dad's map, framed on the wall: the trail, and a cross at the top */
     const ink=new THREE.MeshBasicMaterial({color:0xd0607a}); [[-0.45,-0.3],[-0.25,-0.18],[-0.05,-0.2],[0.12,-0.05],[0.25,0.1],[0.4,0.27]].forEach(([x,y])=>add(new THREE.CircleGeometry(0.035,8),ink,2.6+x,2.6+y,-3.31)); }
   cyl(0.012,0.012,1.4,'#3a3340',0,4.1,0.1); { const sh=add(new THREE.ConeGeometry(0.55,0.42,20,1,true),new THREE.MeshBasicMaterial({color:0xffd27a,side:THREE.DoubleSide}),0,3.2,0.1); ball(0.12,new THREE.MeshBasicMaterial({color:0xfff6dc}),0,3.05,0.1); }
-  box(0.36,0.42,0.2,'#4fa3a0',3.9,0.21,-3.1).rotation.z=0.1; box(0.32,0.38,0.2,'#ffd27a',4.5,0.19,-3.05).rotation.z=-0.12;   /* two backpacks, put down at last */
+  box(0.36,0.42,0.2,'#4fa3a0',-4.6,0.21,-3.1).rotation.z=0.1; box(0.32,0.38,0.2,'#ffd27a',-4.05,0.19,-3.05).rotation.z=-0.12;   /* two backpacks, put down at last */
+  /* the doorway to the hall, and in the hall a little table with the telephone on it */
+  box(1.7,3.3,0.06,'#4a3640',4.1,1.65,-3.37); box(0.14,3.4,0.12,'#fff6ec',3.2,1.7,-3.34); box(0.14,3.4,0.12,'#fff6ec',5.0,1.7,-3.34); box(1.94,0.14,0.12,'#fff6ec',4.1,3.4,-3.34);
+  cyl(0.42,0.42,0.05,'#a9744a',4.1,0.9,-2.95); cyl(0.05,0.07,0.9,'#8a5a3c',4.1,0.45,-2.95);
+  const phone=new THREE.Group(); phone.position.set(4.1,0.93,-2.95); sc.add(phone);
+  const phM=new THREE.MeshLambertMaterial({color:0xd9534a,emissive:0xffd27a,emissiveIntensity:0});
+  { const b2=box(0.36,0.14,0.26,phM,0,0.07,0,phone), d2=cyl(0.09,0.09,0.02,'#fff6ec',0,0.15,0.03,phone), h2=box(0.42,0.06,0.07,phM,0,0.22,-0.04,phone); ball(0.06,phM,-0.2,0.2,-0.04,phone); ball(0.06,phM,0.2,0.2,-0.04,phone); }
+  const ringGlow=new THREE.PointLight(0xffe7a0,0,5,1.5); ringGlow.position.set(4.1,1.5,-2.6); sc.add(ringGlow);
+
   /* the table, laid for four, and the chairs */
   const wood='#c9925e', TY=1.06;
   box(2.9,0.09,1.5,wood,0,TY-0.045,0); [[-1.3,-0.62],[1.3,-0.62],[-1.3,0.62],[1.3,0.62]].forEach(([x,z])=>box(0.1,TY-0.09,0.1,wood,x,(TY-0.09)/2,z));
@@ -2522,9 +2548,12 @@ function buildHome(){
   const seat=(a,x,ry)=>{ a.g.position.set(x,0.84-0.57*a.scale,0.1); a.g.rotation.y=ry; a.legs.forEach(l=>l.rotation.x=-1.5); a.armL.rotation.x=a.armR.rotation.x=-1.05; a.ry=ry; sc.add(a.g); };
   seat(mom,-1.95,Math.PI/2-0.3); seat(dad,1.95,-Math.PI/2+0.3);
   /* and at the window, where only the girls think to look: the friend who brought them home */
-  const pal=makeFolk(FOLK[legKey(2)]?legKey(2):'glow',0.42); pal.g.position.set(-2.05,1.72,-3.3); sc.add(pal.g);
-  return {scene:sc,mom,dad,pal,
-    update(t,speaker){ animFolk(pal,t,0.6); pal.g.rotation.y=Math.sin(t*0.5)*0.4; [mom,dad].forEach((a,i)=>{ const ph=i*2.3, talking=speaker===3+i;
+  /* Every friend the girls have ever brought home is in the house tonight: the one from this hike at the window, the others wherever they
+     like to sit. The girls can see them. Mom and Dad cannot. */
+  const now=FOLK[legKey(2)]?legKey(2):'glow', keys=[now].concat(friendsHome().filter(k=>k!==now)), SPOTS=[[-2.05,1.72,-3.3,0.42],[0.42,TY+0.03,0.42,0.3],[2.6,3.2,-3.25,0.34],[-4.3,0.42,-3.05,0.36]];
+  const pals=keys.map((k,i)=>{ const f=makeFolk(k,SPOTS[i][3]); f.spot=SPOTS[i]; f.g.position.set(f.spot[0],f.spot[1],f.spot[2]); sc.add(f.g); return f; }), pal=pals[0];
+  return {scene:sc,mom,dad,pal,pals,phone,phM,ringGlow,
+    update(t,speaker){ pals.forEach((f,i)=>{ animFolk(f,t,0.6); f.g.rotation.y=Math.sin(t*0.5+i*1.7)*0.5; }); [mom,dad].forEach((a,i)=>{ const ph=i*2.3, talking=speaker===3+i;
         a.head.rotation.y=(i?0.25:-0.25)*Math.sin(t*0.4+ph)+(speaker===0||speaker===1?(i?-0.35:0.35):0)*0.6;   /* they look at whichever girl is talking */
         a.head.rotation.x=talking?Math.sin(t*5)*0.05:0.04*Math.sin(t*0.7+ph); a.upper.rotation.x=0.06+0.02*Math.sin(t*0.5+ph);
         const bite=Math.pow(Math.max(0,Math.sin(t*0.55+ph)),8); a.armR.rotation.x=-1.05-1.15*bite*(talking?0:1); a.armR.rotation.z=-0.35*bite; }); },   /* and now and then, a forkful */
@@ -2540,7 +2569,7 @@ function enterHome(){
   const tok=++restToken; $('fade').classList.add('on'); $('homeDock').hidden=true;
   setTimeout(()=>{ if(tok!==restToken||!state.started) return;
     if(mode==='summit') leaveSummit(); if(mode==='rest') leaveRest(0);
-    home=buildHome(); Object.assign(home,{t:0,done:false,cam0:camTheta});
+    if(!forceSecret) remember('friends',legKey(2)); home=buildHome(); Object.assign(home,{t:0,done:false,cam0:camTheta,phase:0,pt:0});
     scene.remove(june.g,pip.g); home.scene.add(june.g,pip.g); june.pack.visible=pip.pack.visible=false; setTorches(0); endEvent();
     mode='home'; landY=()=>0.2; zoom=1; userPhi=0;
     BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(i?0.6:-0.6,-1.12); b.face=b.faceT=0; b.actIn=2+i*2.5; });
@@ -2553,13 +2582,22 @@ function enterHome(){
 function updateHome(dt,rawDt){
   home.t+=dt; BRAINS.forEach(b=>updateHomeBrain(b,dt)); home.update(time,curLine?curLine.w:-1);
   if(!home.done&&home.t>12&&quiet()){ home.done=true; speakIn=14;
-    narrate('Dad smiled, and went on eating. He did not look at the window. If he had, he would have seen a small light there, waving.'); showCaption({t:'The End',b:'Thank you for hiking with June and Pip.'}); }
+    if(secretReady()){ home.phase=1; narrate('And then, out in the hallway, the telephone began to ring. Only two people at the table heard it.'); Music.sfx('ring'); $('phoneDock').hidden=false; }
+    else { const nf=friendsHome().length, np=ALL_PLACES.filter(k=>saved.places.includes(k)).length;
+      narrate('Dad smiled, and went on eating. He did not look at the window. If he had, he would have seen someone small there, waving.');
+      showCaption({t:'The End',b:`Friends who have come home with you: ${nf} of 4. Places found on the mountain: ${np} of 10.`}); } }
+  if(home.phase===1){ const k=0.5+0.5*Math.sin(time*14); home.phM.emissiveIntensity=k*0.9; home.ringGlow.intensity=k*1.3; home.phone.rotation.z=Math.sin(time*40)*0.05; if(Math.floor(time/2.6)!==Math.floor((time-dt)/2.6)) Music.sfx('ring'); }
+  else if(home.phase>=2){ home.phM.emissiveIntensity=0.25; home.ringGlow.intensity=0.5; home.phone.rotation.z=0; bubbles[5].head=home.phone; bubbles[5].root=home.phone;
+    if(home.phase===2&&home.t>home.pt+6&&quiet()){ home.phase=3; home.pt=home.t; narrate('So Glim and Dot and Plip and Ting joined hands, more or less, and the dining room filled up with light.'); Music.gust(); }
+    if(home.phase===3){ const u=home.t-home.pt; home.pals.forEach((f,i)=>{ const a=u*2.4+i*1.57, k=smooth(0,2.2,u); f.g.position.set(lerp(f.spot[0],Math.sin(a)*1.5,k),lerp(f.spot[1],2.1+Math.sin(u*3+i)*0.2,k),lerp(f.spot[2],-0.6+Math.cos(a)*1.5,k)); f.g.scale.setScalar(lerp(f.spot[3],0.6,k)); });
+      home.ringGlow.position.set(0,2.2,-0.6); home.ringGlow.intensity=2.2*smooth(0.5,3.5,u); [june,pip].forEach(g=>{ g.g.position.y+=smooth(2.4,4.4,u)*1.6; });
+      if(u>4.6){ home.phase=4; enterMoon(); } } }
   const th=clamp((camTheta-home.cam0)*0.6,-0.75,0.75)+Math.sin(time*0.09)*0.1*motion, aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
   const r=6.3*zoom*aspectBoost, ph=clamp(0.2+userPhi,0.04,0.6);
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
   target.set(0,1.4,-0.35); camera.position.copy(target).add(off); camera.lookAt(target);
 }
-function leaveHome(){ home.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); june.pack.visible=pip.pack.visible=true;
+function leaveHome(){ $('phoneDock').hidden=true; bubbles[5].head=nobody.head; bubbles[5].root=nobody.g; home.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); june.pack.visible=pip.pack.visible=true;
   bubbles[3].head=bubbles[4].head=nobody.head; bubbles[3].root=bubbles[4].root=nobody.g; home.dispose(); home=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
 /* the friend's offer at the summit, accepted */
 function goHome(){ if(mode!=='summit'||!summit||summit.phase!==2) return; summit.phase=3; summit.goT=summit.t; $('homeDock').hidden=true;
@@ -2567,13 +2605,94 @@ function goHome(){ if(mode!=='summit'||!summit||summit.phase!==2) return; summit
   narrate('So they held hands, and shut their eyes, and went home by '+F.ride+'.');
   BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.queue.push({k:'pose',pose:'hop',dur:1.6,face:0},{k:'pose',pose:'spin',dur:4}); }); }
 $('homeBtn').addEventListener('click',goHome);
+/* ---------- the secret ending: a party on the Moon ---------- */
+/* When every place on the mountain has been found and all four village friends have come home with the girls (which takes at least four
+   hikes), the telephone in the hallway rings after dinner. It is Lumi, who has watched them reach the top four times through her moon
+   telescope and wants to throw a party. The four friends put their magic together, and the last scene is Lumi's castle on the Moon. */
+let moonS=null;
+const MOON_SCRIPT=[[5,'You came! You really came! Welcome to my castle.'],[1,'LUMI! We\'re on the MOON!'],[0,'We can see our whole mountain from here. It\'s so small!'],[5,'I watched you climb it four times. I cheered every single time.'],
+  [1,'Did you see me wave?'],[5,'Every time, Pip. I waved back with both arms.'],[0,'Everybody\'s here. Glim, and Dot, and Plip, and Ting.'],[5,'Then it is a proper party. There is moon cake, and you may jump as high as you like.'],[1,'Best. Hike. EVER.']];
+const MOON_LINES=[['I can jump SO high!','Don\'t jump off the Moon, Pip.'],'Moon cake tastes like marshmallows.',['Hi, Mom! Hi, Dad! Hi, Michelle!','They\'ll never believe this one either.'],['Can we come back tomorrow?','Tomorrow we tell Michelle. THEN we come back.'],'The Earth looks like a marble.',['Lumi, your castle is the best castle.','It is the only castle up here. But thank you.']];
+function buildMoon(){
+  let sd=1969; const r=()=>{ sd=(sd*16807)%2147483647; return (sd-1)/2147483646; };
+  const sc=new THREE.Scene(); sc.background=new THREE.Color(0x070a1c);
+  sc.add(new THREE.HemisphereLight(0xdfe6ff,0x5a5f7a,0.66)); const sn=new THREE.DirectionalLight(0xfff6e0,0.5); sn.position.set(-30,40,20); sc.add(sn);
+  const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,typeof mat==='string'?L(mat):mat); m.position.set(x,y,z); sc.add(m); return m; };
+  const lit=c=>new THREE.MeshBasicMaterial({color:c});
+  /* the ground: pale and dusty, with craters, curving away to a near horizon */
+  { const g=add(new THREE.SphereGeometry(60,48,24),'#8f93a8',0,-60,0); g.receiveShadow=true; }
+  for(let i=0;i<16;i++){ const a=r()*6.28, d=7+r()*22, rr=1+r()*2.2, x=Math.sin(a)*d, z=Math.cos(a)*d, y=Math.sqrt(3600-d*d)-60;
+    const rim=add(new THREE.TorusGeometry(rr,0.22,6,18),'#7f8398',x,y+0.02,z); rim.rotation.x=Math.PI/2; const fl=add(new THREE.CircleGeometry(rr,18),'#767a90',x,y+0.03,z); fl.rotation.x=-Math.PI/2; }
+  /* stars, and the Earth hanging in the sky with the mountain somewhere on it */
+  { const n=420, p=new Float32Array(n*3); for(let i=0;i<n;i++){ const a=r()*6.283, e=-0.1+r()*1.6; p.set([Math.sin(a)*Math.cos(e)*300,Math.sin(e)*300,Math.cos(a)*Math.cos(e)*300],i*3); }
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(p,3)); sc.add(new THREE.Points(g,new THREE.PointsMaterial({size:2,color:0xffffff,sizeAttenuation:false}))); }
+  const earth=new THREE.Group(); earth.position.set(-34,27,-90); sc.add(earth);
+  { const e=new THREE.Mesh(new THREE.SphereGeometry(13,28,20),lit(0x4f8fdc)); earth.add(e);
+    [[0.4,0.5,5],[-0.6,0.1,4],[1.6,-0.3,4.5],[2.6,0.4,3.4],[-1.8,-0.5,3.6]].forEach(([a,b,s2])=>{ const c=new THREE.Mesh(new THREE.SphereGeometry(s2,12,9),lit(0x6fb86a)); c.position.set(Math.sin(a)*Math.cos(b)*10.2,Math.sin(b)*10.2,Math.cos(a)*Math.cos(b)*10.2); earth.add(c); });
+    [[1,0.9,4],[-1.2,0.7,3.5],[0.2,-0.8,4]].forEach(([a,b,s2])=>{ const c=new THREE.Mesh(new THREE.SphereGeometry(s2,12,9),lit(0xffffff)); c.scale.y=0.5; c.position.set(Math.sin(a)*Math.cos(b)*11.6,Math.sin(b)*11.6,Math.cos(a)*Math.cos(b)*11.6); earth.add(c); }); }
+  /* Lumi's castle: pale towers with pointed roofs and lit windows, a gate, and bunting strung between the towers */
+  const WALL='#dfe3f6', ROOF='#8f9be0', GLOW=lit(0xfff3a3);
+  const tower=(x,z,rad,h)=>{ add(new THREE.CylinderGeometry(rad,rad*1.1,h,16),WALL,x,h/2-0.3,z); add(new THREE.ConeGeometry(rad*1.25,rad*2.2,16),ROOF,x,h+rad*1.1-0.3,z);
+    for(let k=0;k<2;k++) add(new THREE.BoxGeometry(0.34,0.5,0.06),GLOW,x,h*0.45+k*h*0.3-0.3,z+rad*1.03); const f=add(new THREE.ConeGeometry(0.2,0.5,3),lit(0xff8a7a),x+0.2,h+rad*2.3,z); f.rotation.z=-Math.PI/2; };
+  tower(-4.6,-8,1.3,6.5); tower(4.6,-8,1.3,6.5); tower(0,-10,1.9,9.5); tower(-8,-10.5,1,5); tower(8,-10.5,1,5);
+  add(new THREE.BoxGeometry(9.2,3.6,1.2),WALL,0,1.5,-8); add(new THREE.BoxGeometry(1.7,2.4,0.1),lit(0xffe3a0),0,0.9,-7.36); { const ar=add(new THREE.CylinderGeometry(0.85,0.85,0.1,16,1,false,0,Math.PI),lit(0xffe3a0),0,2.1,-7.36); ar.rotation.set(Math.PI/2,0,Math.PI/2); }
+  for(let k=-4;k<=4;k++) add(new THREE.BoxGeometry(0.6,0.5,1.25),WALL,k*1.05,3.55,-8).visible=k%2===0;
+  const BUNT=[0xff8a7a,0xffd27a,0x9fd8ff,0xb79cff,0x8ff5d6];
+  [[-4.6,4.4,-6.7,4.6,4.4,-6.7],[-4.6,4.6,-6.9,-7,2.6,1.5],[4.6,4.6,-6.9,7,2.6,1.5]].forEach(([x0,y0,z0,x1,y1,z1])=>{ for(let k=1;k<12;k++){ const u=k/12, sag=Math.sin(u*Math.PI)*1.1;
+      const f=add(new THREE.ConeGeometry(0.2,0.36,3),lit(BUNT[k%5]),lerp(x0,x1,u),lerp(y0,y1,u)-sag,lerp(z0,z1,u)); f.rotation.x=Math.PI; } });
+  [[-7,1.5],[7,1.5]].forEach(([x,z])=>{ add(new THREE.CylinderGeometry(0.05,0.06,2.7,7),WALL,x,1.35,z); add(new THREE.SphereGeometry(0.22,12,9),GLOW,x,2.85,z); });
+  /* the party: a round table with a moon cake, cups, and lanterns on the ground */
+  add(new THREE.CylinderGeometry(1.25,1.25,0.08,24),'#f3ecff',0,0.86,-3.2); add(new THREE.CylinderGeometry(0.12,0.3,0.84,10),'#c9d2f0',0,0.42,-3.2);
+  add(new THREE.CylinderGeometry(0.48,0.5,0.3,24),'#fff6ec',0,1.05,-3.2); add(new THREE.CylinderGeometry(0.32,0.34,0.24,24),'#ffe1ea',0,1.32,-3.2); { const c=add(new THREE.SphereGeometry(0.1,10,8),GLOW,0,1.52,-3.2); c.scale.set(1,1,0.4); }
+  for(let k=0;k<6;k++){ const a=k*1.047; add(new THREE.CylinderGeometry(0.06,0.05,0.12,8),lit(BUNT[k%5]),Math.sin(a)*0.95,0.96,-3.2+Math.cos(a)*0.95); }
+  const lanterns=[]; for(let k=0;k<9;k++){ const a=k*0.7+0.3, d=4.6+r()*2.6, m=add(new THREE.SphereGeometry(0.16,10,8),lit([0xfff3a3,0x8ff5d6,0xffc6dc,0xbfe3ff][k%4]),Math.sin(a)*d,0.2,Math.cos(a)*d-0.5); lanterns.push(m); }
+  /* Lumi, and all four friends */
+  const lumi=makeGirl({dress:'#c9d2f0',hair:'#f6f3ff',skin:'#e6e2f5',legs:'#f3efff',ribbon:'#fff3a3',style:'bun',scale:1.16}); lumi.g.position.set(0,0,-1.6); sc.add(lumi.g);
+  const pals=['glow','giant','pond','crystal'].map((k,i)=>{ const f=makeFolk(k,0.9); f.home=[[-2.6,-2.4],[2.6,-2.4],[-3.3,0.9],[3.3,0.9]][i]; sc.add(f.g); return f; });
+  return {scene:sc,lumi,pals,
+    update(t,speaker){ earth.rotation.y=t*0.02; lanterns.forEach((m,i)=>{ m.position.y=0.5+Math.sin(t*0.7+i)*0.3+i*0.12; });
+      const talking=speaker===5; lumi.armR.rotation.z=2.5+Math.sin(t*6)*0.35; lumi.armL.rotation.z=talking?-2.5-Math.sin(t*6)*0.35:-0.2; lumi.head.rotation.y=Math.sin(t*0.5)*0.35; lumi.g.position.y=Math.abs(Math.sin(t*1.3))*0.35; lumi.g.rotation.y=Math.sin(t*0.3)*0.3;
+      pals.forEach((f,i)=>{ const a=t*0.35+i*1.57; f.g.position.set(f.home[0]+Math.sin(a)*0.7,Math.abs(Math.sin(t*1.1+i*1.3))*0.7,f.home[1]+Math.cos(a)*0.7); f.g.rotation.y=a+1.57; animFolk(f,t,1); }); },   /* everybody bounces: there is not much gravity */
+    dispose(){ sc.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose(); }); } };
+}
+function enterMoon(){
+  const tok=++restToken; $('fade').classList.add('on'); $('phoneDock').hidden=true;
+  setTimeout(()=>{ if(tok!==restToken||!state.started) return;
+    if(mode==='home') leaveHome(); moonS=buildMoon(); Object.assign(moonS,{t:0,th:Math.PI,cam0:camTheta,done:false});
+    scene.remove(june.g,pip.g); moonS.scene.add(june.g,pip.g); setTorches(0);
+    mode='moon'; landY=()=>0; zoom=1; userPhi=0;
+    BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(i?1.1:-1.1,1.2); b.face=b.faceT=Math.PI; b.actIn=7+i*3;
+      b.queue.push({k:'pose',pose:i?'hop':'wave',dur:3.5,face:Math.PI},{k:'pose',pose:i?'spin':'hop',dur:2.4,face:Math.PI}); });
+    bubbles[5].head=moonS.lumi.head; bubbles[5].root=moonS.lumi.g;
+    hushBubbles(); hushNarrator(); playScript(MOON_SCRIPT); speakIn=40;
+    narrate('And that is how June and Pip, who had only meant to climb a small mountain, came to be at a party on the Moon.');
+    showCaption({t:'The secret ending',b:'Lumi\'s moon castle, with everyone they met along the way.'});
+    $('fade').classList.remove('on'); },950);
+}
+function updateMoon(dt,rawDt){
+  moonS.t+=dt; BRAINS.forEach(b=>{ updateSummitBrain(b,dt); }); moonS.update(time,curLine?curLine.w:-1);
+  [june,pip].forEach((g,i)=>{ g.g.position.y+=Math.abs(Math.sin(time*1.2+i*1.4))*0.3; });   /* a floaty, moon-sized bounce */
+  if(!moonS.done&&moonS.t>14&&quiet()){ moonS.done=true; speakIn=10; narrate('They danced until the Earth came up. And in the morning, the very first thing they did was tell Michelle.'); showCaption({t:'The End',b:'The secret ending. You found every place on the mountain. Thank you for hiking with June and Pip.'}); }
+  moonS.th+=dt*0.05*motion; const th=moonS.th+(camTheta-moonS.cam0), aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1;
+  const r=11.5*zoom*aspectBoost, ph=clamp(0.2+userPhi,0.03,1.0);
+  off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
+  target.set(0,2.2,-2.4); camera.position.copy(target).add(off); camera.lookAt(target);
+}
+function leaveMoon(){ moonS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); bubbles[5].head=nobody.head; bubbles[5].root=nobody.g; moonS.dispose(); moonS=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
+/* answering the telephone */
+function answerPhone(){ if(mode!=='home'||!home||home.phase!==1) return; home.phase=2; home.pt=home.t; $('phoneDock').hidden=true; hushBubbles(); speakIn=60;
+  narrate('June picked it up. The voice on the other end came from a very long way off, and it was laughing.');
+  playScript([[0,'Hello? ...LUMI!'],[5,'June! Pip! I saw you! Four times, on top of your mountain, through my moon telescope!'],[1,'She SAW us! I TOLD you she could see us!'],
+    [5,'Four mountain tops deserves a party. In my castle. Tonight. Bring your friends!'],[0,'But how do we get to the Moon?'],[2,'Leave that to us. All four of us together: that is a great deal of magic.'],
+    [4,'Who are you two talking to? The phone didn\'t ring.'],[1,'Nobody, Dad! May we be excused?'],[3,'Go on, then. Don\'t stay up too late.']]); }
+$('phoneBtn').addEventListener('click',answerPhone);
 [['aspenBtn',-1],['autumnBtn',1]].forEach(([id,c])=>{ const b=$(id);
   ['pointerenter','focus'].forEach(ev=>b.addEventListener(ev,()=>{ if(rest&&rest.ready) rest.focus=c; }));
 });   /* the view stays on the gateway last pointed at, rather than swinging back in between */
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -2747,7 +2866,7 @@ const ASPEN_LINES=['The leaves are shivering.',['Why do the trunks have eyes?','
 const AUTUMN_LINES=[['It\'s raining leaves!','Catch one and make a wish!'],'Crunch, crunch, crunch.',['Everything is orange.','Even the air looks orange.'],['Let\'s make a leaf pile.','On the way back down.'],
   ['This is the reddest leaf in the whole world.','Mom gets that one.'],['It smells like pancakes.','That\'s just you being hungry.']];
 const bubbles=[{el:$('bubJune'),b:juneB,head:june.head,root:june.g,t:0},{el:$('bubPip'),b:pipB,head:pip.head,root:pip.g,t:0},
-  {el:$('bubFriend'),head:nobody.head,root:nobody.g,t:0},{el:$('bubMom'),head:nobody.head,root:nobody.g,t:0},{el:$('bubDad'),head:nobody.head,root:nobody.g,t:0}];   /* the girls; then a village friend, Mom and Dad, when they are about */
+  {el:$('bubFriend'),head:nobody.head,root:nobody.g,t:0},{el:$('bubMom'),head:nobody.head,root:nobody.g,t:0},{el:$('bubDad'),head:nobody.head,root:nobody.g,t:0},{el:$('bubLumi'),head:nobody.head,root:nobody.g,t:0}];   /* the girls; then a village friend, Mom and Dad, when they are about */
 let script=[];
 function playScript(lines){ script=lines.slice(); }
 const decks={}; let speakIn=4, curLine=null, lineGap=0;
@@ -2764,7 +2883,8 @@ function sayIf(b,text){ if(quiet()) say(BRAINS.indexOf(b),text); }
 function chatter(){
   if(mode==='rest'){ if(rest.phase===2||rest.phase===4) speak(nextLine('rest',REST_LINES)); return; }
   if(mode==='summit'){ speak(nextLine('summit',SUMMIT_LINES)); return; }
-  if(mode==='home'){ speak(nextLine('home',HOME_LINES)); return; }
+  if(mode==='home'){ if(home.phase<1) speak(nextLine('home',HOME_LINES)); return; }
+  if(mode==='moon'){ speak(nextLine('moon',MOON_LINES)); return; }
   { const k=bioKeyAt(party.s), ls=k==='aspen'?ASPEN_LINES:k==='autumn'?AUTUMN_LINES:BIO[k]&&BIO[k].lines;   /* things to say about wherever they are */
     if(ls&&gateK(party.s)<0.2&&Math.random()<(BIO[k].tree?0.75:0.5)){ speak(nextLine(k,ls)); return; } }
   speak(nextLine('trail',TRAIL_LINES));
@@ -3168,7 +3288,7 @@ MARKDEFS.forEach(m=>{ const f=FACTS[m.k], w=document.createElement('div'); w.cla
   w.appendChild(b); marksEl.appendChild(w); MK[m.k]=w; });
 const placed=[];
 function updateMarks(){
-  (mode==='rest'?rest.scene:mode==='summit'?summit.scene:mode==='home'?home.scene:scene).updateMatrixWorld();
+  (mode==='rest'?rest.scene:mode==='summit'?summit.scene:mode==='home'?home.scene:mode==='moon'?moonS.scene:scene).updateMatrixWorld();
   camera.updateMatrixWorld();
   const show=state.started&&!bookOpen&&mode==='trail';
   marksEl.classList.toggle('compact',!paused);
@@ -3230,9 +3350,18 @@ const sunGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xf
 const sunCore=new THREE.Mesh(new THREE.SphereGeometry(30,24,16),new THREE.MeshBasicMaterial({color:0xfffbe6,transparent:true,opacity:0,fog:false})); sunCore.visible=false; scene.add(sunCore);
 const skyMist=[]; for(let i=0;i<18;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xfff8ec,transparent:true,opacity:0,depthWrite:false})); sp.visible=false; sp.renderOrder=1; scene.add(sp);
   skyMist.push({sp,z:rnd()*90,side:i%2?1:-1,lat:3.2+rnd()*13,w:9+rnd()*9,ph:rnd()*6,sp0:0.5+rnd()*0.7}); }
+/* the northern lights, high over the ridge: three long curtains of green, teal and violet light that ripple slowly and brighten and fade */
+const auroraTex=alphaTex(256,(u,v)=>{ const ray=0.45+0.55*Math.pow(0.5+0.5*Math.sin(u*75+Math.sin(u*13)*4),2), band=0.5+0.5*Math.sin(u*6.283*2+1);
+  return ray*(0.35+0.65*band)*smooth(0.02,0.14,v)*(1-smooth(0.2,0.98,v))*smooth(0,0.06,u)*smooth(1,0.94,u); });
+const auroras=[[0x6dffb0,-260,330,760,0.25,1100,230],[0x54e6d8,240,390,900,-0.35,1200,260],[0xb48cff,-40,470,1050,0.08,1400,300]].map(([c,x,y,z,ry,w,h],i)=>{
+  const geo=new THREE.PlaneGeometry(w,h,40,1), p=geo.attributes.position; for(let k=0;k<p.count;k++) p.setZ(k,Math.sin(p.getX(k)*0.012+i*2)*70+Math.sin(p.getX(k)*0.031+i)*25);   /* hung in folds, like a curtain */
+  const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:c,map:auroraTex,transparent:true,opacity:0,depthWrite:false,fog:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending}));
+  m.visible=false; m.frustumCulled=false; m.renderOrder=0; scene.add(m); return {m,x,y,z,ry,ph:i*2.1}; });
 function updateSkyWeather(s,mistK){
   const k=skyOpen?smooth(SKY_B-6,SKY_B+8,s):0, on=k>0.01;
-  cloudSea.visible=sunGlow.visible=sunCore.visible=on; skyMist.forEach(m=>m.sp.visible=on); if(!on) return;
+  cloudSea.visible=sunGlow.visible=sunCore.visible=on;
+  auroras.forEach(a=>{ a.m.visible=on; if(!on) return; a.m.position.set(camera.position.x+a.x+Math.sin(time*0.05+a.ph)*40,camera.position.y+a.y,camera.position.z+a.z); a.m.rotation.set(0.25,a.ry+Math.sin(time*0.07+a.ph)*0.06,0);
+    a.m.scale.x=1+0.06*Math.sin(time*0.11+a.ph); a.m.material.opacity=k*(1-mistK)*(0.34+0.2*Math.sin(time*0.23+a.ph)+0.08*Math.sin(time*0.9+a.ph*3)); }); skyMist.forEach(m=>m.sp.visible=on); if(!on) return;
   cloudSea.position.set(trailX(s),trailY(s)-12.5,s);
   sunGlow.position.set(camera.position.x-90,camera.position.y+72,camera.position.z+900); sunCore.position.copy(sunGlow.position);
   sunGlow.material.opacity=0.9*k*(1-0.5*mistK); sunCore.material.opacity=0.95*k*(1-0.7*mistK);
@@ -3287,7 +3416,7 @@ function updateBreath(dt){
    so nothing behaves differently, it just happens sooner. (The fades between scenes still take their usual second.) */
 let pace=1;
 function simStep(dt){ time+=dt;
-  if(mode==='rest') updateRest(dt,dt); else if(mode==='summit') updateSummit(dt,dt); else if(mode==='home') updateHome(dt,dt);
+  if(mode==='rest') updateRest(dt,dt); else if(mode==='summit') updateSummit(dt,dt); else if(mode==='home') updateHome(dt,dt); else if(mode==='moon') updateMoon(dt,dt);
   else { updateParty(dt); BRAINS.forEach(b=>updateBrain(b,dt)); updateEvents(dt); updateGust(dt); }
   updateSpeech(dt); updateNarrator(dt); }
 function setPace(p){ pace=p; const b=$('paceBtn'); b.textContent='Pace ×'+p; b.setAttribute('aria-label','Pace: '+(p===1?'normal speed':p+' times as fast')+'. Tap to change.'); }
@@ -3301,6 +3430,7 @@ function frame(now){
   if(mode==='rest') updateRest(dt,rawDt);   /* the rest site is its own scene; the trail is not touched while it runs */
   else if(mode==='summit') updateSummit(dt,rawDt);
   else if(mode==='home') updateHome(dt,rawDt);
+  else if(mode==='moon') updateMoon(dt,rawDt);
   else {
   /* the walk, and the strip of forest that travels with it */
   updateParty(dt);
@@ -3382,7 +3512,7 @@ function frame(now){
   if(mode==='trail') updatePrints();
   updateMarks();
   updateSpeech(dt); updateNarrator(dt);
-  if(wall.state!=='closed'||(frameNo++%20)===0) renderer.render(mode==='rest'?rest.scene:mode==='summit'?summit.scene:mode==='home'?home.scene:scene,camera);   /* behind the closed wall of leaves, only now and then */
+  if(wall.state!=='closed'||(frameNo++%20)===0) renderer.render(mode==='rest'?rest.scene:mode==='summit'?summit.scene:mode==='home'?home.scene:mode==='moon'?moonS.scene:scene,camera);   /* behind the closed wall of leaves, only now and then */
   requestAnimationFrame(frame);
 }
 /* iPad: no double-tap or pinch zooming of the page (pinching the scene still zooms the camera) */

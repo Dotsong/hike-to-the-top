@@ -77,17 +77,22 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   // the zone list: open it, count the places, and jump to every one of them in turn
   await p.evaluate(()=>document.getElementById('zoneBtn').click()); await p.waitForTimeout(300);
   const zoneNames=await p.evaluate(()=>[...document.querySelectorAll('#zoneList button')].map(b=>b.textContent));
-  if(zoneNames.length<29) errs.push('the zone list is short: '+zoneNames.length);
+  if(zoneNames.length<30) errs.push('the zone list is short: '+zoneNames.length);
   await p.evaluate(()=>document.getElementById('zoneClose').click());
-  for(const z of zoneNames){ if(!await p.evaluate(z=>window.hikeDebug.warp(z),z)) errs.push('no zone called '+z); await p.waitForTimeout(700);
+  for(const z of zoneNames.filter(z=>!/secret|Dinner/.test(z))){ if(!await p.evaluate(z=>window.hikeDebug.warp(z),z)) errs.push('no zone called '+z); await p.waitForTimeout(700);
     if(await p.evaluate(()=>window.hikeDebug.mode())!=='trail') errs.push('jumping to '+z+' did not land on the trail'); }
   // and by the button: the summit is one tap and a few steps away
   await p.evaluate(()=>document.getElementById('zoneBtn').click()); await p.waitForTimeout(300);
   await p.evaluate(()=>[...document.querySelectorAll('#zoneList button')].find(b=>b.textContent==='Summit').click());
   const zones=await p.waitForFunction(()=>window.hikeDebug.mode()==='summit',null,{timeout:30000}).then(()=>true).catch(()=>{ errs.push('jumping to the summit did not get there'); return false; });
+  // the secret ending: dinner with all four friends in the house, the telephone, Lumi, and the party on the Moon
+  await p.evaluate(()=>window.hikeDebug.warp('The secret ending (as if everything were found)'));
+  await p.waitForFunction(()=>!document.getElementById('phoneDock').hidden,null,{timeout:120000}).catch(()=>errs.push('the telephone never rang'));
+  await p.evaluate(()=>document.getElementById('phoneBtn').click());
+  const secret=await p.waitForFunction(()=>window.hikeDebug.mode()==='moon'&&window.hikeDebug.moonDone(),null,{timeout:150000}).then(()=>true).catch(()=>{ errs.push('the party on the Moon never happened'); return false; });
   await p.evaluate(()=>document.getElementById('goodnightBtn').click()); await p.waitForTimeout(1600);
   const backToStart=await p.evaluate(()=>!document.getElementById('intro').hidden);
-  console.log({route:ROUTE,hikeStarted:true,bookOpen,mapOpen,restScene,forkChosen,revealed,places:places.join(' > '),summit,offer,dinner,zones:zones&&zoneNames.length,backToStart});
+  console.log({route:ROUTE,hikeStarted:true,bookOpen,mapOpen,restScene,forkChosen,revealed,places:places.join(' > '),summit,offer,dinner,zones:zones&&zoneNames.length,secret,found:await p.evaluate(()=>window.hikeDebug.saved()).catch(()=>''),backToStart});
   console.log(errs.length?errs.join('\n'):'no errors');
   await b.close(); process.exit(errs.length?1:0);
 })();
