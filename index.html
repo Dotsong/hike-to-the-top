@@ -399,6 +399,7 @@ body.is-paused .narrator{opacity:0}
 </div>
 
 <div class="controls hud-off" id="controls">
+  <button id="stopBtn" type="button" hidden>Stop here for today</button>
   <button id="zoneBtn" type="button">Testing</button>
   <button id="goodnightBtn" type="button">Back to the start</button>
   <button id="bookBtn" type="button">Fact book</button>
@@ -439,6 +440,7 @@ body.is-paused .narrator{opacity:0}
     <p>Mom packed sandwiches. Dad drew a map. Pip packed nine snacks, <em>&ldquo;just in case.&rdquo;</em></p>
     <div class="row">
       <button class="primary" id="beginBtn" type="button">Start the hike</button>
+      <button id="resumeBtn" type="button" hidden>Carry on the hike</button>
       <p class="hint">Sound on &middot; drag to look around</p>
     </div>
   </div>
@@ -2156,19 +2158,35 @@ function closeDoors(){
 }
 
 /* ---------- starting the hike, and going back to the title page ---------- */
-function startHike(){
+function startHike(quiet){
   if(state.started) return;
   resetHike();   /* the leaves are shut, so nobody sees the walk go back to the trailhead */
   state.started=true; idle=0; $('pauseBtn').hidden=false; Music.start(); Music.unlock(); keepAwake();
   const intro=$('intro'); intro.classList.add('gone'); setTimeout(()=>{ if(state.started) intro.hidden=true; },1000);
   openDoors();
   ['alt','controls'].forEach(id=>$(id).classList.remove('hud-off'));
+  if(quiet===true) return;   /* carrying on from a rest site: the opening is not played again */
   hushBubbles(); speakIn=9; EVT.inT=18; BRAINS.forEach(b=>{ b.actIn=12+Math.random()*10; });
   setTimeout(()=>{ if(state.started) narrate('One bright morning, June and Pip set out to climb the little mountain behind their house.'); },1400);
   say(0,'Come on, Pip! The trail starts here.'); say(1,'Right behind you, Captain June!'); say(1,'Bye, house! Back by dinner!');
   pipB.queue.push({k:'pose',pose:'idle',dur:5.2},{k:'pose',pose:'wave',dur:2.4,face:heading(4)+Math.PI});   /* Pip turns round to wave at it */
   setTimeout(()=>{ if(state.started) showCaption({t:'The edge of the woods',b:'Trees on one side, open meadow on the other. There is no hurry at all.'}); },2600);
 }
+/* Stopping for the day. At any rest site the hike can be left there and picked up again later: which site it was, and the ways chosen to get
+   to it, are kept in the browser, and the title card then offers to carry on from that site as well as to start again. */
+const MARK_KEY='trail-to-the-top-bookmark';
+function loadMark(){ try{ const j=JSON.parse(localStorage.getItem(MARK_KEY)||'null'); if(j&&[0,1,2].includes(j.site)&&Array.isArray(j.picks)&&j.picks.length===3&&j.picks.every(v=>v===0||v===1||v===-1)&&(j.site<1||j.picks[0])&&(j.site<2||j.picks[1])) return j; }catch(e){} return null; }
+function markName(b){ if(b.site===0) return 'the first rest site'; if(b.site===1) return 'the rest site after the '+(b.picks[0]>0?'autumn woods':'aspen grove');
+  const k=b.picks[0]>0?(b.picks[1]>0?'winter':'grass'):(b.picks[1]>0?'marsh':'alpine'); return 'the rest site after '+BIO[k].reveal.t.replace(/^The /,'the '); }
+function syncResume(){ const b=loadMark(), el=$('resumeBtn'); el.hidden=!b; if(b) el.textContent='Carry on from '+markName(b); }
+function stopForToday(){ if(mode!=='rest'||!rest||rest.leaving||!state.started) return;
+  const b={site:fork.site,picks:[picks[0],fork.site>0?picks[1]:0,0]}; let ok=true; try{ localStorage.setItem(MARK_KEY,JSON.stringify(b)); }catch(e){ ok=false; }
+  $('stopBtn').hidden=true; hideFork(); hushBubbles(); speakIn=30; narrate(ok?'That was enough mountain for one day. It would still be there tomorrow, and so would the log.':'That was enough mountain for one day.');
+  setTimeout(()=>{ if(state.started&&mode==='rest') $('fade').classList.add('on'); },2600); setTimeout(()=>{ if(state.started&&mode==='rest') backToStart(); },3500); }
+function resumeHike(){ const b=loadMark(); if(!b||state.started) return; startHike(true);
+  warp('Back on the trail',b.site===0?REST_C-8:SITES[b.site].rest-7,[b.site>0?b.picks[0]:0,b.site>1?b.picks[1]:0,0]);
+  showCaption({t:'Back on the trail',b:'Picking up the hike at '+markName(b)+'.'}); setTimeout(()=>{ if(state.started) narrate('Another morning, June and Pip came back to where they had stopped, and carried on.'); },1400); }
+$('stopBtn').addEventListener('click',stopForToday); $('resumeBtn').addEventListener('click',resumeHike);
 function backToStart(){
   if(bookOpen) closeBook(); $('zoneScrim').hidden=true; $('endDock').hidden=true; autoPaused=false; setPaused(false);
   restToken++; $('fade').classList.remove('on'); hushNarrator();
@@ -2176,7 +2194,7 @@ function backToStart(){
   ['alt','controls'].forEach(id=>$(id).classList.add('hud-off'));
   party.vT=0; party.rest=0; hideFork(); BRAINS.forEach(b=>{ b.queue.length=0; b.cur=null; b.skip=0; });
   closeDoors();
-  const intro=$('intro'); intro.hidden=false; requestAnimationFrame(()=>intro.classList.remove('gone'));
+  const intro=$('intro'); intro.hidden=false; requestAnimationFrame(()=>intro.classList.remove('gone')); syncResume();
 }
 function resetHike(){
   if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); if(mode==='moon') leaveMoon(); if(mode==='cave') leaveCave(); if(mode==='falls') leaveFalls(); riverAsk=0; forceRiver=false; $('riverDock').hidden=true; forceSecret=false; $('homeDock').hidden=true; $('phoneDock').hidden=true; $('endDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
@@ -2750,7 +2768,7 @@ function storeFound(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(saved))
 function showFound(){ const el=$('foundNow'); if(el) el.textContent=`Places found: ${saved.places.length} of 10. Friends brought home: ${saved.friends.length} of 4. Crossroads on the map: ${saved.sites.length} of 7. Dad's notes: ${saved.notes.length} of 7.`+(secretReady()?' The secret ending is unlocked: finish any hike and the telephone will ring.':'')+(saved.secret?' The secret ending has been seen: on the next hike the river can be crossed.':''); }
 /* for testing: set every flag the secret ending needs, or clear them all */
 $('foundAll').addEventListener('click',()=>{ saved={places:ALL_PLACES.slice(),friends:ALL_FRIENDS.slice(),sites:ALL_SITES.slice(),notes:ALL_NOTES.slice(),top:true,secret:saved.secret}; const ok=storeFound(); showFound(); if(!ok) $('foundNow').textContent+=' (This browser would not save it, so it lasts only until the page is closed.)'; });
-$('foundNone').addEventListener('click',()=>{ saved={places:[],friends:[],sites:[],notes:[],top:false,secret:false}; storeFound(); found.length=0; saveFound(); updateBookBtn(); resetMarks(); showFound(); });
+$('foundNone').addEventListener('click',()=>{ saved={places:[],friends:[],sites:[],notes:[],top:false,secret:false}; storeFound(); found.length=0; saveFound(); updateBookBtn(); resetMarks(); try{ localStorage.removeItem(MARK_KEY); }catch(e){} syncResume(); showFound(); });
 $('foundSecret').addEventListener('click',()=>{ saved.secret=true; storeFound(); showFound(); });
 function remember(kind,key){ if(!key||!({places:ALL_PLACES,friends:ALL_FRIENDS,sites:ALL_SITES,notes:ALL_NOTES})[kind].includes(key)||saved[kind].includes(key)) return; saved[kind].push(key); storeFound(); }   /* written to the browser's storage the moment it happens */
 const friendsHome=()=>forceSecret?ALL_FRIENDS.slice():ALL_FRIENDS.filter(k=>saved.friends.includes(k));
@@ -3163,7 +3181,7 @@ function leaveFalls(){ fallsS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -3788,7 +3806,7 @@ addEventListener('keydown',e=>{
   const onButton=e.target&&e.target.tagName==='BUTTON';
   if(e.key==='p'||e.key==='P'||(e.key===' '&&!onButton)){ e.preventDefault(); if(bookOpen) closeBook(); autoPaused=false; setPaused(!paused); }
 });
-updateBookBtn();
+updateBookBtn(); syncResume();
 
 
 /* little book tags that float over things in the scene */
@@ -3841,6 +3859,7 @@ const placed=[];
 function updateMarks(){
   (mode==='rest'?rest.scene:mode==='summit'?summit.scene:mode==='home'?home.scene:mode==='moon'?moonS.scene:mode==='cave'?caveS.scene:mode==='falls'?fallsS.scene:scene).updateMatrixWorld();
   camera.updateMatrixWorld();
+  { const sb=$('stopBtn'), on=state.started&&mode==='rest'&&!!rest&&!rest.leaving&&rest.phase>=1; if(sb.hidden===on) sb.hidden=!on; }   /* stopping for the day is offered only at a rest site */
   const show=state.started&&!bookOpen&&mode==='trail';
   marksEl.classList.toggle('compact',!paused);
   placed.length=0;
