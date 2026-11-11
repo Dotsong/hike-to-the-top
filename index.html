@@ -1489,6 +1489,15 @@ for(let i=0;i<24;i++){ const z=66+rnd()*58, x=x0(z)+(rnd()-0.5)*26, o=0.1+rnd()*
 
 /* the top of the mountain, hazy and far ahead */
 const peak=new THREE.Group(); scene.add(peak);
+/* a faint starburst on the very tip of the mountain, every 45 seconds: a glint, as if something up there had caught the sun */
+const peakStar=(()=>{ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'); g.translate(128,128);
+  const halo=g.createRadialGradient(0,0,0,0,0,60); halo.addColorStop(0,'rgba(255,255,255,1)'); halo.addColorStop(0.25,'rgba(255,250,225,.55)'); halo.addColorStop(1,'rgba(255,244,200,0)'); g.fillStyle=halo; g.fillRect(-128,-128,256,256);
+  for(let i=0;i<8;i++){ const len=i%2?62:124, w=i%2?3.2:5; g.save(); g.rotate(i*Math.PI/4); const ray=g.createLinearGradient(0,0,len,0); ray.addColorStop(0,'rgba(255,255,255,.95)'); ray.addColorStop(1,'rgba(255,248,215,0)');
+    g.fillStyle=ray; g.beginPath(); g.moveTo(0,-w); g.lineTo(len,0); g.lineTo(0,w); g.closePath(); g.fill(); g.restore(); }
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,opacity:0,fog:false,depthWrite:false,blending:THREE.AdditiveBlending}));   /* (trees and hills in front still hide it, as they hide the mountain) */
+  sp.position.set(0,211,0); sp.visible=false; sp.renderOrder=3; peak.add(sp); return sp; })();
+let peakStarT=33;   /* the first one comes a dozen seconds into the hike */
+const STAR_EVERY=45, STAR_LASTS=3.2;
 const glowLamp=new THREE.PointLight(0x8ff5d6,0,11,1.6); scene.add(glowLamp);   /* in the glow-wood, the light of everything glowing nearby falls on the girls */
 /* the Moon and a few stars, for the one place where it is night */
 const moon=new THREE.Mesh(new THREE.SphereGeometry(17,24,16),new THREE.MeshBasicMaterial({color:0xfff6dc,fog:false,transparent:true,opacity:0})); moon.visible=false; scene.add(moon);
@@ -3154,7 +3163,7 @@ function leaveFalls(){ fallsS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -3816,7 +3825,7 @@ const MARKDEFS=[
   {k:'leaves',at:o=>ahead(spots.gold,o)},
   {k:'pine',at:o=>ahead(spots.pine,o)},
   {k:'canopy',at:o=>(o.set(0.5,0.74,0),'n')},
-  {k:'mountain',at:o=>(o.copy(peak.position),o.y+=215,'w')},
+  {k:'mountain',at:o=>(o.copy(peak.position),o.y+=150,'w')}   /* on its upper slopes, clear of the glint at the very tip */,
   {k:'birds',at:o=>flock.visible?(o.copy(flock.position),o.y+=0.9,'w'):false}
 ];
 function makeMark(m){ if(MK[m.k]||found.includes(m.k)) return; const f=FACTS[m.k], w=document.createElement('div'); w.className='fm'; w.hidden=true;
@@ -3985,6 +3994,10 @@ function frame(now){
   if(fr!==forestRow){ forestRow=fr; rebuildForest(party.s); }
   updateEvents(dt); updateChirps(dt); updateGust(dt); updateLeafFall(dt); updateSway();
   peak.position.set(-140,trailY(party.s)-10,party.s+640); peak.visible=party.s<SKY_A;
+  peakStarT+=dt; if(peakStarT>STAR_EVERY+STAR_LASTS) peakStarT-=STAR_EVERY+STAR_LASTS;
+  { const u=(peakStarT-STAR_EVERY)/STAR_LASTS, on=u>0&&peak.visible; peakStar.visible=on;
+    if(on){ const b=Math.sin(Math.PI*u), k=Math.pow(b,1.5); peakStar.material.opacity=0.6*k; peakStar.material.rotation=0.5*u; peakStar.scale.setScalar(30+95*k);
+      const dx=camera.position.x-peak.position.x, dy=camera.position.y-peak.position.y-211, dz=camera.position.z-peak.position.z, q=Math.min(0.6,330/(Math.hypot(dx,dy,dz)||1)); peakStar.position.set(dx*q,211+dy*q,dz*q); peakStar.scale.multiplyScalar(1-q); }   /* held on the line from the eye to the tip, just clear of the mountain's own slopes, and shrunk to match so it looks the same size */ }
 
   /* camera: it circles the point the girls are strolling along with */
   camHd=damp(camHd,heading(party.s),0.7,dt);
