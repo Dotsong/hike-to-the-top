@@ -861,7 +861,7 @@ const REST_LOOKS={
 BIO.mtn=Object.assign({},BIO.alpine,{gate:null,reveal:null,
   lines:[['My legs say we\'re nearly there.','Your legs said that an hour ago.'],'The path is all stones now.',['Is that a cloud? Coming DOWN?','We\'re going up to meet it.'],['I can see the top!','So can I. Keep walking.']],
   narr:['The trail was nothing but stone now, and it only went one way: up.','Below them, the places they had walked through lay folded like a map.']});
-BIO.winter.coat='up'; BIO.alpine.coat=BIO.mtn.coat=BIO.sky.coat='down';   /* where it is cold enough for a parka, and whether the hood is up */
+BIO.winter.coat='up'; BIO.alpine.coat=BIO.mtn.coat=BIO.sky.coat=BIO.glow.coat=BIO.crystal.coat='down';   /* where it is cold enough for a parka, and whether the hood is up */
 for(const k in BIO){ const g=BIO[k].gate; if(g){ g.pal=(g.cols||g.rock||[]).map(C); if(g.glow) g.glowC=C(g.glow); } }
 const TOP_GATE={kind:'arch',pal:pal(['#8b8f8a','#9a9a94','#7d807c'])};   /* the last cave */
 const GUSTS={winter:[SNOW,WHITE],grass:MEADOW,marsh:[TAN,GREENS[3],TAN],alpine:[WHITE,SNOW],glow:GLOWS,giant:BLOOM,pond:PASTEL,crystal:GEMS,sky:BIO.sky.fall};   /* what the wind throws about when each place opens up */
@@ -1337,7 +1337,7 @@ addTorch(june,1,'#d9534a'); addTorch(pip,-1,'#4fa3a0');
 function setTorches(k){ const on=k>0.15; [june,pip].forEach(g=>{ const t=g.torch; t.body.visible=t.lens.visible=t.beam.visible=on; t.light.intensity=1.8*k; t.beam.material.opacity=0.1*k; }); juneB.torch=pipB.torch=on; }
 /* Parkas for the cold places: a puffy coat over the dress with a fur hem, sleeves with fur cuffs, mittens, and a fur-trimmed hood.
    In the winter forest the hood is up (and pigtails and topknot are tucked inside it); in the other cold places (the alpine rock garden,
-   the mountain trail, the sky garden and the summit) it lies folded down behind the neck. The coats are always there, just out of sight until wanted. */
+   the glow-wood at night, the crystal hollow, the mountain trail, the sky garden and the summit) it lies folded down behind the neck. The coats are always there, just out of sight until wanted. */
 function addParka(girl,col){
   const M=L(col), FUR=L('#fff6ec'), coat=new THREE.Group(), down=new THREE.Group(), up=new THREE.Group(), sleeves=[];
   const body=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.285,0.44,18),M); body.position.y=0.26; coat.add(body);
@@ -1447,9 +1447,12 @@ function updateParty(dt){
   if(state.started&&fork.site===0&&fork.stage===3&&!fork.gateEvt&&party.s>=GATE_OB-2){ fork.gateEvt=true; onGateObstacle(); }
   party.v=damp(party.v,party.vT,2.2,dt); party.s+=party.v*dt;
 }
-/* a girl with her flashlight on holds it out in front of her, whatever else she is doing */
+/* a girl with her flashlight on holds it out in front of her, whatever else she is doing, and plays the beam about: slowly from side to side
+   and a little up and down, her head turning to follow it. (Each girl sweeps in her own time, so the two beams cross and part.) */
 function rigTarget(b,pose,tt,walking){ rigPose(b,pose,tt,walking);
-  if(b.torch){ const w=Math.sin(tt*2+b.seed)*0.06; if(b.hand>0){R.rax=-1.25+w;R.raz=0.08;} else {R.lax=-1.25+w;R.laz=-0.08;} } }
+  if(b.torch){ const w=Math.sin(tt*1.1+b.seed)*0.15+Math.sin(tt*2+b.seed)*0.05, sw=Math.sin(tt*0.7+b.seed*2)*0.34+Math.sin(tt*0.31+b.seed)*0.12;
+    if(b.hand>0){R.rax=-1.25+w;R.raz=0.08+sw;} else {R.lax=-1.25+w;R.laz=-0.08+sw;}
+    R.hy=sw*0.9+R.hy*0.25; } }
 function rigPose(b,pose,tt,walking){
   const s=b.seed;
   R.lean=0;R.side=0;R.drop=0;R.rootY=0;R.hx=0;R.hy=Math.sin(tt*0.5+s)*0.35;R.hz=0;R.tilt=0;R.lsp=0;
@@ -2805,7 +2808,7 @@ function frame(now){
   hemi.color.copy(skyNow.hemi); sun.color.copy(skyNow.sun);
   hemi.intensity=glw*(1-0.55*thK-0.66*caveK)+0.16*bloom;
   sun.intensity=shn*(1-0.8*thK-0.85*caveK-0.5*mistK)+0.12*bloom;
-  cave.glow.intensity=1.2*(gNow.i===0?caveK:0); setTorches(Math.max(gst==='dark'?gNow.in:0,darkK*(1-thK)));   /* flashlights on in the caves, and in the crystal hollow */
+  cave.glow.intensity=1.2*(gNow.i===0?caveK:0); setTorches(Math.max(gNow.in,darkK));   /* flashlights on inside every gateway (tunnels, caves, hollow tree, the mist), and all through the crystal hollow */
   { const nk=nightK*(1-caveK)*(1-thK); moon.visible=stars.visible=nk>0.02; moon.material.opacity=nk; stars.material.opacity=nk*0.9;
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK;
