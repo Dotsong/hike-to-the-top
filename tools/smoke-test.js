@@ -14,6 +14,7 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
     if(u.includes('three')) return r.fulfill({body:stub,contentType:'application/javascript'});
     if(u.startsWith('file:')) return r.continue(); return r.abort(); });
   await p.goto('file://'+page); await p.waitForTimeout(800);
+  await p.click('#splashBtn'); await p.waitForTimeout(1500);
   await p.click('#beginBtn'); await p.waitForTimeout(3000);
   // the pace button steps through x2, x4, x8 and back to x1; the rest of the test runs at x4 so the rest scenes do not take all day
   const paces=[]; for(let k=0;k<4;k++){ await p.evaluate(()=>document.getElementById('paceBtn').click()); paces.push(await p.evaluate(()=>window.hikeDebug.pace()+'|'+document.getElementById('paceBtn').textContent)); }
