@@ -2759,15 +2759,10 @@ const sunGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xf
 const sunCore=new THREE.Mesh(new THREE.SphereGeometry(30,24,16),new THREE.MeshBasicMaterial({color:0xfffbe6,transparent:true,opacity:0,fog:false})); sunCore.visible=false; scene.add(sunCore);
 const skyMist=[]; for(let i=0;i<18;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xfff8ec,transparent:true,opacity:0,depthWrite:false})); sp.visible=false; sp.renderOrder=1; scene.add(sp);
   skyMist.push({sp,z:rnd()*90,side:i%2?1:-1,lat:3.2+rnd()*13,w:9+rnd()*9,ph:rnd()*6,sp0:0.5+rnd()*0.7}); }
-/* and a few heavy clouds high overhead, dark underneath and lit gold along their edges, for the sun to shine out from under */
-const highClouds=new THREE.Group(); highClouds.visible=false; scene.add(highClouds);
-{ const hm=new THREE.MeshLambertMaterial({color:0x9a92a4,emissive:0x2c2634,fog:false});
-  for(let i=0;i<16;i++){ const m=new THREE.Mesh(blobGeo,hm); m.position.set((rnd()-0.5)*1500,230+rnd()*170,420+rnd()*900); m.scale.set(150+rnd()*170,34+rnd()*26,90+rnd()*90); highClouds.add(m); } }
 function updateSkyWeather(s,mistK){
   const k=skyOpen?smooth(SKY_B-6,SKY_B+8,s):0, on=k>0.01;
-  cloudSea.visible=sunGlow.visible=sunCore.visible=highClouds.visible=on; skyMist.forEach(m=>m.sp.visible=on); if(!on) return;
+  cloudSea.visible=sunGlow.visible=sunCore.visible=on; skyMist.forEach(m=>m.sp.visible=on); if(!on) return;
   cloudSea.position.set(trailX(s),trailY(s)-12.5,s);
-  highClouds.position.copy(camera.position);
   sunGlow.position.set(camera.position.x-90,camera.position.y+72,camera.position.z+900); sunCore.position.copy(sunGlow.position);
   sunGlow.material.opacity=0.9*k*(1-0.5*mistK); sunCore.material.opacity=0.95*k*(1-0.7*mistK);
   skyMist.forEach(m=>{ const z=s-28+((m.z+time*m.sp0)%90+90)%90, x=trailX(z)+m.side*(m.lat+Math.sin(time*0.13+m.ph)*1.5);
