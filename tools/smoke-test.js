@@ -68,10 +68,16 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   await p.waitForFunction(()=>window.hikeDebug.mode()==='summit',null,{timeout:20000}).catch(()=>errs.push('the summit scene did not start'));
   await p.waitForTimeout(4000);
   const summit=await p.evaluate(()=>window.hikeDebug.mode()==='summit'&&window.hikeDebug.tail()===5);
+  // at the top, the friend from the village turns up and offers a way home; accepting leads to spaghetti night, told to the end
+  await p.waitForFunction(()=>!document.getElementById('homeDock').hidden,null,{timeout:90000}).catch(()=>errs.push('the friend never offered a way home'));
+  const offer=await p.evaluate(()=>document.getElementById('homeBtn').textContent);
+  await p.evaluate(()=>document.getElementById('homeBtn').click());
+  await p.waitForFunction(()=>window.hikeDebug.mode()==='home',null,{timeout:30000}).catch(()=>errs.push('the dinner scene did not start'));
+  const dinner=await p.waitForFunction(()=>window.hikeDebug.homeDone(),null,{timeout:120000}).then(()=>true).catch(()=>{ errs.push('the dinner scene never reached The End'); return false; });
   // the zone list: open it, count the places, and jump to every one of them in turn
   await p.evaluate(()=>document.getElementById('zoneBtn').click()); await p.waitForTimeout(300);
   const zoneNames=await p.evaluate(()=>[...document.querySelectorAll('#zoneList button')].map(b=>b.textContent));
-  if(zoneNames.length<20) errs.push('the zone list is short: '+zoneNames.length);
+  if(zoneNames.length<29) errs.push('the zone list is short: '+zoneNames.length);
   await p.evaluate(()=>document.getElementById('zoneClose').click());
   for(const z of zoneNames){ if(!await p.evaluate(z=>window.hikeDebug.warp(z),z)) errs.push('no zone called '+z); await p.waitForTimeout(700);
     if(await p.evaluate(()=>window.hikeDebug.mode())!=='trail') errs.push('jumping to '+z+' did not land on the trail'); }
@@ -81,7 +87,7 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   const zones=await p.waitForFunction(()=>window.hikeDebug.mode()==='summit',null,{timeout:30000}).then(()=>true).catch(()=>{ errs.push('jumping to the summit did not get there'); return false; });
   await p.evaluate(()=>document.getElementById('goodnightBtn').click()); await p.waitForTimeout(1600);
   const backToStart=await p.evaluate(()=>!document.getElementById('intro').hidden);
-  console.log({route:ROUTE,hikeStarted:true,bookOpen,mapOpen,restScene,forkChosen,revealed,places:places.join(' > '),summit,zones:zones&&zoneNames.length,backToStart});
+  console.log({route:ROUTE,hikeStarted:true,bookOpen,mapOpen,restScene,forkChosen,revealed,places:places.join(' > '),summit,offer,dinner,zones:zones&&zoneNames.length,backToStart});
   console.log(errs.length?errs.join('\n'):'no errors');
   await b.close(); process.exit(errs.length?1:0);
 })();

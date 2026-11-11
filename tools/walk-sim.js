@@ -9,7 +9,7 @@ const code=[
  "class V2{constructor(){this.x=0;this.y=0;} set(x,y){this.x=x;this.y=y;}} const THREE={Vector2:V2};",
  "const part=()=>({position:{set(){},y:0},rotation:{set(){},x:0,y:0,z:0},scale:{y:1}});",
  "const girl=()=>({g:part(),upper:part(),head:part(),armL:part(),armR:part(),legs:[part(),part()],tails:[part(),part()],eyes:[part(),part()]}); const june=girl(), pip=girl();",
- "const state={started:true}; let time=0, speakIn=0, said=0, rests=0, waited=0; const onForkArrive=()=>{busy=8;}, onForkReady=()=>{}, onRiver=()=>{}, onDeep=()=>{}, onGateObstacle=()=>{}, onHop=()=>{}, onRestStop=()=>{}; let tails=[]; const onTail=w=>{ tails.push(w); if(w==='top') party.vT=0; }; let reveals=0; const onGateEnter=()=>{busy=6;}, onReveal=()=>{reveals++; busy=9; return 9;}; const PICK=+(process.argv[3]||-1); const lineTime=tx=>1.6+tx.length*0.06; let busy=0;",
+ "const state={started:true}; let time=0, speakIn=0, said=0, rests=0, waited=0; const onForkArrive=()=>{busy=8;}, onForkReady=()=>{}, onRiver=()=>{}, onDeep=()=>{}, onGateObstacle=()=>{}, onHop=()=>{}, onRestStop=()=>{}, onVillage=()=>{}; let tails=[]; const onTail=w=>{ tails.push(w); if(w==='top') party.vT=0; }; let reveals=0; const onGateEnter=()=>{busy=6;}, onReveal=()=>{reveals++; busy=9; return 9;}; const PICK=+(process.argv[3]||-1); const lineTime=tx=>1.6+tx.length*0.06; let busy=0;",
  "const quiet=()=>busy<=0; const sayIf=()=>{said++; busy=3;}; const playScript=l=>{rests++; busy=l.reduce((t,x)=>t+lineTime(x[1])+0.45,0);}; const nextLine=(k,s)=>pick(s);",
  "const POSE_LINES={scoop:['a'],crouch:['a'],look:['a'],point:['a'],spin:['a'],wave:['a'],hop:['a']};",
  cut("const REST_S=","/* ---------- renderer"),
