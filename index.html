@@ -633,8 +633,12 @@ const trailY0=s=>0.05*Math.min(s,46)+0.8*Math.sin(s*0.03)*(1-smooth(36,50,s))+2.
   +0.03*Math.max(0,climbS(s)-106)+0.07*Math.max(0,climbS(s)-GATE_B)+smooth(GATE_B,GATE_B+25,s)*calm(s)*(2.2*Math.sin(s*0.045+0.6)+1.3*Math.sin(s*0.083+2))
   +0.05*Math.max(0,s-MTN)+(s>MTN?13*smooth(MTN+2,MTN+60,s):0)+0.2*Math.max(0,s-TOP_A)   /* steeper on the mountain trail, and steepest of all in the last cave */
   +(s>GATE_B+8?wildK(s)*(0.5*Math.sin(s*0.29+1)+0.35*Math.sin(s*0.47))+featY(s):0);   /* humps and hollows, gullies and knolls */
-const trailY=s=>{ const w=s>GB[2]&&s<MTN?pondK(s):0; if(w<=0) return trailY0(s);   /* on the pond the climb is taken in level steps, 11 m long */
+const trailYb=s=>{ const w=s>GB[2]&&s<MTN?pondK(s):0; if(w<=0) return trailY0(s);   /* on the pond the climb is taken in level steps, 11 m long */
   const u=(s-GB[2])/11, q=GB[2]+11*(Math.floor(u)+smooth(0.72,1,u-Math.floor(u))); return lerp(trailY0(s),trailY0(q),w); };
+/* the rock stair into the alpine garden is a real climb: the trail gains this much height through the gateway (evenly, so the girls walk up it
+   smoothly; the steps drawn on it are cut to the same slope), and everything beyond stands that much higher */
+const STAIR_RISE=3.4, stairRise=s=>picks[1]&&legKey(1)==='alpine'?STAIR_RISE*clamp((s-GA[1]-1)/(GB[1]-GA[1]-2),0,1):0;
+const trailY=s=>trailYb(s)+stairRise(s);
 const heading=s=>Math.atan2((trailX(s+0.2)-trailX(s-0.2))/0.4,1);
 const pt=(s,d)=>[trailX(s)+d,s];
 /* June and Pip's house: a real little building standing on the land as far back as the land goes, 176 m behind the start, on the line the
@@ -817,7 +821,7 @@ const POOLS=[];
 function pool(geo,mat,cap,shadow){ const m=new THREE.InstancedMesh(geo,mat,cap); m.frustumCulled=false; m.castShadow=!!shadow; m.receiveShadow=false;
   m.setColorAt(0,new THREE.Color(0xffffff)); m.count=0;   /* make the color buffer up front, before the first frame is drawn */
   const p={m,cap,n:0}; scene.add(m); POOLS.push(p); return p; }
-function put(p,x,y,z,sx,sy,sz,ry,col,rx){ if(p.n>=p.cap) return; _e.set(rx||0,ry||0,0); _q.setFromEuler(_e); _m.compose(_p.set(x,y,z),_q,_s.set(sx,sy,sz));
+function put(p,x,y,z,sx,sy,sz,ry,col,rx,rz){ if(p.n>=p.cap) return; _e.set(rx||0,ry||0,rz||0); _q.setFromEuler(_e); _m.compose(_p.set(x,y,z),_q,_s.set(sx,sy,sz));
   p.m.setMatrixAt(p.n,_m); p.m.setColorAt(p.n,col); p.n++;
   if(p===P.glow){ const m=Math.min(Math.max(sx,sy,sz)*1.15,3.2); put(P.halo,x,y,z,sx*2.2+m*2.6,sy*2.2+m*2.6,sz*2.2+m*2.6,ry,col); } }   /* everything that glows has a soft halo of its own color round it */
 const trunkGeo=new THREE.CylinderGeometry(0.7,1,1,7); trunkGeo.translate(0,0.5,0);
@@ -876,6 +880,7 @@ const haloMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blendi
     void main(){ float f=max(dot(normalize(vN),normalize(vV)),0.0); float a=f*f*f*uOp; gl_FragColor=vec4(vC*a,a); }`});
 P.halo=pool(new THREE.SphereGeometry(0.075,10,7),haloMat,12000); P.halo.m.renderOrder=2;   /* things that give off their own light */
 P.gcone=pool(coneGeo,new THREE.MeshBasicMaterial({color:0xffffff}),4200);
+const unitBox=new THREE.BoxGeometry(1,1,1); P.box=pool(unitBox,white(),700,true);   /* square-cut things: hedges, steps */
 const pal=a=>a.map(C), pk=(a,h)=>a[Math.floor(h*a.length)%a.length];
 const GLOWS=pal(['#8ff5d6','#9fd8ff','#c6a8ff','#fff3a3']), GEMS=pal(['#8fe8ff','#ff9ee0','#b79cff','#e8fbff']), BLOOM=pal(['#ffc6dc','#ffffff','#ffd9a0','#ffb3c8']);
 const NIGHT=pal(['#0f2428','#0c1e26','#12292c']), CAPS_BIG=pal(['#d9534a','#e8a060','#b79cff','#ff9eb5']), BLADES=pal(['#5d9b4f','#6aa857','#79b05a']);
@@ -1042,6 +1047,84 @@ const GUSTS={winter:[SNOW,WHITE],grass:WHEAT,marsh:[TAN,GREENS[3],TAN],alpine:[W
 const inGates=z=>{ for(let i=1;i<5;i++) if(i!==3&&z>GA[i]-1&&z<GB[i]+1) return true; return false; };
 /* A later gateway, drawn where the trail runs through it. A 'tunnel' is small trees meeting overhead, in that gateway's own colors (snowy boughs,
    reeds, willow, big leaves); an 'arch' is rock, or the wood of a hollow tree. */
+/* The gateways. Each one is built to be what the girls call it: snowy boughs hanging low over the path, a gap in a tall clipped hedge, a way
+   through reeds taller than June, a stair of stone between two leaning boulders, a tree so big that its trunk is a doorway, leaves as big as
+   umbrellas arching over a small path, a curtain of willow strands, a cave mouth with crystal in it. The same builder draws the gateway on
+   the trail and, smaller in the distance, at the rest site where it is chosen: it works in the gateway's own measurements (u across the path,
+   h up from the ground, w along the path from the mouth inward) and hands each piece to E, which knows where that is in the world.
+   far: how far the belt it stands in runs to either side.  rise(w): how much the ground has climbed by w (only the stair climbs). */
+const GATE_LOOK={winter:'boughs',grass:'hedge',marsh:'reeds',alpine:'stair',glow:'hollow',giant:'leaves',pond:'willow',crystal:'crystal'};
+function buildGateway(E,look,far,rise){ const LG=12, sal=look.length*13+look.charCodeAt(0), h=(i,j)=>hash(sal,i,j), pk2=(a,q)=>a[Math.floor(q*a.length)%a.length];
+  const belt=(step,fn)=>{ let i=0; for(let u=3.6;u<far;u+=step) for(const sd of [-1,1]) fn(sd*(u+h(i,90)*step*0.4),sd,i++); };
+  if(look==='boughs'){   /* two rows of snow-laden pines, their lowest boughs meeting over the path */
+    const pine=(u,w,sc,i)=>{ E('trunk',u,0,w,0.3*sc,2.4*sc,0.3*sc,BARKS[0]); for(let k=0;k<3;k++){ const q=2.5*sc*(1-0.27*k), y=1.5*sc+k*2.3*sc; E('cone',u,y,w,q,4*sc,q,PINES[k]); E('cone',u,y+1.55*sc,w,q*0.66,2.6*sc,q*0.66,SNOW); } };
+    for(let w=0.4,k=0;w<LG;w+=2.3,k++) for(const sd of [-1,1]){ const i=k*2+(sd>0?1:0); pine(sd*(3.3+h(i,1)*0.5),w+h(i,2)*0.7,1.2+h(i,3)*0.3,i);
+      const by=2.5+h(i,4)*0.35, bw=w+0.3+h(i,5)*1.2;   /* a bough reaching right over the path, sagging under its snow */
+      E('blob',sd*1.75,by+0.25,bw,1.7,0.3,0.95,PINES[i%3],sd*0.22); E('blob',sd*0.55,by,bw,1.1,0.26,0.8,PINES[(i+1)%3],sd*0.34);
+      E('blob',sd*1.7,by+0.5,bw,1.5,0.2,0.8,SNOW,sd*0.22); E('blob',sd*0.5,by+0.22,bw,1.0,0.18,0.68,SNOW,sd*0.34);
+      E('blob',sd*2.6,0.25,w+1.2,1.1,0.4,1.2,SNOW); }                                                          /* a drift at its foot */
+    belt(2.7,(u,sd,i)=>{ pine(u,2.2+h(i,1)*3.5,1+h(i,2)*0.55,i); E('blob',u+1.2,0.3,3,1.4,0.5,1.3,SNOW); }); return; }
+  if(look==='hedge'){   /* a tall clipped hedge right across the hill, and one arched gap in it */
+    const HG=[C('#3f7a4a'),C('#35703f'),C('#4a8552'),C('#2f6638')], TW=C('#6aa857');
+    const block=(u,w,wd,hh,dp,i)=>{ E('box',u,hh/2,w,wd,hh,dp,pk2(HG,h(i,1))); E('blob',u,hh,w,wd*0.55,0.34,dp*0.6,pk2(HG,h(i,2)));    /* clipped square, with a rounded top */
+      for(let k=0;k<3;k++) E('blob',u+(h(i,3+k)-0.5)*wd*0.9,0.5+h(i,6+k)*(hh-0.8),w-dp/2-0.02,0.2,0.26,0.08,TW); };                 /* sprigs sticking out of its face */
+    belt(2.5,(u,sd,i)=>block(u,3,2.7,3.4+h(i,8)*0.5,1.8,i));
+    for(let w=0,k=0;w<LG;w+=2.3,k++) for(const sd of [-1,1]) block(sd*2.5,w+1.15,1.5,3.3+h(k*2+50,9)*0.4,2.4,60+k*2+(sd>0?1:0));
+    for(let w=0.7,k=0;w<LG;w+=1.5,k++){ E('box',0,3.1,w,3.6,0.9,1.4,pk2(HG,h(k,10))); E('blob',0,3.55,w,1.9,0.3,0.8,pk2(HG,h(k,11))); }       /* grown together over the top */
+    for(const sd of [-1,1]){ E('box',sd*1.95,1.35,-0.15,0.6,2.7,0.5,HG[3]); E('blob',sd*1.6,2.75,-0.15,0.55,0.4,0.3,HG[3]); }                     /* the gap is trimmed to an arch */
+    return; }
+  if(look==='reeds'){   /* reeds and cattails taller than June, closing over the path */
+    const RD=[TAN,C('#9cb86a'),C('#b8a060'),C('#8fae5a')];
+    const reed=(u,w,i,lean)=>{ const hh=2.5+h(i,1)*1.4, tu=lean*(0.12+h(i,2)*0.26); E('trunk',u,0,w,0.032,hh,0.032,pk2(RD,h(i,3)),tu,(h(i,4)-0.5)*0.16);
+      if(h(i,5)<0.42) E('blob',u+Math.sin(tu)*hh,Math.cos(tu)*hh,w,0.07,0.24,0.07,BARKS[1]);                     /* a cattail */
+      if(h(i,6)<0.3) E('cone',u+0.1,0,w+0.1,0.07,1.3+h(i,7),0.07,RD[1],-tu); };                                     /* a blade of leaf */
+    let i=0; for(let w=-0.3;w<LG;w+=0.34) for(const sd of [-1,1]) for(let k=0;k<4;k++){ i++; reed(sd*(1.75+k*0.45+h(i,8)*0.3),w+h(i,9)*0.3,i,-sd*(k<2?1:0.4)); }
+    belt(0.75,(u,sd,j)=>{ for(let k=0;k<3;k++) reed(u+h(j,10+k)*0.5,1.6+k*1.3+h(j,13+k),900+j*3+k,0); if(j%5===0) E('blob',u,0.02,3.2,1.5,0.03,1.1,WATERC); }); return; }
+  if(look==='stair'){   /* a stair of stone climbing between two great boulders that lean together overhead */
+    const N=26, td=10/N, ST=[C('#a6a39a'),C('#9a9a94'),C('#b0aea6'),C('#8b8f8a')];
+    for(let k=0;k<N;k++){ const wc=1+(k+0.5)*td, top=STAIR_RISE*(k+1)/N-rise(wc); E('box',(h(k,1)-0.5)*0.2,top-0.2,wc,3.3+h(k,2)*0.5,0.4,td*1.04,pk2(ST,h(k,3)));   /* the treads, each a little higher */
+      for(const sd of [-1,1]) E('rock',sd*(2.4+h(k,4+sd)*0.5),top+0.2+h(k,6+sd)*0.5,wc,0.8+h(k,8+sd)*0.5,0.8+h(k,10+sd)*0.6,0.7,pk2(GREYS,h(k,12+sd))); }                 /* the walls of the cutting, stepping up with it */
+    for(const sd of [-1,1]){ E('rock',sd*3.1,2.5,1.2,2.3,3.7,2.2,pk2(GREYS,0.2+sd*0.2),-sd*0.3); E('rock',sd*4.8,1.3,0.4,2.2,2,2,GREYS[1]); }                  /* the two leaning boulders */
+    E('rock',0,5.3,1.4,1.5,1.0,1.4,GREYS[2]);                                                                                                                 /* and the stone wedged between them */
+    for(let k=0;k<4;k++) E('rock',-2.6,0.13+k*0.25,-1.2,0.34-k*0.06,0.14,0.3-k*0.05,GREYS[k%3]);                                                                 /* a cairn at the foot */
+    belt(2.7,(u,sd,i)=>{ const sz=2.2+h(i,1)*1.4; E('rock',u,1.2+h(i,2)*1.5,3+h(i,3)*1.5,sz*1.2,sz,sz,pk2(GREYS,h(i,4))); E('rock',u+1.1,4+h(i,5)*1.4,4.2,sz*0.9,sz*0.8,sz*0.8,pk2(GREYS,h(i,6))); }); return; }
+  if(look==='hollow'){   /* one enormous tree: the path goes in at a doorway in its trunk and out at another on the far side */
+    const R=4.7, WC=6, BK=DEEP_BARK;
+    for(let k=0;k<18;k++){ const a=k/18*6.283+0.175, door=Math.abs(Math.sin(a))<0.36, u=Math.sin(a)*R, w=WC-Math.cos(a)*R;
+      if(door){ E('blob',u,9.6,w,1.45,6.2,1.3,BK[k%3]); continue; }                                                           /* over each doorway the trunk carries on up */
+      E('trunk',u,-0.4,w,1.3,16.5,1.3,BK[k%3]); E('cone',u*1.16,-0.2,WC+(w-WC)*1.16,1.9,2.7+h(k,1),1.9,BK[(k+1)%3]); }     /* the trunk, stave by stave, and the roots it stands on */
+    for(const sg of [-1,1]){ const w=WC+sg*R; E('blob',0,3.75,w,2.2,0.75,1.2,BK[0]); for(const sd of [-1,1]) E('trunk',sd*1.75,-0.2,w,0.5,3.9,0.6,BK[2]); }   /* the frame of each doorway */
+    E('blob',0,15.5,WC,R*1.25,1.6,R*1.25,BK[1]); for(let k=0;k<7;k++){ const a=k*0.9; E('blob',Math.sin(a)*5.5,18+h(k,2)*2.5,WC+Math.cos(a)*5.5,5.2,3.2,5.2,pk2(NIGHT,h(k,3))); } E('blob',0,21,WC,6,3.6,6,NIGHT[0]);   /* its crown, far overhead */
+    for(let k=0;k<7;k++){ const a=0.6+k*0.72; E('glow',Math.sin(a)*(R-1.45),0.6+h(k,4)*2.6,WC-Math.cos(a)*(R-1.45),2.4,2.4,2.4,pk2(GLOWS,h(k,5))); }                  /* lights inside */
+    belt(3.4,(u,sd,i)=>{ const th=11+h(i,1)*4, w=2.5+h(i,2)*4; E('trunk',u,-0.3,w,0.75,th,0.75,BK[i%3]); E('cone',u,-0.2,w,1.35,1.8,1.35,BK[i%3]); E('blob',u,th+2,w,4,2.8,4,pk2(NIGHT,h(i,3)));
+      E('blob',u+1.6,0.7,1.6,1.5,1.1,1.2,NIGHT[1]); }); return; }
+  if(look==='leaves'){   /* great leaves on arching stalks, one after another from either side, roofing a very small path */
+    const LF=[C('#6aa857'),C('#79b05a'),C('#5d9b4f'),C('#86b866')], RIB=C('#a8cf7a');
+    const leaf=(sd,w,i,out,hh,len)=>{ const tu=-sd*0.3; E('trunk',sd*out,0,w,0.1,hh,0.1,LF[2],tu);                                   /* the stalk leans in over the path */
+      const tipu=sd*out+Math.sin(tu)*hh, tiph=Math.cos(tu)*hh, cu=tipu-sd*len*0.42, roll=-sd*0.32;
+      E('blob',cu,tiph-0.12,w,len,0.07,len*0.55,pk2(LF,h(i,1)),roll); E('blob',cu,tiph-0.06,w,len*0.98,0.035,0.06,RIB,roll);    /* the blade, and the rib down the middle of it */
+      for(const q of [-1,1]) E('blob',cu,tiph-0.07,w+q*len*0.22,len*0.8,0.03,0.035,RIB,roll); };
+    for(let w=0.2,k=0;w<LG;w+=1.25,k++){ const sd=k%2?1:-1; leaf(sd,w,k,2.9+h(k,2)*0.3,3.5+h(k,3)*0.4,2.5+h(k,4)*0.5); if(k%2===0) leaf(-sd,w+0.6,k+40,3.9,4.7+h(k,5)*0.5,3.1); }
+    belt(2.3,(u,sd,i)=>{ leaf(sd,1.5+h(i,1)*3,100+i,Math.abs(u)+2.6,3.2+h(i,2)*1.6,2.4+h(i,3)); for(let k=0;k<2;k++) E('cone',u+h(i,4+k)*1.2,0,2.5+h(i,6+k)*2,0.3,4.5+h(i,8+k)*3,0.3,pk2(BLADES,h(i,10+k))); }); return; }
+  if(look==='willow'){   /* willows either side, and their long strands hanging to the ground like a bead curtain */
+    const WL=[C('#9fd8b0'),C('#8fbf9f'),C('#bfe3c8'),C('#a8d49a')];
+    const willow=(u,w,i,n)=>{ E('trunk',u,-0.2,w,0.5,5.6,0.5,BARKS[1],-Math.sign(u)*0.07); for(let k=0;k<4;k++){ const a=k*1.57+h(i,1); E('blob',u+Math.sin(a)*1.9,6.3+h(i,2+k)*0.6,w+Math.cos(a)*1.9,2.6,1.25,2.6,pk2(WL,h(i,6+k))); } E('blob',u,7,w,3,1.4,3,WL[1]);
+      for(let k=0;k<n;k++){ const a=h(i,20+k)*6.283, rr=1+h(i,40+k)*3.1, e=0.35+h(i,60+k)*1.3; E('trunk',u+Math.sin(a)*rr,e,w+Math.cos(a)*rr,0.024,5.7-e,0.024,pk2(WL,h(i,80+k))); } };
+    for(let w=1.2,k=0;w<LG;w+=3.5,k++) for(const sd of [-1,1]) willow(sd*(3.7+h(k,1)*0.4),w+(sd>0?1.4:0),k*2+(sd>0?1:0),16);
+    let i=0; for(let w=0.2;w<LG;w+=0.75){ E('blob',0,5.9,w,3.4,0.55,1.1,pk2(WL,h(i,2)));                                                    /* the roof of leaves the curtain hangs from */
+      for(let u=-2.9;u<=2.9;u+=0.42){ i++; if(h(i,3)<0.34) continue; const e=0.3+h(i,4)*1.5; E('trunk',u+h(i,5)*0.25,e,w+h(i,6)*0.5,0.022,5.75-e,0.022,pk2(WL,h(i,7))); } }   /* strand after strand, right across the path */
+    belt(5.2,(u,sd,j)=>willow(u,2+h(j,1)*4,200+j,12)); return; }
+  /* crystal: the mouth of a cave in a wall of rock, crystals crowding round it and glinting far inside */
+  { const RK=[C('#6a6878'),C('#7d7b8c'),C('#5a586a')];
+    for(let w=0,k=0;w<LG;w+=1,k++){ for(const sd of [-1,1]){ const i=k*2+(sd>0?1:0), sc=2.2+h(i,1)*0.8; E('rock',sd*(3+sc*0.95),0.6+h(i,2)*1.2,w,sc,sc*0.95,sc,pk2(RK,h(i,3))); E('rock',sd*3.4,3.6+h(i,4)*0.4,w+0.4,1.6,1.5,1.6,pk2(RK,h(i,5)));
+        if(h(i,6)<0.75){ const ch=0.7+h(i,7)*1.5; E('gcone',sd*(2.15+h(i,8)*0.3),0,w+0.3,0.2+h(i,9)*0.14,ch,0.2+h(i,9)*0.14,pk2(GEMS,h(i,10)),-sd*0.25); }                   /* crystals growing in from the walls */
+        if(h(i,11)<0.4) E('glow',sd*(2.2+h(i,12)*0.3),0.3+h(i,13)*1.8,w,2.2,2.2,2.2,pk2(GEMS,h(i,14))); }
+      const sc=1.9+h(k,15)*0.5; E('rock',(h(k,16)-0.5)*2,2.5+sc*0.95,w,sc*1.15,sc,sc*1.15,pk2(RK,h(k,17))); }
+    for(const sd of [-1,1]){ E('gcone',sd*2.9,0,-0.6,0.42,2.9,0.42,GEMS[sd>0?0:2],-sd*0.2); E('gcone',sd*3.5,0,-0.3,0.3,1.7,0.3,GEMS[1],-sd*0.4); E('gcone',sd*2.4,0,-0.9,0.2,1.0,0.2,GEMS[3],sd*0.15); }   /* spires either side of the mouth */
+    belt(2.7,(u,sd,i)=>{ const sz=2.3+h(i,1)*1.4; E('rock',u,1.2+h(i,2)*1.5,2.6+h(i,3)*1.5,sz*1.2,sz,sz,pk2(RK,h(i,4))); E('rock',u+1,4+h(i,5)*1.4,3.8,sz*0.9,sz*0.8,sz*0.8,pk2(RK,h(i,6))); if(i%3===0) E('gcone',u,0,1.2,0.26,1.2+h(i,7)*1.4,0.26,pk2(GEMS,h(i,8))); }); } }
+/* on the trail: u is across it, w along it from where the gateway begins, and the ground is the trail's own near the path and the hillside's further out */
+function drawGateLook(look,a){ const POOL={trunk:P.trunkF,blob:P.blobF,cone:P.coneF,rock:P.rock,box:P.box,glow:P.glow,gcone:P.gcone}, r0=stairRise(a);
+  buildGateway((kind,u,hh,w,sx,sy,sz,col,tu,tw)=>{ const z=a+w, x=trailX(z)+u; put(POOL[kind],x,(Math.abs(u)<3.4?trailY(z):floorY(x,z))+hh,z,sx,sy,sz,0,col,tw||0,-(tu||0)); },look,62,w=>stairRise(a+w)-r0); }
 /* The last cave. Not a tunnel of boulders standing on the ridge, but a dark mouth in the foot of a cliff that crosses it: rough rock all the way
    up the face and out along it both ways, a heavy lintel over the opening, rubble at its feet, and a little grass along the top. */
 const CLIFF_H=8.5, CAVE_DARK=C('#06070b');
@@ -1301,7 +1384,8 @@ function rebuildForest(s0){
     /* the later gateways, once the way through them has been chosen, and the last cave */
     for(let gi=1;gi<5;gi++){ if(gi===3||z0+3<GA[gi]-22||z0>GB[gi]+10) continue;
       if(gi===4){ drawCliffCave(r,z0); continue; }
-      const G=picks[gi]?BIO[legKey(gi)].gate:null; if(G) drawGate(G,r,z0,GA[gi],GB[gi]); }
+      const key=picks[gi]?legKey(gi):null; if(key&&GATE_LOOK[key]){ if(GA[gi]>=z0&&GA[gi]<z0+3) drawGateLook(GATE_LOOK[key],GA[gi]); }   /* built whole, with the row its mouth stands in */
+      else if(key) drawGate(BIO[key].gate,r,z0,GA[gi],GB[gi]); }
     /* The rest site, furnished from REST_KIT: a ring of big trees with gaps where the trail comes in and the two paths go out,
        and the same boulders, logs, mushrooms, ferns and flowers, in the same places, as the rest scene the girls will sit down in. */
     if(picks[2]&&VILLAGE_Z>=z0&&VILLAGE_Z<z0+3&&FOLK[legKey(2)]) drawVillage(legKey(2));
@@ -2542,7 +2626,7 @@ function buildRest(si){
   const restBase=(x,z,rad)=>lowestUnder(restFloor,x,z,rad);   /* stood so the rim of the root flare is never above ground */
   /* pools of instanced things, just for this scene */
   const mk=(geo,cap,shadow,mat)=>{ const m=new THREE.InstancedMesh(geo,mat||white(),cap); m.frustumCulled=false; m.castShadow=!!shadow; m.setColorAt(0,new THREE.Color(0xffffff)); m.count=0; sc.add(m); return {m,cap,n:0}; };
-  const T={trunk:mk(trunkGeo,340,true),blob:mk(blobGeo,2600,true),cone:mk(coneGeo,1500,true),rock:mk(rockGeo,60,true),log:mk(logGeo,20,true),stem:mk(stemGeo,60),cap:mk(capGeo,60,true),petal:mk(petalGeo,260),
+  const T={trunk:mk(trunkGeo,2200,true),blob:mk(blobGeo,3400,true),cone:mk(coneGeo,2400,true),rock:mk(rockGeo,400,true),box:mk(unitBox,160,true),log:mk(logGeo,20,true),stem:mk(stemGeo,60),cap:mk(capGeo,60,true),petal:mk(petalGeo,260),
     leaf:mk(leafGeo,260,false,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}))};
   const LIGHTS=['#79b05a','#8fbf5f','#6aa857'].map(C);
   /* the big old trees of the deep woods: thick trunk, flaring roots, a wide dark crown high overhead (the same recipe as plantTree uses on the trail) */
@@ -2640,7 +2724,15 @@ function buildRest(si){
     [[-1.9,19.6,1.3],[1.7,20.6,1],[-1.5,21.8,1.5]].forEach(([lat,d,sz])=>{ [[stemGeo,stemM],[capGeo,capM]].forEach(([g,m])=>{ const o=new THREE.Mesh(g,m); o.position.set(rx*d+nx*lat,0,rz*d+nz*lat); o.scale.setScalar(sz); sc.add(o); }); }); };
   /* the first rest site looks out at the thicket and the little cave; the later ones at whichever two gateways come next */
   if(si===0){ tunnelMark(PATHS[1],DARKS); archMark(PATHS[2],['#8b8f8a','#9a9a94','#7d807c','#a6a39a']); }
-  else { const O=optionsAt(si), mark=(P1,key)=>{ const G=BIO[key].gate; if(G.kind==='arch') archMark(P1,G.rock,G.glow); else tunnelMark(P1,G.pal); }; mark(PATHS[1],O[1]); mark(PATHS[2],O[0]); }
+  else { const O=optionsAt(si), mark=(P1,key)=>{ const G=BIO[key].gate, look=GATE_LOOK[key]; if(!look){ if(G.kind==='arch') archMark(P1,G.rock,G.glow); else tunnelMark(P1,G.pal); return; }
+      /* the very gateway that stands on the trail, built here at the end of its path: u across the path, w along it away from the clearing */
+      const lx=P1[0], lz=P1[1], nx=lz, nz=-lx, yaw=Math.atan2(lx,lz), D0=18.5, TP={trunk:T.trunk,blob:T.blob,cone:T.cone,rock:T.rock,box:T.box};
+      buildGateway((kind,u,hh,w,sx,sy,sz,col,tu)=>{ const x=lx*(D0+w)+nx*u, z=lz*(D0+w)+nz*u, y=restFloor(x,z)+hh;
+        if(TP[kind]){ put(TP[kind],x,y,z,sx,sy,sz,yaw,col,0,-(tu||0)); return; }
+        const m=new THREE.Mesh(kind==='glow'?petalGeo:coneGeo,new THREE.MeshBasicMaterial({color:col,fog:kind!=='glow'})); m.position.set(x,y,z); m.scale.set(sx,sy,sz); m.rotation.set(0,yaw,-(tu||0)); sc.add(m); },look,27,w=>0);
+      if(look==='hollow'||look==='crystal'){ const dark=new THREE.Mesh(new THREE.SphereGeometry(1.7,12,10),new THREE.MeshBasicMaterial({color:0x10161a,fog:false})); dark.position.set(lx*(D0+(look==='hollow'?3.2:6)),1.3,lz*(D0+(look==='hollow'?3.2:6))); sc.add(dark); }   /* the dark inside a trunk or a cave (the leafy ones are simply themselves) */
+      for(const k in TP){ const q=TP[k]; q.m.count=q.n; q.m.instanceMatrix.needsUpdate=true; q.m.instanceColor.needsUpdate=true; } };
+    mark(PATHS[1],O[1]); mark(PATHS[2],O[0]); }
 
   const paper=new THREE.Mesh(new THREE.PlaneGeometry(0.34,0.26),new THREE.MeshLambertMaterial({color:0xf6ead0,side:THREE.DoubleSide})); paper.position.copy(NOTE_AT); paper.position.y=restFloor(NOTE_AT.x,NOTE_AT.z)+0.03; paper.rotation.set(-1.45,0,0.5); sc.add(paper);   /* Dad's note, lying where it fell */
   /* sunbeams, mist and butterflies */
@@ -2654,7 +2746,7 @@ function buildRest(si){
   const flies=(D.flies?[['#ffb38a',-3.2,3.6],['#fff3a3',3.8,2.6],['#c6a8ff',0.4,6.2],['#9fd8ff',-4.6,-1.8]]:[]).map(([c,x,z])=>{ const g=new THREE.Group(), m=new THREE.MeshBasicMaterial({color:c,side:THREE.DoubleSide});
     const wl=new THREE.Mesh(wingGeo,m), wr=new THREE.Mesh(wingGeo,m); wr.scale.x=-1; g.add(wl,wr); g.scale.set(0.34,0.34,0.7); sc.add(g); return {g,wl,wr,x,z,ph:r()*6}; });
 
-  const SHARED=new Set([trunkGeo,blobGeo,coneGeo,rockGeo,stemGeo,capGeo,petalGeo,leafGeo,logGeo,beamGeo,poolGeo,wingGeo]);
+  const SHARED=new Set([trunkGeo,blobGeo,coneGeo,rockGeo,stemGeo,capGeo,petalGeo,leafGeo,logGeo,beamGeo,poolGeo,wingGeo,unitBox]);
   return {scene:sc,paper,
     update(dt,t){
       rsky.position.copy(camera.position); animFire(seatSet.userData.fire,t);
