@@ -975,7 +975,7 @@ const BIO={
     narr:['The wheat moved in long slow waves, as if the whole field were breathing.','Here and there an apple tree stood up to its knees in gold.','There was so much sky that it was hard to know where to look.'],
     reveal:{t:'The wheat field',b:'An endless field of gold, with a few old apple trees, and more sky than anywhere else on the mountain.',narr:'The trees simply stopped, and there was wheat: gold, and whispering, as far as anyone could see.',lines:[[1,'Where did all the trees go?'],[0,'It\'s a wheat field. A field that never ends.'],[1,'It\'s like walking through a bowl of cereal!']]},
     gate:{kind:'tunnel',cols:['#3f7a4a','#35703f','#4a8552'],label:'Through the hedge',say:'through a gap in that hedge',sub:'A gap in a tall green hedge. Something golden is on the other side.',narr:'They chose the gap in the hedge, because there was sunshine leaking through it.',enter:[[0,'Squeeze through, Pip.'],[1,'It\'s all prickly!']]}},
-  marsh:{floor:[0.36,0.5,0.34],dirt:[0.66,0.52,0.36],flat:0.12,keep:0.3,mote:'#e8f6c8',air:'midges',
+  marsh:{floor:[0.36,0.5,0.34],dirt:[0.66,0.52,0.36],flat:0.12,keep:0.3,mote:'#e8f6c8',air:'midges',night:0.45,
     tree(T){ const th=3+T.h*4; put(T.tp,T.x,T.y,T.z,0.2,th,0.2,T.ry,GREYS[1]); if(T.n(22)<0.5) put(T.tp,T.x+0.3,T.y+th*0.55,T.z,0.07,1.4,0.07,0,GREYS[1]); },                              /* an old drowned trunk */
     props(R){ const wy=trailY0(MARSH_A)-0.22;
       /* reeds, reeds, reeds: in clumps right up to the boardwalk and in beds as far as can be seen, with cattails standing among them */
@@ -1098,7 +1098,7 @@ const REST_LOOKS={
   autumn:{sky:['#8f9fc6','#ffd3a0','#b98a5a'],fog:0.017,hemi:['#ffe3bd','#7a5a3a',0.7],leaf:AUTUMNS,bark:BARKS.slice(0,3),slim:false,pine:0,under:false,grd:[[0.64,0.52,0.36],[0.66,0.5,0.28],[0.56,0.4,0.24]]},
   winter:{sky:['#9fb4c8','#e9eef3','#cfd8e0'],fog:0.018,hemi:['#f2f6ff','#9fb0c0',0.84],leaf:PINES,bark:[BARKS[0]],slim:false,pine:1,snow:true,under:false,grd:[[0.8,0.85,0.92],[0.92,0.95,0.98],[0.86,0.9,0.95]]},
   grass: {sky:['#3f8fe0','#f2e6bc','#e6cf7a'],fog:0.007,hemi:['#fff8e0','#b89a52',0.84],leaf:GREENS,bark:[BARKS[0]],slim:false,pine:0,under:false,few:0.1,grd:[[0.72,0.6,0.4],[0.8,0.7,0.36],[0.86,0.71,0.33]]},
-  marsh: {sky:['#9fc0b8','#e6ead0','#a8b890'],fog:0.022,hemi:['#eef2dc','#5f7a56',0.7],leaf:GREENS,bark:[GREYS[1]],slim:true,pine:0,under:false,few:0.3,grd:[[0.66,0.52,0.36],[0.4,0.55,0.36],[0.34,0.48,0.33]]},
+  marsh: {sky:['#060b10','#141d1b','#0c1311'],fog:0.042,hemi:['#6f8c86','#1c2622',0.3],dimSun:0.07,leaf:GREENS,bark:[GREYS[1]],slim:true,pine:0,under:false,few:0.3,grd:[[0.5,0.42,0.31],[0.3,0.4,0.28],[0.22,0.3,0.22]]},
   alpine:{sky:['#1f5fc0','#cfe0f0','#9fb0c0'],fog:0.006,hemi:['#f4f8ff','#8a8f8a',0.84],leaf:PINES,bark:[BARKS[0]],slim:false,pine:1,under:false,few:1e-9,grd:[[0.7,0.68,0.62],[0.6,0.64,0.55],[0.6,0.61,0.57]]}
 };
 /* the mountain trail: the last of whichever place they came through gives way to bare stone */
@@ -2975,6 +2975,7 @@ function buildRest(si){
   sc.add(LK?new THREE.HemisphereLight(LK.hemi[0],LK.hemi[1],LK.hemi[2]):new THREE.HemisphereLight(0xe6f1d8,0x44624a,0.52));
   const rsun=new THREE.DirectionalLight(0xfff0cf,0.8); rsun.position.copy(SUN_DIR).multiplyScalar(60); rsun.castShadow=true;
   rsun.shadow.mapSize.set(2048,2048); rsun.shadow.bias=-0.0005; rsun.shadow.normalBias=0.035;
+  if(LK&&LK.dimSun) rsun.intensity=LK.dimSun;
   { const c=rsun.shadow.camera; c.left=-20; c.right=20; c.top=20; c.bottom=-20; c.near=1; c.far=140; } sc.add(rsun); sc.add(rsun.target);
 
   /* the ground: rings and spokes, so the round clearing and the three paths come out crisp */
@@ -3000,7 +3001,7 @@ function buildRest(si){
   const restBase=(x,z,rad)=>lowestUnder(restFloor,x,z,rad);   /* stood so the rim of the root flare is never above ground */
   /* pools of instanced things, just for this scene */
   const mk=(geo,cap,shadow,mat)=>{ const m=new THREE.InstancedMesh(geo,mat||white(),cap); m.frustumCulled=false; m.castShadow=!!shadow; m.setColorAt(0,new THREE.Color(0xffffff)); m.count=0; sc.add(m); return {m,cap,n:0}; };
-  const T={trunk:mk(trunkGeo,2200,true),blob:mk(blobGeo,3400,true),cone:mk(coneGeo,2400,true),rock:mk(rockGeo,620,true),box:mk(unitBox,160,true),log:mk(logGeo,20,true),stem:mk(stemGeo,60),cap:mk(capGeo,60,true),petal:mk(petalGeo,260),
+  const T={trunk:mk(trunkGeo,2200,true),blob:mk(blobGeo,3400,true),cone:mk(coneGeo,3400,true),rock:mk(rockGeo,620,true),box:mk(unitBox,160,true),log:mk(logGeo,90,true),stem:mk(stemGeo,60),cap:mk(capGeo,60,true),petal:mk(petalGeo,260),
     leaf:mk(leafGeo,2400,false,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}))};
   const LIGHTS=['#79b05a','#8fbf5f','#6aa857'].map(C);
   /* the big old trees of the deep woods: thick trunk, flaring roots, a wide dark crown high overhead (the same recipe as plantTree uses on the trail) */
@@ -3019,7 +3020,7 @@ function buildRest(si){
     autumn:{ferns:10,mush:1,flowers:0,cap:MOSS,bush:BUSH_AUTUMN,leaves:FALL_AUTUMN,drift:1,beams:1,flies:0,logs:1,rocks:1},
     winter:{ferns:0,mush:0,flowers:0,cap:SNOW,bush:[SNOW],leaves:null,drift:0,beams:0,flies:0,logs:0,rocks:1},
     grass: {ferns:0,mush:0,flowers:1,cap:null,bush:null,tuft:'wheat',leaves:null,drift:0,beams:0,flies:1,logs:0,rocks:0},
-    marsh: {ferns:8,mush:0,flowers:0,cap:MOSS,bush:null,tuft:'reed',leaves:null,drift:0,beams:0,flies:1,logs:0,rocks:0},
+    marsh: {ferns:0,mush:0,flowers:0,cap:MOSS,bush:null,tuft:'reed',leaves:null,drift:0,beams:0,flies:0,logs:0,rocks:0},
     alpine:{ferns:0,mush:0,flowers:1,cap:null,bush:null,leaves:null,drift:0,beams:0,flies:0,logs:0,rocks:2}})[PK]||{ferns:70,mush:1,flowers:1,cap:MOSS,bush:BUSHES,leaves:FALLEN,drift:1,beams:1,flies:1,logs:1,rocks:1};
   const BU=D.bush||BUSHES, FL=D.leaves||FALLEN;
   function tree(x,z,sc1,pine){ if(LK){ lookTree(x,z,sc1); return; } const ry=r()*6.28, bark=DEEP_BARK[Math.floor(r()*3)], col=DEEPS[Math.floor(r()*4)];
@@ -3048,6 +3049,12 @@ function buildRest(si){
     else if(D.tuft==='reed') for(let k=0;k<5;k++){ const hh=1.4+r()*0.9, rx=x+(r()-0.5)*1.1, rz=z+(r()-0.5)*1.1; put(T.trunk,rx,y,rz,0.035,hh,0.035,0,TAN); put(T.blob,rx,y+hh,rz,0.06,0.18,0.06,0,BARKS[0]); } }   /* clumps of reeds and cattails */
   if(D.mush) KIT.mush.forEach(([x,z])=>{ const col=CAPS[Math.floor(r()*3)];
     for(let k=0;k<4;k++){ const mx=x+(r()-0.5)*0.7, mz=z+(r()-0.5)*0.7, ms=0.8+r()*0.9; put(T.stem,mx,restFloor(mx,mz),mz,ms,ms,ms,0,STEM); put(T.cap,mx,restFloor(mx,mz),mz,ms,ms,ms,0,col); } });
+  if(PK==='marsh'){   /* the marsh's rest site is an island in it: reeds crowding in from every side and standing in beds as far as the mist allows, and each of the three ways on and off it a causeway of planks */
+    for(let i=0;i<190;i++){ const a=r()*6.28, rr=6.8+Math.pow(r(),1.2)*40, cx=Math.sin(a)*rr, cz=Math.cos(a)*rr; if(pathDist(cx,cz)<1.9) continue; const n=5+Math.floor(r()*4), sp=0.5+rr*0.02;
+      for(let k=0;k<n;k++){ const x=cx+(r()-0.5)*sp*2, z=cz+(r()-0.5)*sp*2, hh=(1.5+r()*1.5)*(1+rr*0.012), w=0.05+rr*0.0014; put(T.cone,x,Math.max(restFloor(x,z),0.05)-0.12,z,w,hh,w,0,k%4?REEDS[Math.floor(r()*4)]:TAN,(r()-0.5)*0.28,(r()-0.5)*0.28); if(k%4===0&&rr<24) put(T.blob,x,Math.max(restFloor(x,z),0.05)+hh*0.8,z,0.055,0.19,0.055,0,BARKS[0]); } }
+    PATHS.forEach((P1,pi)=>{ const yaw=Math.atan2(P1[0],P1[1]); for(let d=8.6,k=0;d<23;d+=0.76,k++){ const x=P1[0]*d, z=P1[1]*d; put(T.log,x,Math.max(restFloor(x,z),0.07)+0.1,z,2.1+r()*0.2,0.13,0.8,yaw+(r()-0.5)*0.08,PLANKS[Math.floor(r()*4)]);
+        if(k%4===0) for(const sd of [-1,1]) put(T.trunk,x+Math.cos(yaw)*sd*1.0,-0.6,z-Math.sin(yaw)*sd*1.0,0.06,0.9,0.06,0,PLANKS[2]); } });
+    for(let i=0;i<14;i++){ const a=r()*6.28, rr=10+r()*9, x=Math.sin(a)*rr, z=Math.cos(a)*rr; if(pathDist(x,z)<1.8) continue; const q=0.45+r()*0.35; put(T.blob,x,0.09,z,q,0.02,q,0,GREENS[i%2?1:2]); } }   /* lily pads */
   if(PK==='alpine') T.arock=mk(rockGeo,120,true,new THREE.MeshLambertMaterial({color:0xffffff,map:lichenTex,flatShading:true}));
   if(D.rocks) KIT.boulders.forEach(([x,z,sz])=>{ const y=restFloor(x,z);
     const lich=PK==='alpine'&&r()<0.2; put(lich?T.arock:T.rock,x,y+sz*0.25,z,sz*1.2,sz*0.75,sz,r()*6,(lich?ALP_STONE:ROCKS)[Math.floor(r()*3)]); if(D.cap) put(T.blob,x,y+sz*0.72,z,sz*0.85,sz*0.3,sz*0.7,0,D.cap); });
@@ -3133,8 +3140,23 @@ function buildRest(si){
   /* and the wind the wall keeps off the bench is still blowing, over the top of it and across the open ground */
   let rwind=null; if(PK==='alpine'){ const N=110, lp=new Float32Array(N*6), d=[]; for(let i=0;i<N;i++) d.push({x:r()*70,y:1.5+Math.pow(r(),1.5)*8,z:-35+r()*70,sp:0.7+r()*0.6,len:0.8+r()*2.2,ph:r()*6});
     const lg=new THREE.BufferGeometry(); lg.setAttribute('position',new THREE.BufferAttribute(lp,3)); const m=new THREE.LineSegments(lg,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.2,depthWrite:false})); m.frustumCulled=false; sc.add(m); rwind={m,d}; }
+  /* and the rest of the marsh comes with it: dark water round the island, mist lying on it, two lanterns that really light the place, frogs on the planks, and little flying things round the lights */
+  let rmarsh=null; if(PK==='marsh'){ const wm=new THREE.Mesh(new THREE.RingGeometry(8.9,24,56,1),new THREE.MeshLambertMaterial({color:0x2c382e,transparent:true,opacity:0.95})); wm.rotation.x=-Math.PI/2; wm.position.y=0.075; wm.receiveShadow=true; sc.add(wm);
+    const mist=[]; for(let i=0;i<26;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0x34413c,transparent:true,opacity:0,depthWrite:false})); const a=r()*6.28, rr=5+r()*26; sp.position.set(Math.sin(a)*rr,0.6+r()*0.5,Math.cos(a)*rr); sp.scale.set(9+r()*10,2.2+r()*2.2,1); sp.renderOrder=2; sc.add(sp); mist.push({sp,x:sp.position.x,ph:r()*6}); }
+    const lamps=[[-4.3,1.98,1.6],[3.6,2.0,-5.2]].map(([x,y,z],i)=>{ if(i){ const post=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.06,2.1,7),L('#7a5238')); post.position.set(x,1.0,z); sc.add(post); const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.16,10,8),new THREE.MeshBasicMaterial({color:0xfff3a3})); lamp.position.set(x,y,z); sc.add(lamp); }
+      const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xffc45a,transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending})); gl.position.set(x,y,z); gl.scale.set(2.4,2.4,1); sc.add(gl); const l=new THREE.PointLight(0xffb85a,2.6,17,1.3); l.position.set(x,y,z); sc.add(l); return {l,gl,x,y,z}; });
+    const fg=L('#5c9a3c'), fb=L('#c9d88a'), fy=L('#e8d24a'), frogs=[[-1.8,3.4,0.6],[2.6,2.2,-0.9],[0.4,9.6,3.1],[-3.2,-1.6,2]].map(([x,z,ry])=>{ const g2=new THREE.Group(), throat=ball(fb,0.05,1,0.8,1,0,0.05,0.07);
+      g2.add(ball(fg,0.09,1.1,0.72,1.25,0,0.07,0),throat,ball(fg,0.035,1,1,1,-0.05,0.14,0.07),ball(fg,0.035,1,1,1,0.05,0.14,0.07),ball(fy,0.022,1,1,1,-0.055,0.15,0.09),ball(fy,0.022,1,1,1,0.055,0.15,0.09),ball(fg,0.045,1.2,0.6,1.7,-0.1,0.035,-0.05),ball(fg,0.045,1.2,0.6,1.7,0.1,0.035,-0.05));
+      g2.position.set(x,Math.max(restFloor(x,z),0.06)+0.02,z); g2.rotation.y=ry; g2.scale.setScalar(1.4); sc.add(g2); return {throat,ph:r()*6}; });
+    const BN=140, bp=new Float32Array(BN*3), bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.BufferAttribute(bp,3)); const bugs=new THREE.Points(bg,new THREE.PointsMaterial({color:0xe8efc0,size:0.045,transparent:true,opacity:0.85,depthWrite:false})); bugs.frustumCulled=false; sc.add(bugs);
+    const bd=[]; for(let i=0;i<BN;i++) bd.push({c:i%4,a:r()*6.283,b:r()*6.283,r:0.25+r()*0.95,w:1.5+r()*3,u:0.8+r()*2.4}); const cs=[[-4.3,2.0,1.6],[3.6,2.05,-5.2],[1.5,1.3,5],[-2,1.1,-3]];
+    rmarsh={mist,lamps,frogs,bugs,bd,cs}; }
   return {scene:sc,paper,
     update(dt,t){
+      if(rmarsh){ rmarsh.mist.forEach(m=>{ m.sp.position.x=m.x+Math.sin(t*0.08+m.ph)*2.5; m.sp.material.opacity=0.42*smooth(2.5,8,m.sp.position.distanceTo(camera.position))*(0.75+0.25*Math.sin(t*0.27+m.ph)); });
+        rmarsh.lamps.forEach((q,i)=>{ q.l.intensity=2.6+0.16*Math.sin(t*7+i*2)+0.08*Math.sin(t*13+i); q.gl.material.opacity=0.5+0.06*Math.sin(t*7+i*2); });
+        rmarsh.frogs.forEach(f=>f.throat.scale.setScalar(1+0.55*Math.max(0,Math.sin(t*5+f.ph))*(Math.sin(t*0.7+f.ph)>0.2?1:0)));
+        const p=rmarsh.bugs.geometry.attributes.position; rmarsh.bd.forEach((b,i)=>{ const c=rmarsh.cs[b.c], a=b.a+t*b.w, q=b.b+t*b.u; p.setXYZ(i,c[0]+Math.cos(a)*b.r*(0.6+0.4*Math.sin(q)),c[1]+Math.sin(q*1.3)*b.r*0.55,c[2]+Math.sin(a)*b.r*(0.6+0.4*Math.cos(q*0.7))); }); p.needsUpdate=true; }
       if(rwind){ const g=clamp(0.55+0.4*Math.sin(t*0.47)+0.25*Math.sin(t*1.31+1)+0.12*Math.sin(t*3.3),0.15,1.3), sp=15*g+4, lp=rwind.m.geometry.attributes.position;
         rwind.d.forEach((p,i)=>{ p.x=(p.x+sp*p.sp*dt)%70; const x=p.x-35, y=p.y+0.25*Math.sin(t*2.1+p.ph), len=p.len*(0.5+g); lp.setXYZ(i*2,x,y,p.z); lp.setXYZ(i*2+1,x-len,y-0.03,p.z-len*0.22); }); lp.needsUpdate=true; rwind.m.material.opacity=0.12+0.22*g; }
       rsky.position.copy(camera.position); animFire(seatSet.userData.fire,t); animFlag(seatSet.userData.flag,t);
@@ -3197,7 +3219,7 @@ function updateRest(dt,rawDt){
   if(rest.leaving){ const lv=rest.leaving; lv.t+=dt;   /* off they go: a few steps toward the chosen path, then fade back to the trail */
     if(lv.t>3.6&&!lv.fading){ lv.fading=true; const tok=restToken; $('fade').classList.add('on');
       setTimeout(()=>{ if(tok!==restToken||mode!=='rest') return; leaveRest(lv.c); $('fade').classList.remove('on'); },950); } }
-  chirpRest-=dt; if(chirpRest<=0){ Music.sfx('chirp'); chirpRest=5+Math.random()*8; }
+  chirpRest-=dt; if(chirpRest<=0){ if(fork.site===2&&legKey(1)==='marsh'){ Music.amb(pick(['croak','croak','peeper','peeper','midge','plonk'])); chirpRest=1+Math.random()*2.4; } else { Music.sfx('chirp'); chirpRest=5+Math.random()*8; } }   /* (in the marsh it is frogs, not birds) */
   rest.update(dt,time); if(noteT>0){ noteT-=dt; if(noteT<=0||rest.leaving) hideDadNote(); }
   /* camera: drifts slowly round the girls; when they notice the paths it settles behind them, looking the way they are looking */
   if(rest.phase<3) rest.th+=dt*0.035*motion; else { let dd=Math.PI-0.5-rest.th; dd=Math.atan2(Math.sin(dd),Math.cos(dd)); rest.th+=dd*(1-Math.exp(-0.55*dt)); }
@@ -4873,7 +4895,7 @@ const MOTE_HOME=C('#fff2b8'), MOTE_ASPEN=C('#ffe07a'), MOTE_AUTUMN=C('#f59a3c');
 Object.assign(SKIES,{
   winter: {top:C('#8fa9c4'),mid:C('#e6edf3'),bot:C('#d5dee8'),hemi:C('#f2f6ff'),sun:C('#fff6ea'),air:0.016, glow:0.86,shine:0.7},    /* a pale, snow-laden sky */
   grass:  {top:C('#2f86e6'),mid:C('#f1e6c0'),bot:C('#e6cf86'),hemi:C('#fff8e0'),sun:C('#fff4d6'),air:0.006, glow:0.6,shine:0.8},      /* wide open and bright */
-  marsh:  {top:C('#33474a'),mid:C('#6f8072'),bot:C('#465446'),hemi:C('#93a48e'),sun:C('#cdbf9a'),air:0.052, glow:0.38,shine:0.18},    /* soft, grey-green and misty */
+  marsh:  {top:C('#060b10'),mid:C('#141d1b'),bot:C('#0c1311'),hemi:C('#6f8c86'),sun:C('#93a8b4'),air:0.05,  glow:0.2,shine:0.09},   /* night on the marsh: black water, mist, and whatever the lanterns reach */    /* soft, grey-green and misty */
   alpine: {top:C('#1a58c0'),mid:C('#cfe0f0'),bot:C('#a9b6c2'),hemi:C('#f4f8ff'),sun:C('#ffffff'),air:0.0055,glow:0.7,shine:0.86},      /* thin, clear mountain air */
   mtn:    {top:C('#2a66c8'),mid:C('#d6e4ee'),bot:C('#b0b8bc'),hemi:C('#f6f8ff'),sun:C('#fffaf0'),air:0.007, glow:0.7,shine:0.86},
   glow:   {top:C('#02040c'),mid:C('#050915'),bot:C('#040711'),hemi:C('#5f7fd0'),sun:C('#9fb6ff'),air:0.02,  glow:0.17,shine:0.1},     /* deep night: almost all the light comes from the things that glow */
@@ -5060,7 +5082,7 @@ function updateWillowLamps(){ const on=!!state.started&&mode==='trail'&&pondOn()
 /* and the far end of the marsh is hidden the same way, only more so: a wall of mist that the boardwalk disappears into, thinning as the girls come up to it */
 const marshVeil=[0,1,2,3,4,5].map(i=>{ const m=new THREE.Mesh(curtainGeo,new THREE.MeshBasicMaterial({color:0xffffff,map:curtainTex,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide})); m.visible=false; m.renderOrder=2; if(i%2) m.scale.x=-1; scene.add(m); return {m,dz:-36+i*7.5,dx:(i%2?1:-1)*(8+i*5),dy:i*1.1}; });
 function updateMarshVeil(){ const on=!!state.started&&mode==='trail'&&marshOn()&&party.s>MARSH_A-14&&party.s<MARSH_B+2, k=on?1-smooth(MARSH_B-44,MARSH_B-8,party.s):0;
-  marshVeil.forEach(v=>{ v.m.visible=k>0.01; if(k<=0.01) return; v.m.position.set(trailX(MARSH_B)+v.dx,trailY0(MARSH_A)+15+v.dy,MARSH_B+v.dz); v.m.material.opacity=0.8*k; v.m.material.color.copy(scene.fog.color).lerp(WHITE,0.25); }); }
+  marshVeil.forEach(v=>{ v.m.visible=k>0.01; if(k<=0.01) return; v.m.position.set(trailX(MARSH_B)+v.dx,trailY0(MARSH_A)+15+v.dy,MARSH_B+v.dz); v.m.material.opacity=0.8*k; v.m.material.color.copy(scene.fog.color).lerp(WHITE,0.03); }); }
 function updatePondWater(){ const on=!!state.started&&mode==='trail'&&pondOn()&&Math.abs(party.s-POND_ZC)<170; pondWater.visible=on; if(!on) return;
   pondWater.position.set(trailX(POND_ZC),trailY0(POND_A)-0.22,POND_ZC); pondWater.material.map.offset.set(time*0.004,time*0.0015); pondWater.material.color.setScalar(1-0.6*(party.s<GB[2]+14?gateK(party.s):0)); }   /* (the water is dark too, under the willows) */
 /* Fish in the upside-down pond. Under the surface, dark shapes idle about near the boardwalk. And every so often one of them comes up
@@ -5118,9 +5140,9 @@ const marsh=(()=>{ const c=document.createElement('canvas'); c.width=c.height=25
   for(let i=0;i<60;i++){ const x=R()*256, y=R()*256, r=6+R()*22; for(const ox of [-256,0,256]) for(const oy of [-256,0,256]){ const q=g.createRadialGradient(x+ox,y+oy,0,x+ox,y+oy,r); q.addColorStop(0,i%3?'rgba(96,122,62,0.55)':'rgba(20,28,26,0.6)'); q.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=q; g.fillRect(x+ox-r,y+oy-r,r*2,r*2); } }
   for(let i=0;i<500;i++){ g.fillStyle=i%2?'rgba(140,168,84,0.7)':'rgba(110,140,70,0.7)'; g.fillRect(R()*256,R()*256,1.6,1.6); }
   const tex=new THREE.CanvasTexture(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(14,6);
-  const water=new THREE.Mesh(new THREE.CircleGeometry(1,72),new THREE.MeshLambertMaterial({map:tex,transparent:true,opacity:0.94,depthWrite:false})); water.rotation.x=-Math.PI/2; water.scale.set(MARSH_HX*0.97,MARSH_HZ*0.9,1); water.visible=false; water.renderOrder=1; scene.add(water);
+  const water=new THREE.Mesh(new THREE.CircleGeometry(1,72),new THREE.MeshLambertMaterial({map:tex,color:0x8f9c90,transparent:true,opacity:0.94,depthWrite:false})); water.rotation.x=-Math.PI/2; water.scale.set(MARSH_HX*0.97,MARSH_HZ*0.9,1); water.visible=false; water.renderOrder=1; scene.add(water);
   const mist=[]; for(let i=0;i<48;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xdfe8d8,transparent:true,opacity:0,depthWrite:false})); sp.visible=false; sp.renderOrder=2; scene.add(sp); mist.push({sp,z:rnd()*70,lat:(rnd()-0.5)*56,w:9+rnd()*11,h:2.2+rnd()*2.4,ph:rnd()*6,v:0.15+rnd()*0.3}); }
-  const lights=[0,1,2].map(()=>{ const l=new THREE.PointLight(0xffb85a,0,10,1.7); l.visible=false; scene.add(l); return l; });
+  const lights=[0,1,2].map(()=>{ const l=new THREE.PointLight(0xffb85a,0,15,1.4); l.visible=false; scene.add(l); return l; });
   const frogs=[], fg=L('#5c9a3c'), fb=L('#c9d88a'), fe=new THREE.MeshBasicMaterial({color:0x14180c}), fy=L('#e8d24a');
   for(let i=0;i<9;i++){ const g2=new THREE.Group(), throat=ball(fb,0.05,1,0.8,1,0,0.05,0.07); g2.add(ball(fg,0.09,1.1,0.72,1.25,0,0.07,0),throat,ball(fg,0.035,1,1,1,-0.05,0.14,0.07),ball(fg,0.035,1,1,1,0.05,0.14,0.07),ball(fy,0.022,1,1,1,-0.055,0.15,0.09),ball(fy,0.022,1,1,1,0.055,0.15,0.09),ball(fe,0.012,1,1,1,-0.058,0.152,0.108),ball(fe,0.012,1,1,1,0.058,0.152,0.108),
       ball(fg,0.045,1.2,0.6,1.7,-0.1,0.035,-0.05),ball(fg,0.045,1.2,0.6,1.7,0.1,0.035,-0.05),ball(fg,0.025,1,0.6,1.6,-0.07,0.02,0.1),ball(fg,0.025,1,0.6,1.6,0.07,0.02,0.1));
@@ -5134,8 +5156,8 @@ function updateMarsh(dt){ const M=marsh, Y=trailY0(MARSH_A), wy=Y-0.22, near=!!s
   M.water.visible=near; if(near) M.water.position.set(x0(MARSH_ZC)-18,wy,MARSH_ZC);
   const mk=on?smooth(MARSH_A-8,MARSH_A+4,party.s)*(1-smooth(MARSH_B-4,MARSH_B+6,party.s)):0;
   M.mist.forEach(m=>{ m.sp.visible=mk>0.01; if(mk<=0.01) return; const z=party.s-22+((m.z+time*m.v)%70+70)%70, x=trailX(z)+m.lat+Math.sin(time*0.1+m.ph)*2; m.sp.position.set(x,Y+0.35+0.2*Math.sin(time*0.2+m.ph),z); m.sp.scale.set(m.w,m.h,1);
-    m.sp.material.opacity=0.5*mk*smooth(2.5,8,m.sp.position.distanceTo(camera.position))*(0.75+0.25*Math.sin(time*0.27+m.ph)); m.sp.material.color.copy(scene.fog.color).lerp(WHITE,0.35); });
-  { const L3=on?marshLamps.slice().sort((a,b)=>Math.abs(a.z-party.s-2)-Math.abs(b.z-party.s-2)).slice(0,3):[]; M.lights.forEach((l,i)=>{ const p=L3[i]; l.visible=!!p; if(!p) return; l.position.set(p.x,p.y,p.z); l.intensity=1.5+0.12*Math.sin(time*7+i*2)+0.07*Math.sin(time*13+i); }); }
+    m.sp.material.opacity=0.5*mk*smooth(2.5,8,m.sp.position.distanceTo(camera.position))*(0.75+0.25*Math.sin(time*0.27+m.ph)); m.sp.material.color.copy(scene.fog.color).lerp(WHITE,0.1*(1-smooth(6,22,Math.abs(m.lat)))); m.sp.material.opacity*=1-0.5*smooth(10,28,Math.abs(m.lat)); });   /* (a shade paler than the dark only close by; further out it is the dark itself, and thinner, so it has no edge) */
+  { const L3=on?marshLamps.slice().sort((a,b)=>Math.abs(a.z-party.s-2)-Math.abs(b.z-party.s-2)).slice(0,3):[]; M.lights.forEach((l,i)=>{ const p=L3[i]; l.visible=!!p; if(!p) return; l.position.set(p.x,p.y,p.z); l.intensity=2.4+0.15*Math.sin(time*7+i*2)+0.07*Math.sin(time*13+i); }); }
   /* frogs */
   M.frogs.forEach((f,i)=>{ if(!on){ f.g.visible=false; f.st=0; return; }
     if(f.st===0){ f.g.visible=false; f.wait-=dt; if(f.wait>0) return; const z=clamp(party.s+5+Math.random()*13,MARSH_A+2,MARSH_B-2), sl=(trailX(z+0.2)-trailX(z-0.2))/0.4, hy=Math.hypot(1,sl), sd=Math.random()<0.5?-1:1, lat=f.pad?1.9+Math.random()*2.6:0.82;
@@ -5332,7 +5354,7 @@ function frame(now){
   motes.material.color.copy(MOTE_HOME);
   for(let i=0;i<5;i++){ const key=i<3?legKey(i):i===3?'mtn':'sky', S=SKIES[key]; if(!S) continue; const q=key==='glow'?smooth(BOUNDS[i]-8,BOUNDS[i],party.s):smooth(BOUNDS[i],BOUNDS[i]+(i===3?62:22),party.s); if(q<=0) continue;   /* (night has fully fallen by the time they step out of the hollow tree; the change happens in the dark inside it) */
     for(const k of SKY_KEYS) skyNow[k].lerp(S[k],q); air=lerp(air,S.air,q); glw=lerp(glw,S.glow,q); shn=lerp(shn,S.shine,q);
-    fallK=lerp(fallK,S.falls?1:0,q); darkK=lerp(darkK,BIO[key].dark?1:0,q); nightK=lerp(nightK,BIO[key].night?1:0,q); motes.material.color.lerp(S.mote,q); }
+    fallK=lerp(fallK,S.falls?1:0,q); darkK=lerp(darkK,BIO[key].dark?1:0,q); nightK=lerp(nightK,+BIO[key].night||0,q); motes.material.color.lerp(S.mote,q); }
   skyNow.mid.lerp(FOG_THICKET,thK*0.92).lerp(FOG_CAVE,caveK*0.96).lerp(FOG_MIST,mistK*0.97); skyNow.top.lerp(FOG_THICKET,thK*0.85).lerp(FOG_CAVE,caveK*0.92).lerp(FOG_MIST,mistK*0.93); skyNow.bot.lerp(FOG_THICKET,thK*0.85).lerp(FOG_CAVE,caveK*0.92).lerp(FOG_MIST,mistK*0.93);   /* inside a gateway: dark all round (or, in the mist, white all round) */
   scene.fog.color.copy(skyNow.mid); skyU.top.value.copy(skyNow.top); skyU.mid.value.copy(skyNow.mid); skyU.bot.value.copy(skyNow.bot);
   scene.fog.density=air+thK*0.085+caveK*0.095+mistK*0.12;   /* thick enough inside a gateway that its far end is lost */
