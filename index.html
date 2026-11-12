@@ -40,6 +40,7 @@
 html,body,button{touch-action:manipulation}
 body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 .book-scrim,.story{-webkit-user-select:text;user-select:text}
+html{font-size:calc(16px * var(--ts, 1.15))}   /* every size on the page is measured from this: the text-size setting scales all of it together */
 html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-family:var(--ui)}
 body{padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
 #scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
@@ -134,11 +135,13 @@ body.is-paused .dad-note{opacity:0}
 .zone-card p{font:500 .85rem/1.45 var(--ui);margin:0 48px 6px 0;opacity:.75}
 .zone-card h3{font:700 .72rem/1 var(--ui);letter-spacing:.12em;text-transform:uppercase;margin:16px 0 7px;opacity:.6}
 .zone-row{display:flex;flex-wrap:wrap;gap:7px}
+.set-size button[aria-pressed="true"]{background:#d0607a;color:#fff;border-color:transparent}
+.set-sample{font:700 .92rem/1.3 var(--ui);margin:8px 0 0!important;opacity:1!important}
 .zone-card button{font:600 .85rem/1 var(--ui);min-height:40px;padding:.6rem .85rem;color:#3a2540;background:#fff;border:1.5px solid rgba(58,37,64,.22);-webkit-backdrop-filter:none;backdrop-filter:none}
 .zone-card button:hover{background:#ffe1d0;border-color:rgba(58,37,64,.4)}
 .zone-card .zone-close{position:absolute;top:10px;right:10px;width:40px;padding:0;display:grid;place-items:center;font-size:1.1rem}
 .say{position:fixed;left:0;top:0;z-index:3;pointer-events:none;will-change:transform}
-.bub{position:absolute;bottom:34px;left:0;width:max-content;max-width:min(220px,46vw);padding:9px 13px 10px;border-radius:18px;
+.bub{position:absolute;bottom:34px;left:0;width:max-content;max-width:min(calc(220px * var(--ts, 1.15)),58vw);padding:9px 13px 10px;border-radius:18px;
   background:var(--bubble);color:var(--bubble-ink);font:700 .92rem/1.3 var(--ui);border:2.5px solid var(--june);
   box-shadow:0 6px 20px rgba(10,8,30,.35);transform:translateX(-82%) scale(.6);transform-origin:82% 100%;opacity:0;
   transition:opacity .35s ease, transform .45s cubic-bezier(.3,1.6,.5,1);text-wrap:balance}
@@ -423,9 +426,8 @@ body.is-paused .narrator{opacity:0}
   <button id="stopBtn" type="button" hidden>Stop here for today</button>
   <button id="paceBtn" type="button" aria-label="Pace: normal speed. Tap to go faster.">Pace ×1</button>
   <button id="zoneBtn" type="button">Testing</button>
-  <button id="goodnightBtn" type="button">Back to the start</button>
   <button id="bookBtn" type="button">Fact book</button>
-  <button id="soundBtn" type="button" aria-pressed="true">Music on</button>
+  <button id="setBtn" type="button">Settings</button>
 </div>
 
 <div class="leafwall" id="leafwall" aria-hidden="true">
@@ -512,6 +514,20 @@ body.is-paused .narrator{opacity:0}
 </button>
 <div class="paused-banner" id="pausedBanner" role="status"><b>Paused</b><span id="pausedTip">Tap a little book to learn something!</span></div>
 
+<div class="book-scrim" id="setScrim" hidden>
+  <div class="zone-card" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <h2 id="setTitle">Settings</h2>
+    <h3>Text size</h3>
+    <div class="zone-row set-size" id="setSize" role="group" aria-label="Text size"><button type="button" data-ts="1">Small</button><button type="button" data-ts="1.15">Medium</button><button type="button" data-ts="1.3">Large</button><button type="button" data-ts="1.5">Extra large</button></div>
+    <p class="set-sample">&ldquo;Nine snacks, just in case.&rdquo;</p>
+    <h3>Sound</h3>
+    <div class="zone-row"><button id="soundBtn" type="button" aria-pressed="true">Music on</button></div>
+    <h3>The hike</h3>
+    <div class="zone-row"><button id="goodnightBtn" type="button">Back to the start</button></div>
+    <p>Back to the start leaves the hike and returns to the title page.</p>
+    <button class="zone-close" id="setClose" type="button" aria-label="Close the settings">✕</button>
+  </div>
+</div>
 <div class="book-scrim" id="zoneScrim" hidden>
   <div class="zone-card" role="dialog" aria-modal="true" aria-labelledby="zoneTitle">
     <h2 id="zoneTitle">Testing</h2>
@@ -4230,7 +4246,16 @@ function syncMap(){
 $('mapScroll').addEventListener('click',()=>{ mapHidden=!mapHidden; syncMap(); });
 $('beginBtn').addEventListener('click',startHike);
 $('splashBtn').addEventListener('click',()=>{ const sp=$('splash'); sp.classList.add('gone'); setTimeout(()=>{ sp.hidden=true; $('beginBtn').focus({preventScroll:true}); },1250); });
-$('goodnightBtn').addEventListener('click',backToStart);
+$('goodnightBtn').addEventListener('click',()=>{ closeSettings(true); backToStart(); });
+/* settings: how big the words are (remembered from one visit to the next), the music, and the way back to the title page */
+const TS_KEY='trailtop-textsize';
+function setTextSize(v,save){ v=[1,1.15,1.3,1.5].includes(+v)?+v:1.15; document.documentElement.style.setProperty('--ts',v); $('setSize').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.ts===v))); if(save){ try{ localStorage.setItem(TS_KEY,String(v)); }catch(e){} } }
+{ let v=1.15; try{ v=localStorage.getItem(TS_KEY)||1.15; }catch(e){} setTextSize(v,false); }
+$('setSize').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setTextSize(b.dataset.ts,true); });
+let setAuto=false;
+function openSettings(){ if(bookOpen) closeBook(); closeZones(); if(state.started&&!paused){ setAuto=true; setPaused(true); } $('setScrim').hidden=false; $('pausedBanner').classList.remove('show'); setTimeout(()=>{ try{ $('setClose').focus({preventScroll:true}); }catch(e){} },60); }
+function closeSettings(leaving){ if($('setScrim').hidden) return; $('setScrim').hidden=true; if(setAuto){ setAuto=false; if(!leaving) setPaused(false); } else if(!leaving) $('pausedBanner').classList.toggle('show',paused); }
+$('setBtn').addEventListener('click',openSettings); $('setClose').addEventListener('click',()=>closeSettings()); $('setScrim').addEventListener('pointerdown',e=>{ if(e.target===$('setScrim')) closeSettings(); });
 $('nightBtn').addEventListener('click',backToStart);
 
 /* ---------- camera controls ---------- */
@@ -5000,6 +5025,7 @@ $('bookBtn').addEventListener('click',()=>openContents());
 $('bookPage').addEventListener('click',()=>{ bookMode='toc'; renderBook(true); });
 addEventListener('keydown',e=>{
   if(e.key==='Escape'&&bookOpen){ closeBook(); return; }
+  if(!$('setScrim').hidden){ if(e.key==='Escape') closeSettings(); return; }
   if(!$('zoneScrim').hidden){ if(e.key==='Escape') closeZones(); return; }
   if(bookOpen&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){ turnPage(e.key==='ArrowRight'?1:-1); return; }
   if(!state.started) return;
