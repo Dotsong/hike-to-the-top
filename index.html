@@ -1445,8 +1445,8 @@ function rebuildForest(s0){
     /* fallen leaves scattered on each path: gold under the aspens, red in the autumn woods */
     const tiltX=-Math.atan(trailY(z0+2)-trailY(z0+1));   /* fallen leaves lie flat on the slope */
     for(let w=0;w<(gap>0.5?2:1);w++){ if(choice&&z0>GATE_B-3&&gap>0.5&&(w?wr:wl)!==(Math.abs(trailX(z0+1.5)-wl)<Math.abs(trailX(z0+1.5)-wr)?wl:wr)) continue;   /* none on the path not taken */
-      const cx=w?wr:wl, bi=bioK(z0+1.5)>0.5?biomeAt(cx,z0+1.5):0, NBl=BIO[bioKeyAt(z0+1.5)], nw=NBl&&NBl.tree&&newK(z0+1.5)>0.5, pal=nw?(NBl.fall||[]):bi<0?FALL_ASPEN:bi>0?FALL_AUTUMN:FALLEN, n=!pal.length?0:bi||nw?13:7,   /* no autumn leaves on the snow, the rock or the water */ wide=bi?6.4:4.2;
-      for(let k=0;k<n;k++){ const id=k+w*20, z=z0+hash(r,id,62)*3; paths(z); const x=(w?pR:pL)+(hash(r,id,61)-0.5)*wide, sc=0.7+hash(r,id,63)*0.8;
+      const cx=w?wr:wl, bi=bioK(z0+1.5)>0.5?biomeAt(cx,z0+1.5):0, NBl=BIO[bioKeyAt(z0+1.5)], nw=NBl&&NBl.tree&&newK(z0+1.5)>0.5, pal=nw?(NBl.fall||[]):bi<0?FALL_ASPEN:bi>0?FALL_AUTUMN:FALLEN, n=!pal.length?0:bi>0&&!nw?26:bi||nw?13:7,   /* (twice as many in the autumn woods) */   /* no autumn leaves on the snow, the rock or the water */ wide=bi?6.4:4.2;
+      for(let k=0;k<n;k++){ const id=k+w*40, z=z0+hash(r,id,62)*3; paths(z); const x=(w?pR:pL)+(hash(r,id,61)-0.5)*wide, sc=0.7+hash(r,id,63)*0.8;
         put(P.leaf,x,floorY(x,z)+0.035,z,sc,1,sc*1.6,hash(r,id,64)*6.28,pal[Math.floor(hash(r,id,65)*pal.length)],tiltX); } }
   }
   POOLS.forEach(p=>{ p.m.count=p.n; p.m.instanceMatrix.needsUpdate=true; if(p.m.instanceColor) p.m.instanceColor.needsUpdate=true; });
