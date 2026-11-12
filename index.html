@@ -5352,7 +5352,7 @@ function frame(now){
   let air=lerp(SKIES.home.air,SKIES.deep.air,gk), glw=lerp(SKIES.home.glow,SKIES.deep.glow,gk), shn=lerp(SKIES.home.shine,SKIES.deep.shine,gk), fallK=0, darkK=0, nightK=0;
   for(const k of SKY_KEYS) skyNow[k].copy(SKIES.home[k]).lerp(SKIES.deep[k],gk);
   motes.material.color.copy(MOTE_HOME);
-  for(let i=0;i<5;i++){ const key=i<3?legKey(i):i===3?'mtn':'sky', S=SKIES[key]; if(!S) continue; const q=key==='glow'?smooth(BOUNDS[i]-8,BOUNDS[i],party.s):smooth(BOUNDS[i],BOUNDS[i]+(i===3?62:22),party.s); if(q<=0) continue;   /* (night has fully fallen by the time they step out of the hollow tree; the change happens in the dark inside it) */
+  for(let i=0;i<5;i++){ const key=i<3?legKey(i):i===3?'mtn':'sky', S=SKIES[key]; if(!S) continue; const q=key==='glow'?smooth(BOUNDS[i]-8,BOUNDS[i],party.s):key==='marsh'?smooth(BOUNDS[i]-7,BOUNDS[i]+2,party.s):smooth(BOUNDS[i],BOUNDS[i]+(i===3?62:22),party.s); if(q<=0) continue;   /* (night has fully fallen by the time they step out of the hollow tree; the change happens in the dark inside it) */
     for(const k of SKY_KEYS) skyNow[k].lerp(S[k],q); air=lerp(air,S.air,q); glw=lerp(glw,S.glow,q); shn=lerp(shn,S.shine,q);
     fallK=lerp(fallK,S.falls?1:0,q); darkK=lerp(darkK,BIO[key].dark?1:0,q); nightK=lerp(nightK,+BIO[key].night||0,q); motes.material.color.lerp(S.mote,q); }
   skyNow.mid.lerp(FOG_THICKET,thK*0.92).lerp(FOG_CAVE,caveK*0.96).lerp(FOG_MIST,mistK*0.97); skyNow.top.lerp(FOG_THICKET,thK*0.85).lerp(FOG_CAVE,caveK*0.92).lerp(FOG_MIST,mistK*0.93); skyNow.bot.lerp(FOG_THICKET,thK*0.85).lerp(FOG_CAVE,caveK*0.92).lerp(FOG_MIST,mistK*0.93);   /* inside a gateway: dark all round (or, in the mist, white all round) */
