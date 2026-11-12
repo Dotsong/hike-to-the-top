@@ -4408,7 +4408,7 @@ function updateSpeech(dt){
     const edge=Math.min(250,innerWidth*0.42), key=(curLine?curLine.w+':'+curLine.t0:'')+mcam.id, fresh=key!==meetBub.key; meetBub.key=key;
     bubbles.forEach((bb,i)=>{ const A=meetBub.at[i]||(meetBub.at[i]={x:innerWidth/2,y:innerHeight/2});
       if(fresh||mcam.id==='behind'||mcam.id==='through'){ bb.head.getWorldPosition(hp); hp.project(camera); const beh=hp.z>1, on=!beh&&Math.abs(hp.x)<0.9&&hp.y>-0.75&&hp.y<0.62;
-        const tx=on?(hp.x*0.5+0.5)*innerWidth:((beh?-hp.x:hp.x)<0?0:innerWidth), ty=on?(-hp.y*0.5+0.5)*innerHeight-6:innerHeight*0.9;
+        const tx=on?(hp.x*0.5+0.5)*innerWidth:((beh?-hp.x:hp.x)<0?0:innerWidth), ty=on?Math.max((-hp.y*0.5+0.5)*innerHeight-6,innerHeight*0.36):innerHeight*0.9;   /* (never so high that it sits on the narrator's line) */
         if(fresh){ A.x=tx; A.y=ty; } else { A.x+=(tx-A.x)*0.06; A.y+=(ty-A.y)*0.06; } }   /* (while the camera itself is travelling, it drifts along gently) */
       xs[i]=A.x; bb.el.style.transform=`translate3d(${clamp(A.x,edge,innerWidth-edge).toFixed(1)}px,${A.y.toFixed(1)}px,0)`; bb.el.style.visibility=state.started?'visible':'hidden'; });
     bubbles.forEach((bb,i)=>bb.el.classList.toggle('right',xs[i]>innerWidth/2)); return; }
@@ -5487,7 +5487,7 @@ function updateFactLife(dt){ const F=factLife, tr=!!state.started&&mode==='trail
 const MEETS=[];
 function meetDef(D){ D.g=D.build(); D.g.visible=false; scene.add(D.g); D.head=new THREE.Object3D(); D.head.position.set(0,D.headY,0); D.g.add(D.head); Object.assign(D,{on:0,done:false,t:0,li:-1,last:null,after:false}); MEETS.push(D); }
 const _mv=new THREE.Vector3();
-meetDef({key:'winter',s:320,lat:-2.5,name:'The Snow Owl',headY:3.25,
+meetDef({key:'winter',s:320,lat:-2.5,name:'The Snow Owl',headY:3.25,shot:{aSide:1.95,aBack:1.5,aUp:0.55,aBoth:true,gZoom:0.34,gDown:0.5},
   narr:'On a low bough beside the trail sat a very large white owl, wearing a very small pair of spectacles made of ice.',
   endNarr:'They went on down the trail on the sides of their feet, and the quiet came along with them.',
   say:[[1,'June! That owl is wearing GLASSES!'],[2,'Shhh. This is a library, small one.'],[1,'A library of what?'],[2,'Of quiet. Every snowfall brings more of it, and I keep it in order.'],[0,'We\'re sorry. We\'ll be very soft.'],
@@ -5560,8 +5560,8 @@ function meetShot(){ let D=null, frog=false; if(frogKing.here&&(frogKing.on||par
   if(id==='behind'){ const S0=frog?FROGK_S:D.s, cs=party.s-clamp(5.8*zoom,3.6,9), cx=trailX(cs)+0.6;   /* on the way up to them the camera settles in behind the girls on the trail, as it does in the deep woods: little by little, over the last dozen metres */
     const hh=heading(party.s), fx=Math.sin(hh), fz=Math.cos(hh), bk=3.3; P.set(_mm.x-fx*bk,_mm.y+1.85,_mm.z-fz*bk); Lk.set(_mm.x+fx*2.6,_mm.y+0.95,_mm.z+fz*2.6); kT=D.on?1:smooth(S0-16,S0-6,party.s); }   /* (close enough behind that a bend in the path never hides them) */
   else if(id==='through'){ P.set(_mm.x+dx*0.5,hy-0.12,_mm.z+dz*0.5); Lk.copy(_ma); }
-  else if(id==='ots-girls'){ const b=low?2.0:1.5, sd=low?1.45:1.35; P.set(_mm.x-dx*b+sx*sd,hy+(low?1.35:0.8),_mm.z-dz*b+sz*sd); Lk.copy(_ma); }   /* (higher and wider when they are crouching, to see past a backpack) */
-  else if(id==='ots-actor'){ const g=(mcam.who?pip:june).g.position; P.set(_ma.x+dx*0.85-sx*0.75,_ma.y+0.32,_ma.z+dz*0.85-sz*0.75); Lk.set(g.x,g.y+(low?0.55:0.95),g.z); }
+  else if(id==='ots-girls'){ const b=low?2.0:1.5, sd=low?1.45:1.35; P.set(_mm.x-dx*b+sx*sd,hy+(low?1.35:0.8),_mm.z-dz*b+sz*sd); Lk.copy(_ma); if(D.shot&&D.shot.gZoom){ P.lerp(_ma,D.shot.gZoom); Lk.y-=D.shot.gDown||0; } }   /* (for someone small or high up, the camera goes in closer) */   /* (higher and wider when they are crouching, to see past a backpack) */
+  else if(id==='ots-actor'){ const g=(mcam.who?pip:june).g.position, Q=D.shot||{}, sd=Q.aSide===undefined?-0.75:Q.aSide, bk=Q.aBack||0.85; P.set(_ma.x+dx*bk+sx*sd,_ma.y+(Q.aUp||0.32),_ma.z+dz*bk+sz*sd); if(Q.aBoth) Lk.set(_mm.x,_mm.y+0.9,_mm.z); else Lk.set(g.x,g.y+(low?0.55:0.95),g.z); }   /* (or, where it suits, on both girls at once) */
   else { P.set(_ma.x-dx*0.75+sx*1.2,_ma.y+0.12,_ma.z-dz*0.75+sz*1.2); Lk.set(_ma.x-dx*0.62,_ma.y-0.2,_ma.z-dz*0.62); }   /* the snack: down at the planks, a hand's breadth from it */
   return {id,k:kT,cut:id!=='behind'&&id!=='through'}; }
 function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
