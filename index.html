@@ -1317,6 +1317,10 @@ function mtnWonders(r,z0){ const zc=z0+1.5, cx=trailX(zc), ty=trailY(zc), n=(k,j
       put(P.rock,x,y,z,sz*1.3,sz*0.8,sz*1.1,n(q,5)*6,col(n(q,6)),n(q,7)*0.6); put(P.coneF,x,y-sz*0.5,z,sz*0.8,sz*1.2,sz*0.8,0,col(n(q,8)),Math.PI);   /* broad on top, tapering to a point underneath */
       if(n(q,9)<0.6) put(P.bush,x,y+sz*0.62,z,sz*0.9,sz*0.16,sz*0.75,0,n(q,10)<0.5?MOSS:GREENS[3]);
       if(n(q,11)<0.5) put(P.rock,x+sz*1.2,y-sz*1.6,z+sz*0.5,sz*0.3,sz*0.25,sz*0.3,n(q,12)*6,col(n(q,13))); } } }   /* and a crumb or two hanging underneath */
+/* on the way to the first crossroads a good many of the bushes are in fruit: red berries on some, dark blue on others, dotted over the top and sides */
+const BERRY=[C('#c8283c'),C('#d8404a'),C('#3a3f9c'),C('#4c4fb4')];
+function berries(x,y,z,rad,r,id){ const blue=hash(r,id,31)<0.4?2:0; for(let k=0;k<14;k++){ const a=hash(r,id,40+k)*6.283, e=0.15+hash(r,id,60+k)*1.2, c=Math.cos(e)*rad*1.0, sz=0.9+hash(r,id,80+k)*0.6;
+    put(P.petal,x+Math.cos(a)*c,y+Math.sin(e)*rad*0.7,z+Math.sin(a)*c,sz,sz,sz,0,BERRY[blue+(k&1)]); } }
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
   POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
@@ -1359,7 +1363,7 @@ function rebuildForest(s0){
       for(let j=0;j<2;j++){ const id=q+20+j; if(sign||hash(r,id,1)>0.5) continue;
         const d=side*(3.1+hash(r,id,2)*6.5), z=z0+hash(r,id,3)*3, x=edge(z)+d, rad=0.45+hash(r,id,4)*0.5; if(!clear(x,z)) continue;
         if(bioK(z)>0.5&&biomeAt(x,z)>0) { const hh=hash(r,id,8); if(hh>0.86) leafHeap(x,floorY(x,z),z,1.5+hash(r,id,9)*0.8,id,r,0,0,1); else if(hh>0.5) leafHeap(x,floorY(x,z),z,rad*1.25,id,r); }   /* in the autumn woods there are no bushes, only heaps of leaves: fewer of them, and now and then a big one heaped to a point */
-        else put(P.bush,x,floorY(x,z)+rad*0.3,z,rad,rad*0.7,rad,hash(r,id,5)*6,bushColor(x,z,hash(r,id,6))); }
+        else { const by=floorY(x,z)+rad*0.3; put(P.bush,x,by,z,rad,rad*0.7,rad,hash(r,id,5)*6,bushColor(x,z,hash(r,id,6))); if(z<GATE_A-2&&hash(r,id,30)<0.45) berries(x,by,z,rad,r,id); } }
       /* rocks and boulders with a cap of moss: small ones by the trail, big ones further back, more of them in the deep forest */
       for(let j=0;j<2;j++){ const id=q+30+j; if(sign||side<0&&inGate&&!j||hash(r,id,1)>(j?0.1+0.28*dp:0.12+0.14*dp)) continue;   /* no loose rocks beside the thicket tunnel */
         const big=j===1, d=side*(big?5+hash(r,id,2)*(side<0?13:9):2.9+hash(r,id,2)*5.5), z=z0+hash(r,id,3)*3, x=edge(z)+d; if(!clear(x,z)) continue;
@@ -1392,7 +1396,7 @@ function rebuildForest(s0){
     if(gap>7&&!inGate){ for(let k=0;k<2;k++){ const id=84+k; if(hash(r,id,1)>0.45) continue;
         const z=z0+hash(r,id,3)*3, x=lerp(wl+3.1,wr-3.1,hash(r,id,2)), rad=0.4+hash(r,id,4)*0.4;
         if(bioK(z)>0.5&&biomeAt(x,z)>0) { const hh=hash(r,id,8); if(hh>0.86) leafHeap(x,floorY(x,z),z,1.5+hash(r,id,9)*0.8,id,r,0,0,1); else if(hh>0.5) leafHeap(x,floorY(x,z),z,rad*1.25,id,r); }   /* in the autumn woods there are no bushes, only heaps of leaves: fewer of them, and now and then a big one heaped to a point */
-        else put(P.bush,x,floorY(x,z)+rad*0.3,z,rad,rad*0.7,rad,hash(r,id,5)*6,bushColor(x,z,hash(r,id,6))); }
+        else { const by=floorY(x,z)+rad*0.3; put(P.bush,x,by,z,rad,rad*0.7,rad,hash(r,id,5)*6,bushColor(x,z,hash(r,id,6))); if(z<GATE_A-2&&hash(r,id,30)<0.45) berries(x,by,z,rad,r,id); } }
       if(hash(r,88,1)<0.7){ const z=z0+hash(r,88,3)*3, x=lerp(wl+2.4,wr-2.4,hash(r,88,2)), col=PETALS[Math.floor(hash(r,88,4)*5)];
         for(let k=0;k<5;k++){ const fx=x+(hash(r,88,5+k)-0.5)*1.3, fz=z+(hash(r,88,11+k)-0.5)*1.3; flowerAt(P.petal,P.trunkF,fx,floorY(fx,fz),fz,col,hash(r,88,20+k)); } } }
     /* The thicket on the left path. It is made of the same small tangled trees as the understory: they gather from the fork onward,
