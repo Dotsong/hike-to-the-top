@@ -186,6 +186,13 @@ body.is-paused .dad-note{opacity:0}
 
 /* book tags over things in the scene */
 .marks{position:fixed;inset:0;z-index:2;pointer-events:none}
+.worm-info{margin-top:14px}
+.worm-btn{position:relative;display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 7px;border-radius:999px;border:2px solid #8fbf5f;background:var(--paper,#fffaf0);color:#3b2a3a;font:inherit;font-size:.92rem;font-weight:600;cursor:pointer}
+.worm-btn svg{width:22px;height:22px;flex:none}
+.worm-btn::after{content:"";position:absolute;top:-5px;right:-5px;width:11px;height:11px;border-radius:50%;background:#ffd84a;border:2px solid #fffaf0;box-shadow:0 0 10px 2px rgba(255,216,74,.85)}
+.worm-btn[aria-expanded="true"]::after{display:none}
+.worm-btn:focus-visible{outline:3px solid #ff8a7a;outline-offset:2px}
+.worm-note{margin:10px 0 0;font-size:.95rem}
 .fm{position:absolute;left:0;top:0;will-change:transform}
 .fm-btn{position:absolute;left:0;top:0;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;
   padding:5px 11px 5px 6px;border-radius:999px;background:var(--paper);color:var(--book-ink);border:2.5px solid var(--tint);
@@ -448,6 +455,10 @@ body.is-paused .narrator{opacity:0}
       <button class="primary" id="beginBtn" type="button">Start the hike</button>
       <button id="resumeBtn" type="button" hidden>Carry on the hike</button>
       <p class="hint">Sound on &middot; drag to look around</p>
+    </div>
+    <div class="worm-info" id="wormInfo" hidden>
+      <button class="worm-btn" id="wormBtn" type="button" aria-expanded="false" aria-controls="wormNote"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#8fbf5f"/><circle cx="12" cy="7.4" r="1.5" fill="#fffaf0"/><path d="M12 11v6.4" stroke="#fffaf0" stroke-width="2.4" stroke-linecap="round"/></svg><span>Who are the worms on the leaves?</span></button>
+      <p class="worm-note" id="wormNote" hidden>Those are the <strong>Book Worms</strong>. They inch about on the leaves keeping an eye on things, and they are here to make sure everyone is having fun and learning something.</p>
     </div>
   </div>
 </section>
@@ -1583,6 +1594,7 @@ function rebuildForest(s0){
       else if(key) drawGate(BIO[key].gate,r,z0,GA[gi],GB[gi]); }
     /* The rest site, furnished from REST_KIT: a ring of big trees with gaps where the trail comes in and the two paths go out,
        and the same boulders, logs, mushrooms, ferns and flowers, in the same places, as the rest scene the girls will sit down in. */
+    if((saved.secret||forceRiver)&&RIVER_Z>=z0&&RIVER_Z<z0+3) riverStones().forEach(([x,z],k)=>{ put(P.rock,x,riverY(z)-0.03,z,0.62+hash(k,1,88)*0.14,0.2,0.55+hash(k,2,88)*0.12,hash(k,3,88)*6,ROCKS[k%3]); });   /* the stepping stones, once the way is open */
     if(pondOn()&&POND_A>=z0&&POND_A<z0+3) drawPondDecks();
     if(marshOn()&&MARSH_A>=z0&&MARSH_A<z0+3) drawMarshWalk();
     if(chasmOn()&&CHASM_Z>=z0&&CHASM_Z<z0+3){ const H=(i,j)=>hash(i,j,311), tone=h=>GREYS[Math.floor(h*GREYS.length)%GREYS.length];
@@ -2844,7 +2856,8 @@ const MARK_KEY='trail-to-the-top-bookmark';
 function loadMark(){ try{ const j=JSON.parse(localStorage.getItem(MARK_KEY)||'null'); if(j&&[0,1,2].includes(j.site)&&Array.isArray(j.picks)&&j.picks.length===3&&j.picks.every(v=>v===0||v===1||v===-1)&&(j.site<1||j.picks[0])&&(j.site<2||j.picks[1])) return j; }catch(e){} return null; }
 function markName(b){ if(b.bench) return 'the stone bench below the mist'; if(b.site===0) return 'the first rest site'; if(b.site===1) return 'the rest site after the '+(b.picks[0]>0?'autumn woods':'aspen grove');
   const k=b.picks[0]>0?(b.picks[1]>0?'winter':'grass'):(b.picks[1]>0?'marsh':'alpine'); return 'the rest site after '+BIO[k].reveal.t.replace(/^The /,'the '); }
-function syncResume(){ const b=loadMark(), el=$('resumeBtn'); el.hidden=!b; if(b) el.textContent='Carry on from '+markName(b); }
+function syncResume(){ $('wormInfo').hidden=!(saved.top||saved.secret);   /* once the top has been reached, the title card explains the worms */
+  const b=loadMark(), el=$('resumeBtn'); el.hidden=!b; if(b) el.textContent='Carry on from '+markName(b); }
 function stopForToday(){ if(mode!=='rest'||!rest||rest.leaving||!state.started) return;
   const b={site:fork.site,picks:[picks[0],fork.site>0?picks[1]:0,0]}; let ok=true; try{ localStorage.setItem(MARK_KEY,JSON.stringify(b)); }catch(e){ ok=false; }
   $('stopBtn').hidden=true; hideFork(); hushBubbles(); speakIn=30; narrate(ok?'That was enough mountain for one day. It would still be there tomorrow, and so would the '+restSay().seat+'.':'That was enough mountain for one day.');
@@ -2853,6 +2866,7 @@ function resumeHike(){ const b=loadMark(); if(!b||state.started) return; try{ lo
   if(b.bench) warp('Back on the trail',BENCH_S-4,[b.picks[0]||1,b.picks[1]||1,b.picks[2]||1],2);   /* (stopped on the stone bench: a few steps below it, so they walk up and sit down again) */
   else warp('Back on the trail',b.site===0?REST_C-8:SITES[b.site].rest-7,[b.site>0?b.picks[0]:0,b.site>1?b.picks[1]:0,0]);
   showCaption({t:'Back on the trail',b:'Picking up the hike at '+markName(b)+'.'}); setTimeout(()=>{ if(state.started) narrate('Another morning, June and Pip came back to where they had stopped, and carried on.'); },1400); }
+$('wormBtn').addEventListener('click',()=>{ const n=$('wormNote'), open=n.hidden; n.hidden=!open; $('wormBtn').setAttribute('aria-expanded',String(open)); });
 $('stopBtn').addEventListener('click',stopForToday); $('resumeBtn').addEventListener('click',resumeHike);
 function backToStart(){
   if(bookOpen) closeBook(); $('zoneScrim').hidden=true; $('endDock').hidden=true; autoPaused=false; setPaused(false);
@@ -2863,7 +2877,7 @@ function backToStart(){
   closeDoors();
   const intro=$('intro'); intro.hidden=false; requestAnimationFrame(()=>intro.classList.remove('gone')); syncResume();
 }
-function resetHike(){ leaveBench(true); bench.done=false; hoist.on=0; hoist.done=false;
+function resetHike(){ leaveBench(true); bench.done=false; cross.on=0; hoist.on=0; hoist.done=false;
   if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); if(mode==='moon') leaveMoon(); if(mode==='cave') leaveCave(); if(mode==='falls') leaveFalls(); riverAsk=0; forceRiver=false; $('riverDock').hidden=true; forceSecret=false; $('homeDock').hidden=true; $('phoneDock').hidden=true; $('endDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
   note.found=0; clearPrints(); fork.village=false; fork.ice=false; fork.chasm=false; fork.cloud=false; choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
@@ -3916,13 +3930,31 @@ function askRiver(){ riverAsk=1; party.vT=0; party.rest=99999; const hd=heading(
   playScript([[1,'June. Look at the rocks. They go ALL the way across.'],[0,'They do. We could cross on them, if we were really, really careful.'],[1,'I\'m the carefullest. Can we?']]); speakIn=9999; }
 function updateRiverAsk(){ if(riverAsk===1&&quiet()){ riverAsk=2; $('riverDock').hidden=false; } }
 function answerRiver(cross){ if(riverAsk!==2) return; riverAsk=0; $('riverDock').hidden=true; hushBubbles();
-  if(cross){ playScript([[0,'One stone at a time. Hold my hand.'],[1,'I\'m a river explorer!']]); enterFalls(); }
+  if(cross){ playScript([[0,'One stone at a time. Hold my hand.'],[1,'I\'m a river explorer!']]); startCross(); }
   else { playScript([[0,'Not today. The trail goes round to the right.'],[1,'Next time, river.']]); speakIn=12; party.rest=0.01; BRAINS.forEach(b=>{ b.queue.length=0; b.cur=null; }); } }
 $('riverYes').addEventListener('click',()=>answerRiver(true)); $('riverNo').addEventListener('click',()=>answerRiver(false));
 /* The scene: first a corridor, the deepest and tightest piece of forest on the whole mountain, winding so that nothing can be seen ahead;
    then a wall of bushes right across it, with light coming through; and on the other side of that, nothing of the forest at all: a
    pinnacle of grass in the open sky, and round it, from one horizon to the other, a cataract. Two people in lab coats are waiting there. */
 const FALLS_CX=z=>(2.3*Math.sin(z*0.21)+1.1*Math.sin(z*0.47+1))*smooth(-5.5,-11,z), FALLS_Z0=-40, FALLS_WALL=-4;
+/* Crossing. When the way is open there is a line of flat stones right over the river at the bend, under the golden light. The girls walk
+   down to the water, go over stone by stone (June first, Pip a stone behind), climb out on the far bank and follow it round the bend,
+   out of sight; and there the picture fades to what is on the other side. */
+const riverStones=()=>{ const a=[]; for(let k=0;k<11;k++){ const z=RIVER_Z+1.5+0.2*k; a.push([x0(z)+riverBank(z)+0.55+k*1.22+(k%2?0.13:-0.13),z+(k%2?0.2:-0.2)]); } return a; };
+const cross={on:0,t:0,st:[null,null],fade:false};
+function startCross(){ const C=cross, z=RIVER_Z+1.2, bx=x0(z)+riverBank(z)-0.9; C.on=1; C.t=0; C.k=0; C.fade=false; holdEvents(90); party.vT=0; party.rest=99999;
+  BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.queue.push({k:'walk',to:[bx-i*0.55,z-0.2-i*0.75],speed:1.35},{k:'pose',pose:i?'point':'look',dur:99999,face:1.35}); });
+  narrate('So they went down to the water, where the stones lay in a line under the golden light.'); }
+function updateCross(dt){ const C=cross; if(!C.on) return; if(mode!=='trail'||!state.started){ C.on=0; return; } const J=juneB, S=riverStones(), n=S.length; C.t+=dt;
+  party.s=damp(party.s,clamp(J.pos.y-1.5,party.s,RIVER_Z-5),1.2,dt); C.k=damp(C.k||0,C.on>=2?1:0,1.1,dt);   /* the view goes with them (see the camera): off the trail, over the water and along the far bank */
+  if(C.on===1){ if(BRAINS.every(b=>b.cur&&b.cur.pose)&&C.t>1){ C.on=2; C.t=0; BRAINS.forEach((b,i)=>C.st[i]=[b.pos.x,b.pos.y]); } return; }
+  if(C.on===2){ let done=0; BRAINS.forEach((b,i)=>{ const q=(C.t-0.5-i*1.05)/0.92, L=[S[n-1][0]+1.7+i*0.5,S[n-1][1]+0.5-i*0.6]; if(q<0) return; if(q>=n+1){ done++; b.pos.set(L[0],L[1]); b.cur={k:'pose',pose:'idle',dur:99999,face:1.2}; return; }
+      const k=Math.floor(q), u=smooth(0.15,0.85,q-k), a=k===0?C.st[i]:S[k-1], c=k>=n?L:S[k], ya=k===0?landY(a[0],a[1]):riverY(a[1])+0.13, yc=k>=n?landY(c[0],c[1]):riverY(c[1])+0.13, x=lerp(a[0],c[0],u), z=lerp(a[1],c[1],u);
+      b.pos.set(x,z); b.cur={k:'pose',pose:'hop',dur:99999,face:Math.atan2(c[0]-a[0],c[1]-a[1])}; b.queue.length=0; b.girl.g.position.set(x,lerp(ya,yc,u)+Math.sin(Math.PI*u)*0.45,z);
+      if(k!==b.crossK){ b.crossK=k; if(k>0&&k<=n) Music.amb(k%3?'tap':'plonk'); } });
+    if(done===2){ C.on=3; C.t=0; hushBubbles(); playScript([[1,'We did it! Dry socks!'],[0,'There\'s a path. It goes round the bend. Come on.']]); narrate('On the far bank there was a path, and it went where the river went.');
+      BRAINS.forEach((b,i)=>{ b.cur=null; b.queue.length=0; for(const z of [RIVER_Z+6.5,RIVER_Z+10.5,RIVER_Z+15,RIVER_Z+20]) b.queue.push({k:'walk',to:[x0(z)+riverBank(z)+riverWide(z)+5.2-i*0.6,z-i*0.9],speed:1.4}); }); } return; }
+  if(!C.fade&&C.t>2.4){ C.fade=true; enterFalls(); } }   /* a few steps along the far bank, and the picture goes */
 function buildFalls(){
   let sd=3131; const r=()=>{ sd=(sd*16807)%2147483647; return (sd-1)/2147483646; };
   const sc=new THREE.Scene(), DARK=new THREE.Color(0x16271d), DAY=new THREE.Color(0xcfe6f4); sc.fog=new THREE.FogExp2(DARK.getHex(),0.075);
@@ -3992,7 +4024,7 @@ function enterFalls(){
     bubbles[2].head=fallsS.dev[0].head; bubbles[2].root=fallsS.dev[0].g; $('bubFriend').querySelector('.who').textContent='A man in a lab coat';
     hushBubbles(); hushNarrator(); narrate('Across the river the forest closed in tighter than it ever had, and the path wound through it like a thread through a needle.'); speakIn=9999;
     playScript([[1,'It\'s so squeezy in here.'],[0,'Stay right behind me. I can hear water. A LOT of water.']]);
-    showCaption({t:'Across the river',b:'Six stepping stones, a path nobody else knows, and the sound of falling water.'});
+    showCaption({t:'Across the river',b:'A line of stepping stones, a path nobody else knows, and the sound of falling water.'});
     $('fade').classList.remove('on'); },950);
 }
 function updateFalls(dt,rawDt){
@@ -4006,9 +4038,11 @@ function updateFalls(dt,rawDt){
   else if(F.phase==='push'){ J.faceT=Pp.faceT=0; jp=pq='scoop'; F.open=smooth(0.3,2.6,F.pt); if(Math.floor(F.pt*2)!==Math.floor((F.pt-dt)*2)&&F.pt<2.6) Music.amb('rustle');   /* each takes a side, and leans */
     if(F.pt>2.9){ F.phase='through'; F.pt=0; } }
   else if(F.phase==='through'){ jw=moveToward(J,-0.4,FALLS_WALL+2.6,1.1,dt)>0.05; pw=moveToward(Pp,0.42,FALLS_WALL+2.2,1.1,dt)>0.05;
-    if(J.pos.y>FALLS_WALL+1.3&&!F.wide){ F.wide=0.001; F.reveal(1); Music.river(1); Music.amb('chime'); narrate('On the other side there was no forest at all. There was the sky, and the edge of the world, and all the water in it falling over.'); showCaption({t:'The cataract',b:'Where every river on the mountain goes.'}); }
+    if(J.pos.y>FALLS_WALL+0.7&&!F.flash){ F.flash=true; const fd=$('fade'); fd.classList.add('white'); fd.style.transition='opacity .35s ease-in'; fd.classList.add('on');   /* out of the dark into all that light: for a moment there is nothing but white, and then eyes get used to it */
+      setTimeout(()=>{ if(fallsS===F) F.lit=true; },420); setTimeout(()=>{ fd.style.transition=''; fd.classList.add('slow'); void fd.offsetWidth; fd.classList.remove('on'); setTimeout(()=>fd.classList.remove('white','slow'),4800); },900); }
+    if(F.lit&&!F.wide){ F.wide=0.001; F.reveal(1); Music.river(1); Music.amb('chime'); narrate('On the other side there was no forest at all. There was the sky, and the edge of the world, and all the water in it falling over.'); showCaption({t:'The cataract',b:'Where every river on the mountain goes.'}); }
     if(!jw&&!pw){ F.phase='gaze'; F.pt=0; playScript([[1,'...June.'],[0,'I know.'],[1,'It goes on FOREVER.']]); } }
-  else if(F.phase==='gaze'){ jp='look'; pq='point'; J.faceT=Pp.faceT=0; if(F.pt>7&&quiet()){ F.phase='walk'; F.pt=0; } }
+  else if(F.phase==='gaze'){ jp='look'; pq='point'; J.faceT=Pp.faceT=0; if(F.pt>11&&quiet()){ F.phase='walk'; F.pt=0; } }
   else if(F.phase==='walk'){ jw=moveToward(J,-0.55,2.6,1.1,dt)>0.05; pw=moveToward(Pp,0.55,2.4,1.1,dt)>0.05; if(!jw&&!pw){ F.phase='meet'; F.pt=0; Music.river(0.5);
       playScript([[2,'There you are! June and Pip. We hoped you\'d find the way through.'],[1,'Who are YOU?'],[2,'We\'re the ones who built the mountain. Every path, every gateway, every frog.'],[0,'You MADE all this?'],
         [2,'We did. And you two walked all of it. Every place, every friend, every one of your dad\'s notes. Even the Moon.'],[2,'So: congratulations. You have finished the game. Completely. All of it. Hardly anybody gets here.'],
@@ -4018,7 +4052,7 @@ function updateFalls(dt,rawDt){
   F.doors.forEach(d=>{ d.g.position.x=d.sd*(1.55+1.5*F.open); d.g.rotation.y=-d.sd*0.9*F.open; d.g.rotation.z=-d.sd*0.16*F.open; });
   finishBrain(J,jp,jw,dt); finishBrain(Pp,pq,pw,dt);
   /* the camera: close behind them all the way down the corridor, sinking almost to the ground as they come up to the wall, so that the wall is all there is; through the gap still at their backs; and then, when there is nothing behind them any more, up and back and wide */
-  if(F.wide>0) F.wide=Math.min(1,F.wide+dt/5.5);
+  if(F.wide>0) F.wide=Math.min(1,F.wide+dt/12);   /* slowly: it takes twelve seconds to draw all the way back */
   const fx=(june.g.position.x+pip.g.position.x)/2, fz=(june.g.position.z+pip.g.position.z)/2, aspectBoost=camera.aspect<1?Math.pow(1/Math.max(0.42,camera.aspect),0.55):1, low=smooth(FALLS_WALL-7,FALLS_WALL-1.5,fz), w=F.wide*F.wide*(3-2*F.wide), back=lerp(2.9,2.3,low);
   chase.set(lerp(FALLS_CX(fz-back),fx,low),lerp(1.75,0.5,low),fz-back); look.set(lerp(FALLS_CX(fz+3.2),0,low),lerp(1.25,1.7,low),fz+3.2);
   if(w>0){ chase.lerp(_p.set(Math.sin(time*0.07)*2.5*motion,8.5*aspectBoost,-17*aspectBoost),w); look.lerp(_s.set(0,7,60),w); }
@@ -5341,7 +5375,7 @@ function frame(now){
   else {
   /* the walk, and the strip of forest that travels with it */
   updateParty(dt);
-  BRAINS.forEach(b=>updateBrain(b,dt)); updateHoist(dt);
+  BRAINS.forEach(b=>updateBrain(b,dt)); updateHoist(dt); updateCross(dt);
   { const so=party.s>=SKY_A+1, sh=party.s>=SKY_B+1.5, ms=party.s>=BOULDER_S+1.5&&fork.site===2, wo=party.s>=MTN+34&&fork.site===2; if(so!==skyOpen||sh!==skyShut||ms!==mtnShut||wo!==wondersOn){ skyOpen=so; skyShut=sh; mtnShut=ms; wondersOn=wo; groundRow=forestRow=null; } }   /* deep in the mist: now the sky garden is put in place */
   const gr=Math.floor(party.s/ROW), fr=Math.floor(party.s/3);
   if(gr!==groundRow){ groundRow=gr; rebuildGround(party.s); }
@@ -5367,6 +5401,8 @@ function frame(now){
   const gK=gateK(party.s), inK=insideK(party.s), wK=woodsK(party.s);
   off.set(Math.sin(th)*Math.cos(ph),Math.sin(ph),Math.cos(th)*Math.cos(ph)).multiplyScalar(r);
   target.set(trailX(party.s),trailY(party.s)+1.15,party.s);
+  if(cross.on&&cross.k>0.001) target.lerp(_p.set((june.g.position.x+pip.g.position.x)/2,(june.g.position.y+pip.g.position.y)/2+1.15,(june.g.position.z+pip.g.position.z)/2),cross.k);   /* crossing the river: the camera leaves the trail with the girls */
+  if(cross.on&&cross.k>0.001) off.multiplyScalar(1-0.4*cross.k);
   camera.position.copy(target).add(off);
   /* In the deep woods there is no room to stand off to the side, so the camera walks the trail a few steps behind the girls and looks
      past them at whatever is round the next bend. It swings back out when the new forest opens up beyond the gateway. */
