@@ -1442,6 +1442,9 @@ function drawPondDecks(){ const Y=trailY0(POND_A)+0.05, H=(i,j)=>hash(i,j,417), 
     for(const sx of [-1,1]) for(const sz of [-1,1]) put(P.trunkF,x+sx*(w/2-0.1),Y-1.75,z+sz*(w/2-0.1),0.07,1.72,0.07,0,PLANKS[2]);
     if(kind===1){ put(P.log,x,Y+0.45,z-0.5,1.6,0.16,0.42,0.3,PLANKS[3]); put(P.trunkF,x-0.5,Y,z-0.42,0.06,0.42,0.06,0,PLANKS[2]); put(P.trunkF,x+0.5,Y,z-0.6,0.06,0.42,0.06,0,PLANKS[2]); }   /* a bench */
     else if(kind===0){ put(P.trunkF,x,Y,z,0.06,2.3,0.06,0,PLANKS[2]); put(P.glow,x,Y+2.45,z,4.5,4.5,4.5,0,pk(GLOWS,H(13,i))); } });                                                       /* the lamp at the end of a pier */
+  /* lamps along the main walk, now on one side and now on the other; and two under the willows, where it is dimmest */
+  { const zs=[GA[2]+3.5,GA[2]+8.5]; for(let z=GB[2]+7,i=0;z<POND_B-2;z+=8.5+H(16,i)*3,i++) zs.push(z);
+    zs.forEach((z,i)=>{ const sd=i%2?1:-1, x=trailX(z)+sd*(POND_WALK+0.02); put(P.trunkF,x,Y-0.5,z,0.05,2.2,0.05,0,PLANKS[2]); put(P.trunkF,x-sd*0.16,Y+1.66,z,0.03,0.05,0.2,0,PLANKS[2],0,sd*1.57); put(P.glow,x-sd*0.3,Y+1.52,z,2.8,3.2,2.8,0,pk(GLOWS,H(17,i))); }); }
   L.lamps.forEach(([l,z,sd],i)=>{ const x=trailX(z)+l; put(P.trunkF,x,Y-0.4,z+0.62,0.045,1.9,0.045,0,PLANKS[2]); put(P.glow,x,Y+1.6,z+0.62,2.6,2.6,2.6,0,pk(GLOWS,H(15,i))); }); }
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
