@@ -1002,7 +1002,8 @@ const BIO={
       /* reeds, reeds, reeds: in clumps right up to the boardwalk and in beds as far as can be seen, with cattails standing among them */
       for(let c=0;c<7;c++){ const d=c<3?1.45+R.n(30+c)*2.6:4+Math.pow(R.n(30+c),1.3)*70, p=R.at(d,40+c), inB=marshR(p.x,p.z)<=0.9; if(p.y<-800||!inB&&!(p.z>MARSH_B-3&&p.z<SITES[2].rest+16)) continue;   /* (the reeds go on up the bank and all round the rest site) */ const n=c<3?7:5+Math.floor(d*0.12), sp=0.5+d*0.02;
         for(let k=0;k<n;k++){ const id=200+c*30+k, x=p.x+(R.n(id)-0.5)*sp*2, z=p.z+(R.n(id+300)-0.5)*sp*2; if(Math.abs(x-trailX(z))<1.35) continue; const hh=(1.5+R.n(id+600)*1.5)*(1+d*0.012), w=0.05+d*0.0014;
-          put(P.coneF,x,inB?wy-0.15:floorY(x,z)-0.1,z,w,hh,w,0,k%4?REEDS[Math.floor(R.n(id+900)*4)]:TAN,(R.n(id+1200)-0.5)*0.28,(R.n(id+1500)-0.5)*0.28);
+          { const ry0=inB?wy-0.15:floorY(x,z)-0.1, rx0=(R.n(id+1200)-0.5)*0.28, rz0=(R.n(id+1500)-0.5)*0.28; if(d<30&&reedSway.length<1400&&P.coneF.n<P.coneF.cap) reedSway.push({i:P.coneF.n,x,y:ry0,z,w,h:hh,rx:rx0,rz:rz0,ph:R.n(id+1800)*6.283,head:k%4===0&&d<30?P.bush.n:-1});   /* (near enough to be seen moving: see updateReeds) */
+            put(P.coneF,x,ry0,z,w,hh,w,0,k%4?REEDS[Math.floor(R.n(id+900)*4)]:TAN,rx0,rz0); }
           if(k%4===0&&d<30) put(P.bush,x,(inB?wy:floorY(x,z))+hh*0.8,z,0.055,0.19,0.055,0,BARKS[0]); } }
       for(let j=0;j<2;j++){ if(R.n(70+j)>0.55) continue; const p=R.at(1.7+R.n(72+j)*12,74+j); if(p.y<-800||marshR(p.x,p.z)>0.86||Math.abs(p.x-trailX(p.z))<1.5) continue; put(P.bush,p.x,wy+0.02,p.z,0.5+R.n(76+j)*0.3,0.02,0.5+R.n(76+j)*0.3,0,GREENS[j?1:2]); } },   /* lily pads on the dark water */
     lines:[['Clonk, clonk, clonk.','The boardwalk is talking back.'],'Something went plop!',['Is that a log or a turtle?','A turtle. Logs don\'t blink.'],['It smells like a pond.','It IS a pond. A very long one.']],
@@ -1513,7 +1514,7 @@ function drawFactProps(z0){ const at=q=>q>=z0&&q<z0+3, k1=legKey(1), k2=legKey(2
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
   POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
-  solids.length=0; bugSolids.length=0; crystalTips.length=0; willowStr.length=0; swayers.length=0;
+  solids.length=0; bugSolids.length=0; crystalTips.length=0; willowStr.length=0; swayers.length=0; reedSway.length=0;
   rowCache.clear();   /* the drawn ground may have moved on (or the paths changed), so measure it afresh */
   const r0=Math.floor((s0-BACK)/3), r1=Math.floor((s0+FWD)/3);
   for(let r=r0;r<=r1;r++){ const z0=r*3, inGate=z0+3>GATE_A-1&&z0<GATE_B+0.5;
@@ -4456,7 +4457,13 @@ function updateLeafFall(dt){
   fallMesh.instanceMatrix.needsUpdate=true;
 }
 /* the aspens near the girls: rebuildForest notes where each one's trunk and three clumps of leaves are, and they are re-posed every frame */
-const swayers=[];
+const swayers=[], reedSway=[];
+/* the reeds of the marsh lean and straighten in the wind: a slow wave that travels across the beds, each reed a little out of step with its neighbours, and the cattail on top going with it */
+function updateReeds(){ if(!reedSway.length||mode!=='trail') return; const g=0.55+0.45*Math.sin(time*0.33)+0.2*Math.sin(time*0.9);
+  for(const a of reedSway){ const wv=Math.sin(time*1.15-a.x*0.22-a.z*0.09+a.ph*0.5), lx=0.2*g*wv+0.05*Math.sin(time*2.6+a.ph), lz=0.07*g*Math.cos(time*0.8+a.ph), rx=a.rx+lz, rz=a.rz-lx;
+    _e.set(rx,0,rz); _q.setFromEuler(_e); _m.compose(_p.set(a.x,a.y,a.z),_q,_s.set(a.w,a.h,a.w)); P.coneF.m.setMatrixAt(a.i,_m);
+    if(a.head>=0){ const t=a.h*0.8+0.15; _p.set(0,t,0).applyQuaternion(_q); _m.compose(_p.set(a.x+_p.x,a.y+_p.y,a.z+_p.z),_q,_s.set(0.055,0.19,0.055)); P.bush.m.setMatrixAt(a.head,_m); } }
+  P.coneF.m.instanceMatrix.needsUpdate=true; P.bush.m.instanceMatrix.needsUpdate=true; }
 function updateSway(){ if(!swayers.length) return; const q=quakeT>0?smooth(6,5,quakeT)*smooth(0,1.5,quakeT):0, amp=0.034*(1+2.4*q);   /* a big breath of wind bends them three times as far */
   for(const a of swayers){ const lx=amp*(Math.sin(time*0.9+a.x*0.13+a.ph*0.3)+0.4*Math.sin(time*2.1+a.ph)), lz=amp*0.4*Math.cos(time*0.6+a.ph), top=a.y+a.th, c=Math.cos(a.ry), sn=Math.sin(a.ry), cr=a.cr;
     _e.set(lz*0.45,a.ry,-lx*0.45); _q.setFromEuler(_e); _m.compose(_p.set(a.x,a.y,a.z),_q,_s.set(0.2*a.sc,a.th+0.8,0.2*a.sc)); P.trunkN.m.setMatrixAt(a.ti,_m);
@@ -5748,7 +5755,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateRiverGold(); updateMarsh(dt); updateRestLamps(); updateGateFade(); updateFrogKing(dt); updateMeets(dt); updateFactLife(dt); updateMarshVeil(); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateRiverGold(); updateMarsh(dt); updateReeds(); updateRestLamps(); updateGateFade(); updateFrogKing(dt); updateMeets(dt); updateFactLife(dt); updateMarshVeil(); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
