@@ -5502,7 +5502,7 @@ meetDef({key:'winter',s:320,lat:-2.5,name:'The Snow Owl',headY:3.25,shot:{aSide:
   anim(D,t,talking,dt){ D.hd.rotation.y=0.45*Math.sin(t*0.4); D.hd.rotation.x=talking?0.07*Math.sin(t*6):0; D.hd.scale.y=(t%5.7)<0.13?0.9:1;
     const want=D.on===2&&D.li>=5&&D.li<=8?1:0; D.fk=damp(D.fk,want,1.6,dt); D.flake.visible=D.on===2&&D.li>=5&&D.fk>0.02&&D.fk<0.999||want===1&&D.on===2;   /* the borrowed snowflake drifts down to Pip's mitten, and back up again */
     if(D.flake.visible){ D.head.getWorldPosition(_mv); _mv.y-=0.9; const p=pip.g.position; D.flake.position.set(lerp(_mv.x,p.x,D.fk),lerp(_mv.y,p.y+0.85,D.fk)+Math.sin(Math.PI*D.fk)*0.25,lerp(_mv.z,p.z+0.25,D.fk)); D.flake.material.rotation=t*0.8; } }});
-meetDef({key:'grass',s:322,lat:2.7,name:'The Scarecrow',headY:2.75,panAt:3,
+meetDef({key:'grass',s:322,lat:2.7,name:'The Scarecrow',headY:2.75,panAt:3,shot:{gLow:0.3},
   narr:'In the wheat beside the trail stood a scarecrow with three crows sitting on him, perfectly at home.',
   endNarr:'When they looked back he was waving one straw hand, very carefully, so as not to disturb anybody.',
   say:[[1,'A scarecrow! Hello, scarecrow.'],[2,'Oh! Visitors. Hello. Don\'t mind the crows. They\'re friends.'],[0,'Aren\'t you supposed to scare them away?'],[2,'I am. I\'m terribly bad at it. They sit on me and tell me the news.'],[2,'Could you show me how to look scary? Just so that I know.'],
@@ -5563,7 +5563,7 @@ function meetShot(){ let D=null, frog=false; if(frogKing.here&&(frogKing.on||par
   else if(id==='through'){ P.set(_mm.x+dx*0.5,hy-0.12,_mm.z+dz*0.5); Lk.copy(_ma); }
   else if(id==='pan'){ const u=smooth(0.12,0.9,1-curLine.t/curLine.T), c0=D.crows[0].c.getWorldPosition(_mp0), c1=D.crows[1].c.getWorldPosition(_mp1);   /* a slow pan, close in, along his arms: from the crow on his right to the crow on his left, neither of them going anywhere */
     Lk.copy(c0).lerp(c1,u); Lk.y+=0.1; P.set(Lk.x-dx*0.95,Lk.y+0.06,Lk.z-dz*0.95); }
-  else if(id==='ots-girls'){ const b=low?2.0:1.5, sd=low?1.45:1.35; P.set(_mm.x-dx*b+sx*sd,hy+(low?1.35:0.8),_mm.z-dz*b+sz*sd); Lk.copy(_ma); if(D.shot&&D.shot.gZoom){ P.lerp(_ma,D.shot.gZoom); Lk.y-=D.shot.gDown||0; } }   /* (for someone small or high up, the camera goes in closer) */   /* (higher and wider when they are crouching, to see past a backpack) */
+  else if(id==='ots-girls'){ const b=low?2.0:1.5, sd=low?1.45:1.35; P.set(_mm.x-dx*b+sx*sd,hy+(low?1.35:0.8),_mm.z-dz*b+sz*sd); Lk.copy(_ma); if(D.shot&&D.shot.gZoom){ P.lerp(_ma,D.shot.gZoom); Lk.y-=D.shot.gDown||0; } if(D.shot&&D.shot.gLow){ P.y=_mm.y+D.shot.gLow; Lk.y-=0.25; } }   /* (or from down low, looking up at somebody tall) */   /* (for someone small or high up, the camera goes in closer) */   /* (higher and wider when they are crouching, to see past a backpack) */
   else if(id==='ots-actor'){ const g=(mcam.who?pip:june).g.position, Q=D.shot||{}, sd=Q.aSide===undefined?-0.75:Q.aSide, bk=Q.aBack||0.85; P.set(_ma.x+dx*bk+sx*sd,_ma.y+(Q.aUp||0.32),_ma.z+dz*bk+sz*sd); if(Q.aBoth) Lk.set(_mm.x,_mm.y+0.9,_mm.z); else Lk.set(g.x,g.y+(low?0.55:0.95),g.z); }   /* (or, where it suits, on both girls at once) */
   else { P.set(_ma.x-dx*0.75+sx*1.2,_ma.y+0.12,_ma.z-dz*0.75+sz*1.2); Lk.set(_ma.x-dx*0.62,_ma.y-0.2,_ma.z-dz*0.62); }   /* the snack: down at the planks, a hand's breadth from it */
   return {id,k:kT,cut:id!=='behind'&&id!=='through'}; }
