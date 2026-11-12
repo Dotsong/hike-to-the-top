@@ -2474,7 +2474,9 @@ function finishBrain(b,pose,walking,dt){
   /* when there is somebody to look at, she looks at them: the head turns and tips until her eyes are on the spot, whatever the rest of her is doing */
   if(b.gaze) b.gazeP=b.gaze; b.gk=damp(b.gk||0,b.gaze?1:0,4,dt);
   if(b.gk>0.01&&b.gazeP){ const sc=g.g.scale.y, ex=b.gazeP.x-g.g.position.x, ey=b.gazeP.y-(g.g.position.y+(0.97-drop)*sc), ez=b.gazeP.z-g.g.position.z; let yaw=Math.atan2(ex,ez)-b.face; yaw=clamp(Math.atan2(Math.sin(yaw),Math.cos(yaw)),b.gazeWide?-1.5:-1.15,b.gazeWide?1.5:1.15);
-    const pit=clamp(Math.atan2(-ey,Math.hypot(ex,ez))-rg.lean-rg.tilt,-0.55,0.95); g.head.rotation.x=lerp(rg.hx,pit,b.gk); g.head.rotation.y=lerp(rg.hy,yaw,b.gk); g.head.rotation.z=rg.hz*(1-b.gk); }
+    const pit=clamp(Math.atan2(-ey,Math.hypot(ex,ez))-rg.lean-rg.tilt,-0.55,0.95);
+    if(b.gy===undefined||b.gk<0.05){ b.gy=yaw; b.gp=pit; } b.gy=damp(b.gy,yaw,3.2,dt); b.gp=damp(b.gp,pit,3.2,dt);   /* the head comes round to a new person over half a second or so: it never snaps */
+    g.head.rotation.x=lerp(rg.hx,b.gp,b.gk); g.head.rotation.y=lerp(rg.hy,b.gy,b.gk); g.head.rotation.z=rg.hz*(1-b.gk); }
   g.armL.rotation.set(rg.lax,0,rg.laz); g.armR.rotation.set(rg.rax,0,rg.raz);
   g.tails.forEach((t,i)=>{ t.rotation.z=(i?1:-1)*(0.1+Math.sin(time*2.2+i)*0.08)+(walking?Math.sin(b.walkPhase*2)*0.15:0); });
   b.blinkIn-=dt; if(b.blinkIn<0){ b.blink=0.13; b.blinkIn=2.5+Math.random()*3.5; }
