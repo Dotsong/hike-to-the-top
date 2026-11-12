@@ -5057,6 +5057,10 @@ function updatePondVeil(){ const on=!!state.started&&mode==='trail'&&pondOn()&&p
 const willowLamps=[0,1].map(()=>{ const l=new THREE.PointLight(0xffb85a,0,11,1.6); l.visible=false; scene.add(l); return l; });
 function updateWillowLamps(){ const on=!!state.started&&mode==='trail'&&pondOn()&&Math.abs(party.s-GA[2]-6)<40; willowLamps.forEach((l,i)=>{ l.visible=on; if(!on) return; const z=GA[2]+(i?8.5:3.5), sd=i%2?1:-1;
     l.position.set(trailX(z)+sd*(POND_WALK-0.28),trailY0(POND_A)+1.6,z); l.intensity=(1.7+0.12*Math.sin(time*7+i*2)+0.08*Math.sin(time*13.1+i))*gateK(party.s+ (i?0:0)); }); }
+/* and the far end of the marsh is hidden the same way, only more so: a wall of mist that the boardwalk disappears into, thinning as the girls come up to it */
+const marshVeil=[0,1,2,3,4,5].map(i=>{ const m=new THREE.Mesh(curtainGeo,new THREE.MeshBasicMaterial({color:0xffffff,map:curtainTex,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide})); m.visible=false; m.renderOrder=2; if(i%2) m.scale.x=-1; scene.add(m); return {m,dz:-36+i*7.5,dx:(i%2?1:-1)*(8+i*5),dy:i*1.1}; });
+function updateMarshVeil(){ const on=!!state.started&&mode==='trail'&&marshOn()&&party.s>MARSH_A-14&&party.s<MARSH_B+2, k=on?1-smooth(MARSH_B-44,MARSH_B-8,party.s):0;
+  marshVeil.forEach(v=>{ v.m.visible=k>0.01; if(k<=0.01) return; v.m.position.set(trailX(MARSH_B)+v.dx,trailY0(MARSH_A)+15+v.dy,MARSH_B+v.dz); v.m.material.opacity=0.8*k; v.m.material.color.copy(scene.fog.color).lerp(WHITE,0.25); }); }
 function updatePondWater(){ const on=!!state.started&&mode==='trail'&&pondOn()&&Math.abs(party.s-POND_ZC)<170; pondWater.visible=on; if(!on) return;
   pondWater.position.set(trailX(POND_ZC),trailY0(POND_A)-0.22,POND_ZC); pondWater.material.map.offset.set(time*0.004,time*0.0015); pondWater.material.color.setScalar(1-0.6*(party.s<GB[2]+14?gateK(party.s):0)); }   /* (the water is dark too, under the willows) */
 /* Fish in the upside-down pond. Under the surface, dark shapes idle about near the boardwalk. And every so often one of them comes up
@@ -5341,7 +5345,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateMarsh(dt); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateMarsh(dt); updateMarshVeil(); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
