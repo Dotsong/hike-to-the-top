@@ -58,12 +58,18 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .intro.gone,.ending.gone{opacity:0;pointer-events:none}
 /* ---------- splash: the Slowdown Storytime title page, shown once when the game opens ---------- */
 .splash{--peri:#3c418f;--peri-deep:#262a66;--peri-glow:#5d63b8;--cream:#fff4dc;
-  position:fixed;inset:0;z-index:8;display:grid;place-items:center;overflow:auto;text-align:center;color:#fff;
+  position:fixed;inset:0;z-index:9;display:grid;place-items:center;overflow:auto;text-align:center;color:#fff;
   padding-block:calc(28px + env(safe-area-inset-top, 0px)) calc(28px + env(safe-area-inset-bottom, 0px));
   padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
   background:radial-gradient(ellipse 80% 70% at 50% 38%, var(--peri-glow) 0%, var(--peri) 48%, var(--peri-deep) 100%);
   transition:opacity 1.2s ease}
 .splash.gone{opacity:0;pointer-events:none}
+.howto{z-index:8}
+.howto h1{margin:0;font:400 clamp(2rem,7vw,3rem)/1 var(--display);text-shadow:0 3px 18px rgba(14,12,50,.35)}
+.how-list{list-style:none;margin:0;padding:0;display:grid;gap:12px;text-align:left;max-width:31rem}
+.how-list li{display:grid;grid-template-columns:2.6rem 1fr;gap:12px;align-items:center;background:rgba(255,255,255,.1);border-radius:16px;padding:.7rem .9rem;font:500 1rem/1.45 var(--ui);color:rgba(255,255,255,.9)}
+.how-list svg{width:2.4rem;height:2.4rem}
+.how-list strong{color:#fff}
 .splash-in{display:flex;flex-direction:column;align-items:center;gap:22px;max-width:34rem}
 .splash .mark{width:clamp(108px,26vmin,170px);height:auto;overflow:visible;animation:markFloat 6s ease-in-out infinite}
 .splash .mark .moon{transform-origin:60px 40px;animation:moonRock 7s ease-in-out infinite}
@@ -452,6 +458,16 @@ body.is-paused .dad-note{opacity:0}
     <p class="splash-body">Read the words together as the story unfolds. There&rsquo;s nothing to win and no hurry, and you can pause at any time. Little book tags along the way open real science facts, for older kids and grown-ups alike. The higher the trail climbs, the more make-believe it gets; the facts stay true.</p>
     <button class="splash-go" id="splashBtn" type="button">Open the story</button>
     <p class="splash-note">Best with the sound on</p>
+  </div>
+</section>
+
+<section class="splash howto" id="howto" aria-labelledby="howTitle">
+  <div class="splash-dots" aria-hidden="true"></div>
+  <div class="splash-in">
+    <h1 id="howTitle">How to play</h1>
+    <ul class="how-list"><li><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#fff4dc" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c3-6 5-3 7-8s4-3 9-8"/><circle cx="7" cy="8" r="1.6"/><circle cx="12" cy="6" r="1.2"/></svg><span><strong>The girls walk on their own.</strong> Sit back and read their words aloud as they appear.</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#fff4dc" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V12m0-1a1.5 1.5 0 0 1 3 0v4a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-3l-2-4a1.4 1.4 0 0 1 2.4-1.4L9 14"/></svg><span><strong>Drag to look around.</strong> Let go and the view drifts back to the trail.</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#fff4dc" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7c-2-1.6-5-1.8-8-1v12c3-.8 6-.6 8 1 2-1.6 5-1.8 8-1V6c-3-.8-6-.6-8 1zM12 7v12"/></svg><span><strong>Tap a book tag</strong> to open a real fact. Some only show while an animal is about, so keep an eye out.</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#fff4dc" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11M12 11L6 4M12 11l6-7M4 6l2-2 2 2.4M16 6.4L18 4l2 2"/></svg><span><strong>Choose the way at each fork,</strong> and tap the buttons at rest spots to sit, snack or look for Dad&rsquo;s notes.</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#fff4dc" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2zM9 4v14M15 6v14"/></svg><span><strong>Tap Dad&rsquo;s map to pause.</strong> Settings there change the text size and the music. Your place is kept if you stop for today.</span></li></ul>
+    <button class="splash-go" id="howBtn" type="button">Got it</button>
+    <p class="splash-note">There&rsquo;s nothing to win and no hurry</p>
   </div>
 </section>
 
@@ -2236,8 +2252,36 @@ function updateSnail(dt){ const S=snail, on=!!state.started&&mode==='trail'&&for
   const A=VILLAGE_Z+13, B=MTN-9; S.s+=S.dir*0.11*dt*(0.6+0.4*Math.sin(time*1.3)); if(S.s>B){ S.s=B; S.dir=-1; } if(S.s<A){ S.s=A; S.dir=1; }
   const lat=4.3+0.9*Math.sin(S.s*0.21), x=trailX(S.s)+lat, sl=(trailX(S.s+0.3)+0.9*Math.sin((S.s+0.3)*0.21)-trailX(S.s-0.3)-0.9*Math.sin((S.s-0.3)*0.21))/0.6; S.g.position.set(x,groundY(x,S.s),S.s); S.g.rotation.y=Math.atan2(sl*S.dir,S.dir);
   S.g.scale.set(1.25,1.25,1.25*(1+0.06*Math.sin(time*1.3)));   /* it goes by stretching and gathering */ S.shell.rotation.x=0.05*Math.sin(time*1.3+1); S.stalks.forEach((p,i)=>{ p.rotation.x=0.35+0.22*Math.sin(time*0.7+i*1.9); p.rotation.z=(i?-1:1)*-0.3+0.15*Math.sin(time*0.5+i); }); }
+/* What each villager asks for is really done. Glim's lamp is dim until Pip breathes on it, and then it blazes. A drop comes up off the
+   pond into Pip's cupped hands, sits there trembling, and goes on up when she lets it. And in the crystal hollow the big crystal by
+   Ting's door rings and swells to June's hum, and to Pip's the whole roof flickers with laughing light. */
+const favor=(()=>{ const mk=(col,add)=>{ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:col,transparent:true,opacity:0,depthWrite:false,fog:false,blending:add?THREE.AdditiveBlending:THREE.NormalBlending})); sp.visible=false; scene.add(sp); return sp; };
+  const lamp=mk(0xffe08a,1), light=new THREE.PointLight(0xffd070,0,9,1.5); scene.add(light); const puffs=[0,1,2,3,4].map(()=>mk(0xffffff,0));
+  const drop=new THREE.Mesh(new THREE.SphereGeometry(0.075,10,8),new THREE.MeshBasicMaterial({color:0xcfeaff,transparent:true,opacity:0.92})); drop.visible=false; scene.add(drop);
+  const cry=new THREE.Mesh(new THREE.ConeGeometry(0.3,1.6,6),new THREE.MeshBasicMaterial({color:0xb79cff})); cry.visible=false; scene.add(cry); const ring=mk(0xd9c4ff,1);
+  return {lamp,light,puffs,drop,cry,ring,k:0,dy:0,dv:0,p:new THREE.Vector3(),l:new THREE.Vector3(),on:false,laugh:0}; })();
+function updateFavor(dt,V,key,near){ const F=favor, f=near&&folk.list[0], li=V.on===2?V.li:-1, pp=pip.g.position, fp=f?f.g.position:pp, dx=fp.x-pp.x, dz=fp.z-pp.z, dl=Math.hypot(dx,dz)||1, ux=dx/dl, uz=dz/dl; F.on=false;
+  const glow=near&&key==='glow', pond=near&&key==='pond', crys=near&&key==='crystal'; F.lamp.visible=glow; F.light.visible=glow; F.cry.visible=crys; F.ring.visible=crys; if(!glow) F.puffs.forEach(q=>q.visible=false); if(!pond) F.drop.visible=false;
+  const done=!!fork.village&&!V.on;
+  if(glow){ const lit=done||li>=6, blow=li===5; F.k=damp(F.k,lit?1:0.14,lit?1.6:4,dt); const fl=lit?1+0.08*Math.sin(time*9):0.75+0.25*Math.sin(time*2.3);
+    F.lamp.position.set(fp.x,fp.y+0.75,fp.z); F.lamp.scale.setScalar((0.8+1.3*F.k)*fl); F.lamp.material.opacity=0.3+0.4*F.k; F.light.position.copy(F.lamp.position); F.light.intensity=2.4*F.k*fl;
+    F.puffs.forEach((q,i)=>{ q.visible=blow; if(!blow) return; const u=((time*0.9+i*0.2)%1); q.position.set(lerp(pp.x+ux*0.25,fp.x,u),lerp(pp.y+0.95,fp.y+0.7,u)+0.05*Math.sin(u*9+i),lerp(pp.z+uz*0.25,fp.z,u)); q.scale.setScalar(0.1+0.22*u); q.material.opacity=0.5*(1-u); });   /* her breath, going over */
+    if(blow&&!F.said){ F.said=true; Music.amb('whoosh'); } if(li===6&&F.said!==2){ F.said=2; Music.amb('chime'); } if(li>=5&&li<=6){ F.on=true; const mx=(pp.x+fp.x)/2, mz=(pp.z+fp.z)/2, q=dl*0.8+1.9; F.l.set(mx,fp.y+0.65,mz); F.p.set(mx+uz*q+ux*0.5,fp.y+1.0,mz-ux*q+uz*0.5); } }
+  if(pond){ const wy=trailY0(POND_A)-0.2, fx=Math.sin(pip.g.rotation.y), fz=Math.cos(pip.g.rotation.y), hx=pp.x+fx*0.34, hz=pp.z+fz*0.34, hy=pp.y+0.6;
+    if(li>=4&&li<=6){ if(!F.drop.visible){ F.drop.visible=true; F.dy=wy; F.dv=0; Music.amb('drip'); } F.dy=Math.min(hy,F.dy+dt*(0.5+2.2*Math.max(0,F.dy-wy)));   /* up off the water and into her hands, where it sits and trembles */
+      const held=F.dy>=hy; F.drop.position.set(lerp(pp.x+fx*0.9,hx,smooth(wy,hy,F.dy))+(held?0.012*Math.sin(time*19):0),F.dy+(held?0.012*Math.sin(time*23):0),lerp(pp.z+fz*0.9,hz,smooth(wy,hy,F.dy))); F.drop.scale.set(1,held?0.9+0.12*Math.sin(time*7):1.5,1); }
+    else if(li>=7&&F.drop.visible){ F.dv+=dt*3.2; F.dy+=F.dv*dt; F.drop.position.y=F.dy; F.drop.scale.set(0.85,1.7,0.85); if(!F.said){ F.said=true; Music.amb('lift'); } if(F.dy>hy+13) F.drop.visible=false; }
+    else if(li<4){ F.drop.visible=false; F.said=false; }
+    if(li>=4&&li<=7){ F.on=true; F.l.set(hx,Math.max(hy,Math.min(F.dy,hy+0.9))-0.05,hz); const jp=june.g.position, ax=pp.x-jp.x, az=pp.z-jp.z, al=Math.hypot(ax,az)||1; F.p.set(hx+ax/al*0.7+fx*1.35,hy+0.45,hz+az/al*0.7+fz*1.35); }   /* from Pip's far side, so June is behind her and not in the way */ }
+  if(crys){ const cx=fp.x-uz*1.5+ux*0.9, cz=fp.z+ux*1.5+uz*0.9, cy=groundY(cx,cz), hum=li===3||li===4, lau=li===5||li===6; F.k=damp(F.k,hum?1:lau?0.7:0.15,2.5,dt);
+    F.cry.position.set(cx,cy+0.78*(1+0.1*F.k),cz); F.cry.scale.set(1+0.25*F.k*(1+0.3*Math.sin(time*11)),1+0.1*F.k,1+0.25*F.k*(1+0.3*Math.sin(time*11))); F.cry.material.color.setHSL(0.72+0.08*Math.sin(time*(lau?9:2)),0.9,0.6+0.25*F.k);
+    F.ring.position.set(cx,cy+1.0,cz); const ru=(time*0.8)%1; F.ring.scale.setScalar(1+6*ru*F.k); F.ring.material.opacity=0.6*F.k*(1-ru);
+    if(hum&&F.said!==1){ F.said=1; Music.amb('hum'); Music.amb('ting'); } if(lau){ F.laugh-=dt; if(F.laugh<=0){ F.laugh=0.55; Music.amb(Math.random()<0.5?'ting':'twinkle'); glints.wave=0; } caveStars.forEach((G,i)=>{ G.m.material.opacity=0.55+0.45*Math.sin(time*13+i*1.7); G.m.material.size=G.sz0*(1.5+0.7*Math.sin(time*9+i*2.1)); }); }   /* the roof, laughing */
+    else if(F.wasL) caveStars.forEach(G=>{ G.m.material.size=G.sz0; }); F.wasL=lau;
+    if(hum){ F.on=true; F.l.set(cx,cy+0.9,cz); F.p.set(cx-ux*3.4+uz*1.6,cy+1.3,cz-uz*3.4-ux*1.6); } else if(lau){ F.on=true; F.p.set(pp.x-ux*3.4+uz*0.8,pp.y+0.3,pp.z-uz*3.4-ux*0.8); F.l.set(fp.x,pp.y+3.4,fp.z); } }
+  if(!V.on&&!done) F.said=false; }
 function updateVillageMeet(dt){ const V=villMeet, J=juneB, Pp=pipB, key=legKey(2), ok=!!state.started&&mode==='trail'&&fork.site===2&&!!FOLK[key]&&folk.list.length>0&&Math.abs(party.s-VILLAGE_Z)<60;
-  V.here=ok; V.done=!!fork.village&&!V.on; if(ok&&folk.list[0]) V.head=folk.list[0].head;
+  V.here=ok; V.done=!!fork.village&&!V.on; if(ok&&folk.list[0]) V.head=folk.list[0].head; updateFavor(dt,V,key,ok);
   if(!ok){ if(V.on){ V.on=0; party.rest=0.01; J.gaze=Pp.gaze=null; } return; } if(!V.on) return;
   V.t+=dt; V.head.getWorldPosition(V.eye); meetGaze(V.eye); const fx=V.f.g.position.x, fz=V.f.g.position.z, set=(b,pose)=>{ b.cur={k:'pose',pose,dur:99999,face:Math.atan2(fx-b.pos.x,fz-b.pos.y)}; b.queue.length=0; };
   if(V.on===1){ if(J.cur&&J.cur.pose&&Pp.cur&&Pp.cur.pose&&V.t>1.4){ V.on=2; V.t=0; playScript(V.say); speakIn=9999; } return; }
@@ -4290,7 +4334,8 @@ function syncMap(){
 }
 $('mapScroll').addEventListener('click',()=>{ mapHidden=!mapHidden; syncMap(); });
 $('beginBtn').addEventListener('click',startHike);
-$('splashBtn').addEventListener('click',()=>{ const sp=$('splash'); sp.classList.add('gone'); setTimeout(()=>{ sp.hidden=true; $('beginBtn').focus({preventScroll:true}); },1250); });
+$('splashBtn').addEventListener('click',()=>{ const sp=$('splash'); sp.classList.add('gone'); setTimeout(()=>{ sp.hidden=true; $('howBtn').focus({preventScroll:true}); },1250); });
+$('howBtn').addEventListener('click',()=>{ const sp=$('howto'); sp.classList.add('gone'); setTimeout(()=>{ sp.hidden=true; $('beginBtn').focus({preventScroll:true}); },1250); });
 $('goodnightBtn').addEventListener('click',()=>{ closeSettings(true); backToStart(); });
 /* settings: how big the words are (remembered from one visit to the next), the music, and the way back to the title page */
 const TS_KEY='trailtop-textsize';
@@ -4348,7 +4393,7 @@ const POSE_LINES={scoop:['A perfect acorn!','This leaf is as big as my face.','A
   spin:['Twirl!','Hiking twirl!'],wave:['Keep up, Pip!','This way!'],hop:['Boing!','I\'m not tired at all!']};
 /* Things the girls say anywhere still have to fit where they are: nobody admires the treetops in a wheat field, or the sunshine in a cave.
    Each rule is a pattern and the places where a line containing it makes sense; a line is used only where every rule it trips allows. */
-const LINE_RULES=[[/\btrees?\b|treetop|branch|\bnest\b|woodpecker|squirrel|forest|\bbears?\b|\bstick\b|\bmoss\b/i,['home','deep','aspen','autumn','winter','glow','pond']],
+const LINE_RULES=[[/\bfish\b|berries/i,['home']],[/woodpecker|that owl/i,['deep']],[/\btrees?\b|treetop|branch|\bnest\b|woodpecker|squirrel|forest|\bbears?\b|\bstick\b|\bmoss\b/i,['home','deep','aspen','autumn','winter','glow','pond']],
   [/\bleaf\b|\bleaves\b|acorn|crunchy/i,['home','deep','aspen','autumn']],[/\bpine/i,['home','deep','winter']],
   [/\bsun\b|sunbeam|sunshine/i,['home','deep','aspen','autumn','winter','grass','marsh','alpine','giant','pond','mtn','sky']],
   [/\bbirds?\b|butterfly|see so far/i,['home','deep','aspen','autumn','winter','grass','marsh','alpine','giant','pond','mtn','sky','glow']],
@@ -4452,6 +4497,21 @@ function forkMemory(){ const O=optionsAt(fork.site), been=O.map(k=>known.places.
   if(been[0]&&been[1]) return [[0,'We\'ve been both ways from here.'],[1,'Then I get to pick my favorite!']];
   if(been[0]||been[1]) return [[0,'Last time we went '+way(O[been[0]?0:1])+'.'],[1,'So the other way is brand new!']];
   return []; }
+/* New things to say and to tell, about what has lately been added to each place. */
+{ const add=(k,lines,narr)=>{ const B=BIO[k]; if(!B) return; if(B.lines) B.lines.push(...lines); if(narr&&NARR_AMBIENT[k]) NARR_AMBIENT[k].push(...narr); };
+  add('winter',[['The pond is like a window.','A window with leaves stuck in it.'],['A cardinal! It\'s the reddest thing in the whole forest.','And a blue jay. They look like they\'re arguing.'],['Something hopped through here.','A rabbit. See? Two big prints and two little ones.']],['On the frozen pond the snow blew about like sugar on a plate.','A cardinal sat on a white branch, as red as a dropped mitten.']);
+  add('grass',[['The bees are busy at those flowers.','Leave them to it. They\'re working.'],['Listen. The whole field is ticking.','Crickets. Hundreds of them.']],['Bees went back and forth over the flowers, each one with a list.']);
+  add('marsh',[['It got DARK.','It\'s night on the marsh. Stay by the lanterns.'],['The reeds are waving at us.','That\'s the wind. Wave back if you like.'],['Was that a frog?','That was about forty frogs.'],['The lanterns have bugs for friends.','Everybody likes a light.']],['Night lay on the marsh, and the lanterns held it off one pool of light at a time.','The reeds leaned over and straightened up again, as if the whole marsh were breathing.','Somewhere out in the dark, forty frogs were all telling the same joke.']);
+  add('alpine',[['The wind is trying to take my hair!','Hold on to it, then.'],['That rock has orange spots.','That\'s lichen. It grows about as fast as a rock does.'],['So many rocks.','It\'s called a rock garden for a reason.']],['The wind combed the mountainside and found nothing to hold on to.','The rocks went on and on, right up to where the sky began.']);
+  add('giant',[['That ant is bigger than a dog!','Let it by. It\'s carrying something.'],['A bee the size of a football!','A very fuzzy football.'],['The grass goes up forever.','Don\'t lose me in it.'],['Do butterflies know they\'re pretty?','That one does.']],['A snail went by on important business, at the speed of a snail.','An inchworm measured the path, found it satisfactory, and moved on.']);
+  add('pond',[['The drops are falling UP.','Everything is backwards here.'],['A fish jumped right over the path!','Show-off.'],['Every lamp has a twin in the water.','Which one is the real one?']],['Now and then a drop of water let go of the pond and fell quietly up.','A fish went over the boardwalk in a neat arc, as if it did so every day.']);
+  add('glow',[['Something is looking at us.','It\'s only eyes. They\'re curious, that\'s all.'],['The moths love that lamp.','They think it\'s the moon.']],['Pairs of eyes shone in the dark and blinked, politely, one after another.']);
+  add('crystal',[['There are stars on the FLOOR.','And on the ceiling. We\'re in the middle of the sky.'],['Look at the bats!','They\'re looking at you, too. With their ears.']],['Overhead the roof was full of stars that had never seen the sky.']);
+  add('mtn',[['That rock is MOVING.','Slowly. It\'s in no hurry.']],['One of the floating rocks drifted across above them, in no hurry at all.']);
+  add('sky',[['The mist is under our feet now.','We\'re above the weather, Pip.']],['The mist lay just below the path on either side, like a floor nobody had finished.']);
+  AUTUMN_LINES.push(['Some of the leaf piles are taller than me.','Somebody very tidy lives here.']); NARR_AMBIENT.autumn.push('Here and there the leaves had been heaped into piles as tall as Pip.');
+  TRAIL_LINES.push(['Berries! Can I eat one?','Not unless Dad says so. Some of them make you sick.'],['There are fish in the river.','And they\'re all facing the same way.'],['Is that a woodpecker?','Hear it? Like someone knocking on a door.'],['That owl is watching us.','It can turn its head nearly all the way round.']);
+  NARR_AMBIENT.home.push('The bushes along the trail were heavy with berries, red and blue.'); NARR_AMBIENT.deep.push('High on a trunk a woodpecker knocked, waited, and knocked again.'); }
 function chatter(){
   if(mode==='rest'){ if(rest.phase===2||rest.phase===4){ const l=lineFor('rest',REST_LINES); if(l) speak(l); } return; }
   if(mode==='summit'){ speak(nextLine('summit',SUMMIT_LINES)); return; }
@@ -5337,7 +5397,7 @@ const glints=(()=>{ const c=document.createElement('canvas'); c.width=c.height=1
    steady and slowly twinkling, like stars: a few bright ones, a great many faint ones, in white and pale blue and violet. */
 const caveStars=(()=>{ const groups=[]; let sd=77; const R=()=>(sd=(sd*16807)%2147483647)/2147483647;
   [[0xffffff,0.4,260],[0xcfe0ff,0.28,520],[0xd9c4ff,0.24,520],[0xfff0c8,0.62,70]].forEach(([col,size,n],gi)=>{ const pos=new Float32Array(n*3), d=[]; for(let i=0;i<n;i++) d.push({z:R()*70,lat:(R()-0.5)*56,top:R()<0.62,j:R()});
-    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); const m=new THREE.Points(g,new THREE.PointsMaterial({color:col,size,map:spriteTex,transparent:true,opacity:0,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); m.frustumCulled=false; m.visible=false; scene.add(m); groups.push({m,d,ph:gi*1.7,last:-1e9}); });
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); const m=new THREE.Points(g,new THREE.PointsMaterial({color:col,size,map:spriteTex,transparent:true,opacity:0,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); m.frustumCulled=false; m.visible=false; scene.add(m); groups.push({m,d,ph:gi*1.7,last:-1e9,sz0:size}); });
   return groups; })();
 function updateCaveStars(){ const on=!!state.started&&mode==='trail'&&bioKeyAt(party.s)==='crystal'&&gateK(party.s)<0.6, s=party.s;
   caveStars.forEach((G,gi)=>{ G.m.visible=on; if(!on){ G.last=-1e9; return; } G.m.material.opacity=(gi===3?0.75:0.5)+0.3*Math.sin(time*(0.7+gi*0.23)+G.ph)+0.12*Math.sin(time*2.9+G.ph*3);   /* each family of stars brightens and dims in its own time */
@@ -5654,13 +5714,14 @@ const mcam={k:0,pos:new THREE.Vector3(),look:new THREE.Vector3(),id:'',spk:'ots-
 function meetShot(){ let D=null, frog=false; if(frogKing.here&&(frogKing.on||party.s>FROGK_S-17)){ D=frogKing; frog=true; } else for(const M of MEETS.concat(villMeet)) if(M.here&&(M.on||(!M.done&&party.s>M.s-17&&party.s<M.s))){ D=M; break; }
   if(!D) return null; D.head.getWorldPosition(_ma); const jp=june.g.position, pp=pip.g.position; _mm.set((jp.x+pp.x)/2,(jp.y+pp.y)/2,(jp.z+pp.z)/2);
   let dx=_ma.x-_mm.x, dz=_ma.z-_mm.z; const dl=Math.hypot(dx,dz)||1; dx/=dl; dz/=dl; const sx=dz, sz=-dx, low=(frog||D.lowTalk)&&D.on===2&&D.li>=2, hy=_mm.y+(low?0.8:1.2), w=curLine?curLine.w:-1, P=mcam.p, Lk=mcam.l;
-  let id='behind'; if(D.on===2){ if(D.li<=1&&D.t<4.2) id='through'; else { if(w===2) mcam.spk='ots-girls'; else if(w===0||w===1){ mcam.spk='ots-actor'; mcam.who=w; } id=mcam.spk; if(frog&&D.sn>=0&&D.sn<3) id='snack'; if(D.panAt===D.li&&w===2&&D.crows) id='pan'; if(D.village&&D.fkey==='giant'&&D.li>=5) id='crumb'; } }   /* (and the same wide view for the thanks afterwards, with the crumb at the door) */
+  let id='behind'; if(D.on===2){ if(D.li<=1&&D.t<4.2) id='through'; else { if(w===2) mcam.spk='ots-girls'; else if(w===0||w===1){ mcam.spk='ots-actor'; mcam.who=w; } id=mcam.spk; if(frog&&D.sn>=0&&D.sn<3) id='snack'; if(D.panAt===D.li&&w===2&&D.crows) id='pan'; if(D.village&&D.fkey==='giant'&&D.li>=5) id='crumb'; if(D.village&&favor.on) id='favor'; } }   /* (and the same wide view for the thanks afterwards, with the crumb at the door) */
   let kT=1;
   if(id==='behind'){ const S0=frog?FROGK_S:D.s, cs=party.s-clamp(5.8*zoom,3.6,9), cx=trailX(cs)+0.6;   /* on the way up to them the camera settles in behind the girls on the trail, as it does in the deep woods: little by little, over the last dozen metres */
     const hh=heading(party.s), fx=Math.sin(hh), fz=Math.cos(hh), bk=3.3; P.set(_mm.x-fx*bk,_mm.y+1.85,_mm.z-fz*bk); Lk.set(_mm.x+fx*2.6,_mm.y+0.95,_mm.z+fz*2.6); kT=D.on?1:smooth(S0-16,S0-6,party.s); }   /* (close enough behind that a bend in the path never hides them) */
   else if(id==='through'){ P.set(_mm.x+dx*0.5,hy-0.12,_mm.z+dz*0.5); Lk.copy(_ma); }
   else if(id==='pan'){ const u=smooth(0.12,0.9,1-curLine.t/curLine.T), c0=D.crows[0].c.getWorldPosition(_mp0), c1=D.crows[1].c.getWorldPosition(_mp1);   /* a slow pan, close in, along his arms: from the crow on his right to the crow on his left, neither of them going anywhere */
     Lk.copy(c0).lerp(c1,u); Lk.y+=0.1; P.set(Lk.x-dx*0.95,Lk.y+0.06,Lk.z-dz*0.95); }
+  else if(id==='favor'){ P.copy(favor.p); Lk.copy(favor.l); }   /* a close look at the favour being done */
   else if(id==='crumb'){ const c=crumb.g.position; Lk.set(c.x,c.y+0.35,c.z); P.set(c.x+4.6,c.y+2.5,c.z+3.4); }   /* the crumb being rolled: from a little way off and above, so all of it can be seen */
   else if(id==='ots-girls'){ const b=low?2.0:1.5, sd=low?1.45:1.35; P.set(_mm.x-dx*b+sx*sd,hy+(low?1.35:0.8),_mm.z-dz*b+sz*sd); Lk.copy(_ma); if(D.shot&&D.shot.gZoom){ P.lerp(_ma,D.shot.gZoom); Lk.y-=D.shot.gDown||0; } if(D.shot&&D.shot.gLow){ P.y=_mm.y+D.shot.gLow; Lk.y-=0.25; } }   /* (or from down low, looking up at somebody tall) */   /* (for someone small or high up, the camera goes in closer) */   /* (higher and wider when they are crouching, to see past a backpack) */
   else if(id==='ots-actor'){ const g=(mcam.who?pip:june).g.position, Q=D.shot||{}, sd=Q.aSide===undefined?-0.75:Q.aSide, bk=Q.aBack||0.85; P.set(_ma.x+dx*bk+sx*sd,_ma.y+(Q.aUp||0.32),_ma.z+dz*bk+sz*sd); if(Q.aBoth) Lk.set(_mm.x,_mm.y+0.9,_mm.z); else Lk.set(g.x,g.y+(low?0.55:0.95),g.z); }   /* (or, where it suits, on both girls at once) */

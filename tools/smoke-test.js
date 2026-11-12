@@ -14,7 +14,7 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
     if(u.includes('three')) return r.fulfill({body:stub,contentType:'application/javascript'});
     if(u.startsWith('file:')) return r.continue(); return r.abort(); });
   await p.goto('file://'+page); await p.waitForTimeout(800);
-  await p.click('#splashBtn'); await p.waitForTimeout(1500);
+  await p.click('#splashBtn'); await p.waitForTimeout(1500); await p.click('#howBtn'); await p.waitForTimeout(1500);
   await p.click('#beginBtn'); await p.waitForTimeout(3000);
   // the pace button steps through x2, x4, x8 and back to x1; the rest of the test runs at x4 so the rest scenes do not take all day
   const paces=[]; for(let k=0;k<4;k++){ await p.evaluate(()=>document.getElementById('paceBtn').click()); paces.push(await p.evaluate(()=>window.hikeDebug.pace()+'|'+document.getElementById('paceBtn').textContent)); }
@@ -115,7 +115,7 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   await p.evaluate(()=>document.getElementById('foundNone').click());
   if(await p.evaluate(()=>window.hikeDebug.saved())!=='{"places":[],"friends":[],"sites":[],"notes":[],"top":false,"secret":false}') errs.push('"Forget all progress" did not clear it');
   await p.evaluate(b=>{ localStorage.setItem('trail-to-the-top-found',b); },before).catch(()=>{}); await p.reload(); await p.waitForTimeout(900);
-  await p.click('#splashBtn'); await p.waitForTimeout(1500); await p.click('#beginBtn'); await p.waitForTimeout(2500);
+  await p.click('#splashBtn'); await p.waitForTimeout(1500); await p.click('#howBtn'); await p.waitForTimeout(1500); await p.click('#beginBtn'); await p.waitForTimeout(2500);
   await p.evaluate(()=>document.getElementById('goodnightBtn').click()); await p.waitForTimeout(1600);
   const backToStart=await p.evaluate(()=>!document.getElementById('intro').hidden);
   console.log({route:ROUTE,hikeStarted:true,bookOpen,mapOpen,restScene,forkChosen,revealed,places:places.join(' > '),summit,offer,dinner,zones:zones&&zoneNames.length,secret,waterfall,found:await p.evaluate(()=>window.hikeDebug.saved()).catch(()=>''),backToStart});
