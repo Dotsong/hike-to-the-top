@@ -1,0 +1,11 @@
+{
+  "appId": "com.dotsong.trailtothetop",
+  "appName": "Trail to the Top",
+  "webDir": "www",
+  "backgroundColor": "#262a66",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false,
+    "allowsLinkPreview": false
+  }
+}
