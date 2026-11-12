@@ -5035,7 +5035,7 @@ const willowLamps=[0,1].map(()=>{ const l=new THREE.PointLight(0xffb85a,0,11,1.6
 function updateWillowLamps(){ const on=!!state.started&&mode==='trail'&&pondOn()&&Math.abs(party.s-GA[2]-6)<40; willowLamps.forEach((l,i)=>{ l.visible=on; if(!on) return; const z=GA[2]+(i?8.5:3.5), sd=i%2?1:-1;
     l.position.set(trailX(z)+sd*(POND_WALK-0.28),trailY0(POND_A)+1.6,z); l.intensity=(1.7+0.12*Math.sin(time*7+i*2)+0.08*Math.sin(time*13.1+i))*gateK(party.s+ (i?0:0)); }); }
 function updatePondWater(){ const on=!!state.started&&mode==='trail'&&pondOn()&&Math.abs(party.s-POND_ZC)<170; pondWater.visible=on; if(!on) return;
-  pondWater.position.set(trailX(POND_ZC),trailY0(POND_A)-0.22,POND_ZC); pondWater.material.map.offset.set(time*0.004,time*0.0015); }
+  pondWater.position.set(trailX(POND_ZC),trailY0(POND_A)-0.22,POND_ZC); pondWater.material.map.offset.set(time*0.004,time*0.0015); pondWater.material.color.setScalar(1-0.6*(party.s<GB[2]+14?gateK(party.s):0)); }   /* (the water is dark too, under the willows) */
 /* Fish in the upside-down pond. Under the surface, dark shapes idle about near the boardwalk. And every so often one of them comes up
    for real: a bright fish breaks the water on one side of the walk, arcs clean over the planks ahead of the girls, and goes back in on
    the other side with a splash, and is gone. */
