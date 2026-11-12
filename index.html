@@ -712,7 +712,7 @@ function dodge(s){ let sh=0; const k0=Math.floor((s-OB_FROM)/OB_STEP);   /* how 
   if(choice>0) sh+=1.35*Math.exp(-Math.pow((s-GATE_OB)/2.1,2));   /* squeezing past the big rock in the cave */
   return sh; }
 /* Trees and big rocks that turn out to stand on or right beside the trail. rebuildForest fills the list; the girls steer round whatever is in it. */
-const solids=[], bugSolids=[];
+const solids=[], bugSolids=[], crystalTips=[];
 function sidestep(s,d){ let sh=0;   /* how far to shift a girl walking at offset d, at s, so she passes clear of anything solid just ahead */
   for(const o of solids){ const ds=o.z-s; if(ds<-1.2||ds>3.2) continue; const gap=d+sh-(o.x-trailX(o.z)), need=o.r+0.75;
     if(Math.abs(gap)<need) sh+=(gap>=0?1:-1)*(need-Math.abs(gap))*smooth(3.2,1.3,ds)*smooth(-1.2,-0.3,ds); } return sh; }
@@ -1031,6 +1031,7 @@ const BIO={
     gate:{kind:'tunnel',cols:['#9fe0d0','#8fbf9f','#bfe3c8'],label:'Through the willow curtain',say:'through that curtain of willow',sub:'Long green strands hanging to the ground, swaying like a bead curtain.',narr:'They chose the willow curtain, because behind it something was shining.',enter:[[1,'It\'s like a bead curtain!'],[0,'Hold my hand. It\'s hard to see.']]}},
   crystal:{floor:[0.24,0.22,0.32],dirt:[0.4,0.38,0.5],flat:0.5,mote:'#e8fbff',air:'sparks',dark:true,
     tree(T){ const col=pk(GEMS,T.n(21)), big=2.5+T.h*4.5; put(P.rock,T.x,T.y+0.4,T.z,1.3,0.7,1.1,T.ry,GREYS[1]);                                                                       /* a cluster of crystal spires, lit from inside */
+      crystalTips.push({x:T.x,y:T.y+0.3,z:T.z,h:big,w:0.55},{x:T.x+0.6,y:T.y+0.3,z:T.z+0.2,h:big*0.6,w:0.35});
       put(P.gcone,T.x,T.y+0.3,T.z,0.55,big,0.55,T.ry,col); put(P.gcone,T.x+0.6,T.y+0.3,T.z+0.2,0.35,big*0.6,0.35,0,pk(GEMS,T.n(22)),0.3); put(P.gcone,T.x-0.5,T.y+0.3,T.z-0.3,0.3,big*0.45,0.3,0,col,-0.35); },
     props(R){ const zc=R.z0+1.5, cx=trailX(zc), ty=trailY(zc);   /* the hollow is shut in: a roof of rock overhead, bending down to walls on either side, with crystals hanging from it */
       for(let j=0;j<6;j++){ const lat=R.side*(2.5+j*5.6+R.n(110+j)*2), x=cx+lat, y=ty+12.2-0.011*lat*lat+R.n(116+j)*1.2;
@@ -1382,7 +1383,7 @@ const LICHEN=[C('#d9902e'),C('#c8c655'),C('#b7c7a8'),C('#e6dca4'),C('#c77a2a')],
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
   POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
-  solids.length=0; bugSolids.length=0; swayers.length=0;
+  solids.length=0; bugSolids.length=0; crystalTips.length=0; swayers.length=0;
   rowCache.clear();   /* the drawn ground may have moved on (or the paths changed), so measure it afresh */
   const r0=Math.floor((s0-BACK)/3), r1=Math.floor((s0+FWD)/3);
   for(let r=r0;r<=r1;r++){ const z0=r*3, inGate=z0+3>GATE_A-1&&z0<GATE_B+0.5;
@@ -1512,7 +1513,7 @@ function rebuildForest(s0){
     for(let k=Math.floor((z0-OB_FROM)/OB_STEP)-1;k<=Math.floor((z0-OB_FROM)/OB_STEP)+1;k++){ const o=obstacle(k); if(!o||o.s<z0||o.s>=z0+3) continue;
       const y=trailY(o.s);
       if(o.log){ const x=trailX(o.s)+o.side*0.3, yaw=hash(k,1,94)*0.3-0.15; put(P.log,x,y+0.21,o.s,4.7,0.5,0.5,yaw,BARKS[Math.floor(hash(k,2,94)*3)]); put(P.bush,x+o.side*1.1,y+0.42,o.s,0.9,0.12,0.26,yaw,MOSS); }
-      else { const x=trailX(o.s)+o.side*0.8, sz=0.8+hash(k,1,94)*0.2; put(P.rock,x,y+sz*0.3,o.s,sz*1.1,sz*0.85,sz,hash(k,2,94)*6,ROCKS[Math.floor(hash(k,3,94)*3)]); put(P.bush,x,y+sz*0.86,o.s,sz*0.8,sz*0.28,sz*0.7,0,MOSS); } }
+      else { const x=trailX(o.s)+o.side*0.8, sz=0.8+hash(k,1,94)*0.2; put(P.rock,x,y+sz*0.3,o.s,sz*1.1,sz*0.85,sz,hash(k,2,94)*6,ROCKS[Math.floor(hash(k,3,94)*3)]); if(bioKeyAt(o.s)!=='alpine') put(P.bush,x,y+sz*0.86,o.s,sz*0.8,sz*0.28,sz*0.7,0,MOSS); } }
     /* fallen leaves scattered on each path: gold under the aspens, red in the autumn woods */
     const tiltX=-Math.atan(trailY(z0+2)-trailY(z0+1));   /* fallen leaves lie flat on the slope */
     for(let w=0;w<(gap>0.5?2:1);w++){ if(choice&&z0>GATE_B-3&&gap>0.5&&(w?wr:wl)!==(Math.abs(trailX(z0+1.5)-wl)<Math.abs(trailX(z0+1.5)-wr)?wl:wr)) continue;   /* none on the path not taken */
@@ -2878,7 +2879,7 @@ function buildRest(si){
   const restBase=(x,z,rad)=>lowestUnder(restFloor,x,z,rad);   /* stood so the rim of the root flare is never above ground */
   /* pools of instanced things, just for this scene */
   const mk=(geo,cap,shadow,mat)=>{ const m=new THREE.InstancedMesh(geo,mat||white(),cap); m.frustumCulled=false; m.castShadow=!!shadow; m.setColorAt(0,new THREE.Color(0xffffff)); m.count=0; sc.add(m); return {m,cap,n:0}; };
-  const T={trunk:mk(trunkGeo,2200,true),blob:mk(blobGeo,3400,true),cone:mk(coneGeo,2400,true),rock:mk(rockGeo,400,true),box:mk(unitBox,160,true),log:mk(logGeo,20,true),stem:mk(stemGeo,60),cap:mk(capGeo,60,true),petal:mk(petalGeo,260),
+  const T={trunk:mk(trunkGeo,2200,true),blob:mk(blobGeo,3400,true),cone:mk(coneGeo,2400,true),rock:mk(rockGeo,620,true),box:mk(unitBox,160,true),log:mk(logGeo,20,true),stem:mk(stemGeo,60),cap:mk(capGeo,60,true),petal:mk(petalGeo,260),
     leaf:mk(leafGeo,2400,false,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}))};
   const LIGHTS=['#79b05a','#8fbf5f','#6aa857'].map(C);
   /* the big old trees of the deep woods: thick trunk, flaring roots, a wide dark crown high overhead (the same recipe as plantTree uses on the trail) */
@@ -2926,9 +2927,15 @@ function buildRest(si){
     else if(D.tuft==='reed') for(let k=0;k<5;k++){ const hh=1.4+r()*0.9, rx=x+(r()-0.5)*1.1, rz=z+(r()-0.5)*1.1; put(T.trunk,rx,y,rz,0.035,hh,0.035,0,TAN); put(T.blob,rx,y+hh,rz,0.06,0.18,0.06,0,BARKS[0]); } }   /* clumps of reeds and cattails */
   if(D.mush) KIT.mush.forEach(([x,z])=>{ const col=CAPS[Math.floor(r()*3)];
     for(let k=0;k<4;k++){ const mx=x+(r()-0.5)*0.7, mz=z+(r()-0.5)*0.7, ms=0.8+r()*0.9; put(T.stem,mx,restFloor(mx,mz),mz,ms,ms,ms,0,STEM); put(T.cap,mx,restFloor(mx,mz),mz,ms,ms,ms,0,col); } });
+  if(PK==='alpine') T.arock=mk(rockGeo,120,true,new THREE.MeshLambertMaterial({color:0xffffff,map:lichenTex,flatShading:true}));
   if(D.rocks) KIT.boulders.forEach(([x,z,sz])=>{ const y=restFloor(x,z);
-    put(T.rock,x,y+sz*0.25,z,sz*1.2,sz*0.75,sz,r()*6,ROCKS[Math.floor(r()*3)]); if(D.cap) put(T.blob,x,y+sz*0.72,z,sz*0.85,sz*0.3,sz*0.7,0,D.cap); });
-  if(D.rocks>1) for(let i=0;i<16;i++){ const a=r()*6.28, rr=7.5+r()*12, x=Math.sin(a)*rr, z=Math.cos(a)*rr, sz=0.5+r()*1.1; if(pathDist(x,z)<2.4) continue; put(T.rock,x,restFloor(x,z)+sz*0.25,z,sz*1.2,sz*0.75,sz,r()*6,ROCKS[Math.floor(r()*3)]); }   /* the bare mountain: more rock */
+    const lich=PK==='alpine'&&r()<0.2; put(lich?T.arock:T.rock,x,y+sz*0.25,z,sz*1.2,sz*0.75,sz,r()*6,(lich?ALP_STONE:ROCKS)[Math.floor(r()*3)]); if(D.cap) put(T.blob,x,y+sz*0.72,z,sz*0.85,sz*0.3,sz*0.7,0,D.cap); });
+  if(D.rocks>1){
+    /* the bare mountain, as it is on the trail: rock strewn everywhere and right out to the skyline, bigger the further off; lichen on about one in five; crusts of it on the ground; no moss */
+    for(let i=0;i<150;i++){ const a=r()*6.28, far=Math.pow(r(),1.2), rr=7.5+far*50, x=Math.sin(a)*rr, z=Math.cos(a)*rr, sz=(0.45+r()*r()*2.2)*(1+rr*0.022), kind=r(), lich=r()<0.2, RP=lich?T.arock:T.rock, col=(lich?ALP_STONE:ROCKS)[Math.floor(r()*3)], ry=r()*6, y=restFloor(x,z); if(pathDist(x,z)<2.4+sz) continue;
+      if(kind<0.5) put(RP,x,y+sz*0.25,z,sz*1.35,sz*0.7,sz,ry,col,(r()-0.5)*0.3); else if(kind<0.8){ put(RP,x,y+sz*0.4,z,sz,sz*0.95,sz*0.9,ry,col,r()*0.6,r()*0.6); put(RP,x+sz*0.9,restFloor(x+sz*0.9,z+sz*0.4)+sz*0.15,z+sz*0.4,sz*0.45,sz*0.35,sz*0.4,ry+1,col); }
+      else put(RP,x,y+sz*0.8,z,sz*0.6,sz*1.6,sz*0.55,ry,col,(r()-0.5)*0.3,(r()-0.5)*0.4); }
+    for(let i=0;i<16;i++){ const a=r()*6.28, rr=3+r()*12, cx=Math.sin(a)*rr, cz=Math.cos(a)*rr; for(let k=0;k<5;k++){ const x=cx+(r()-0.5)*1.5, z=cz+(r()-0.5)*1.5, q=0.14+r()*0.22; put(T.blob,x,restFloor(x,z)+0.012,z,q,0.03,q*(0.7+r()*0.5),r()*6,GROUND_LICHEN[Math.floor(r()*4)]); } } }
   if(D.logs) KIT.logs.forEach(([x,z,len,yaw])=>{ const y=restFloor(x,z); put(T.log,x,y+0.26,z,len,0.62,0.62,yaw,BARKS[Math.floor(r()*3)]); put(T.blob,x,y+0.52,z,len*0.3,0.13,0.3,yaw,MOSS); });
   /* a scatter of fallen leaves */
   for(let i=0;i<(D.leaves?150:0);i++){ const a=r()*6.28, rr=1+r()*11, s1=0.7+r()*0.8; put(T.leaf,Math.sin(a)*rr,0.03,Math.cos(a)*rr,s1,1,s1*1.6,r()*6.28,FL[Math.floor(r()*FL.length)]); }
@@ -3002,8 +3009,13 @@ function buildRest(si){
     const wl=new THREE.Mesh(wingGeo,m), wr=new THREE.Mesh(wingGeo,m); wr.scale.x=-1; g.add(wl,wr); g.scale.set(0.34,0.34,0.7); sc.add(g); return {g,wl,wr,x,z,ph:r()*6}; });
 
   const SHARED=new Set([trunkGeo,blobGeo,coneGeo,rockGeo,stemGeo,capGeo,petalGeo,leafGeo,logGeo,beamGeo,poolGeo,wingGeo,unitBox]);
+  /* and the wind the wall keeps off the bench is still blowing, over the top of it and across the open ground */
+  let rwind=null; if(PK==='alpine'){ const N=110, lp=new Float32Array(N*6), d=[]; for(let i=0;i<N;i++) d.push({x:r()*70,y:1.5+Math.pow(r(),1.5)*8,z:-35+r()*70,sp:0.7+r()*0.6,len:0.8+r()*2.2,ph:r()*6});
+    const lg=new THREE.BufferGeometry(); lg.setAttribute('position',new THREE.BufferAttribute(lp,3)); const m=new THREE.LineSegments(lg,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.2,depthWrite:false})); m.frustumCulled=false; sc.add(m); rwind={m,d}; }
   return {scene:sc,paper,
     update(dt,t){
+      if(rwind){ const g=clamp(0.55+0.4*Math.sin(t*0.47)+0.25*Math.sin(t*1.31+1)+0.12*Math.sin(t*3.3),0.15,1.3), sp=15*g+4, lp=rwind.m.geometry.attributes.position;
+        rwind.d.forEach((p,i)=>{ p.x=(p.x+sp*p.sp*dt)%70; const x=p.x-35, y=p.y+0.25*Math.sin(t*2.1+p.ph), len=p.len*(0.5+g); lp.setXYZ(i*2,x,y,p.z); lp.setXYZ(i*2+1,x-len,y-0.03,p.z-len*0.22); }); lp.needsUpdate=true; rwind.m.material.opacity=0.12+0.22*g; }
       rsky.position.copy(camera.position); animFire(seatSet.userData.fire,t);
       animSnowman(seatSet.userData.snowman,t,!!(rest&&rest.leaving),(june.g.position.x+pip.g.position.x)/2,(june.g.position.z+pip.g.position.z)/2,dt);
       bm.opacity=0.19+0.035*Math.sin(t*0.7); pm.opacity=bm.opacity*1.2;
@@ -4875,6 +4887,21 @@ function updateWindFx(dt){ const W=windFx, on=!!state.started&&mode==='trail'&&b
   W.d.forEach((p,i)=>{ p.x=(p.x+sp*p.sp*dt)%44; p.z=((p.z+sp*p.sp*0.22*dt)%44+44)%44; const x=cx+p.x, z=cz+p.z, y=groundY(x,z)+p.y+0.25*Math.sin(time*2.1+p.ph), len=p.len*(0.5+g);
     lp.setXYZ(i*2,x,y,z); lp.setXYZ(i*2+1,x-len,y-0.03,z-len*0.22); pp.setXYZ(i,x+1.7,y*0.4+groundY(x,z)*0.6+0.05,z+((i*7)%5)-2); });
   lp.needsUpdate=pp.needsUpdate=true; W.lines.material.opacity=W.k*(0.12+0.22*g); W.pts.material.opacity=W.k*(0.35+0.4*g); }
+/* The crystals of the hollow catch the light. Every so often one of them glints: a small four-pointed star flares on a facet, turns a
+   little and is gone. And now and then a shimmer runs through the whole hollow, spire after spire, with a faint ringing. */
+const glints=(()=>{ const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d'); g.translate(64,64);
+  const gr=g.createRadialGradient(0,0,0,0,0,26); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.4,'rgba(255,255,255,0.35)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(-64,-64,128,128);
+  for(let k=0;k<4;k++){ g.rotate(Math.PI/2); const q=g.createLinearGradient(0,0,62,0); q.addColorStop(0,'rgba(255,255,255,1)'); q.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=q; g.beginPath(); g.moveTo(0,-3.2); g.lineTo(62,0); g.lineTo(0,3.2); g.fill(); }
+  const tex=new THREE.CanvasTexture(c), list=[]; for(let i=0;i<18;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,color:0xffffff,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); sp.visible=false; sp.renderOrder=3; scene.add(sp); list.push({sp,t:-1,wait:rnd()*3,dur:0.7,size:1,spin:0}); }
+  return {list,wave:8}; })();
+function updateGlints(dt){ const on=!!state.started&&mode==='trail'&&bioKeyAt(party.s)==='crystal'&&crystalTips.length>0;
+  const near=on?crystalTips.filter(c=>Math.abs(c.z-party.s-5)<26&&Math.abs(c.x-trailX(c.z))<30):[];
+  if(on&&near.length){ glints.wave-=dt; if(glints.wave<=0){ glints.wave=9+Math.random()*9; Music.amb('twinkle'); glints.list.forEach((G,i)=>{ if(G.t<0) G.wait=Math.min(G.wait,0.05+i*0.09); }); } }   /* a shimmer: they all go, one after another */
+  for(const G of glints.list){ if(!on||!near.length){ G.sp.visible=false; G.t=-1; continue; }
+    if(G.t<0){ G.wait-=dt; if(G.wait>0) continue; const c=near[Math.floor(Math.random()*near.length)], u=0.35+Math.random()*0.65, a=Math.random()*6.283, w=c.w*(1-u)*0.9;   /* somewhere on a spire, more often near its tip */
+      G.sp.position.set(c.x+Math.cos(a)*w,c.y+c.h*u,c.z+Math.sin(a)*w); G.t=0; G.dur=0.45+Math.random()*0.6; G.size=0.7+Math.random()*1.5; G.spin=(Math.random()-0.5)*3; G.sp.material.rotation=Math.random()*1.57; G.sp.visible=true; }
+    G.t+=dt; const u=G.t/G.dur; if(u>=1){ G.t=-1; G.wait=0.6+Math.random()*4.5; G.sp.visible=false; continue; }
+    const k=Math.sin(Math.PI*u); G.sp.material.opacity=k*k; G.sp.scale.setScalar(G.size*(0.3+0.7*k)); G.sp.material.rotation+=G.spin*dt; } }
 function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
   icePond.position.set(trailX(ICE_Z)+ICE_LAT,trailY(ICE_Z)-0.4,ICE_Z);
   if(!fork.ice&&fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>ICE_Z-7&&party.s<ICE_Z+3&&quiet()&&!EVT.cur){ fork.ice=true; holdEvents(16);
@@ -5051,7 +5078,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
