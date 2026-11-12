@@ -1437,7 +1437,9 @@ function drawPondDecks(){ const Y=trailY0(POND_A)+0.05, H=(i,j)=>hash(i,j,417), 
     for(let i=0;i<=n;i++){ const u=i/n, lat=lerp(a,b,u), z=lerp(za,zb,u); put(P.log,trailX(z)+lat,Y-0.012-0.004*(si%3),z,w+H(si+20,i)*0.12,0.12,0.78,yaw+(H(si+20,i+50)-0.5)*0.05,plank(H(si+20,i+99)));
       if(i%5===0) for(const sd of [-1,1]) post(lat+sd*nx*(w/2-0.07),z+sd*nz*(w/2-0.07)); } });
   L.discs.forEach(([l,z,r,kind],i)=>{ if(kind===2) return;   /* (a house needs no deck: it floats on a lily pad, and the plank runs to the pad's edge) */
-    const x=trailX(z)+l; put(P.trunkF,x,Y-0.15-0.004*(i%3),z,r*1.32,0.17,r*1.32,H(12,i)*3,PLANKS[i%4]); for(let q=0.4+i;q<6.2+i;q+=r>2?1.05:1.6) put(P.trunkF,x+Math.cos(q)*r*0.8,Y-1.75,z+Math.sin(q)*r*0.8,0.07,1.7,0.07,0,PLANKS[2]);
+    const x=trailX(z)+l, w=r*1.9, n=Math.max(3,Math.round(w/0.76));   /* a square platform of boards on four posts */
+    for(let k=0;k<n;k++){ const pz=z-w/2+(k+0.5)*w/n; put(P.log,x+(H(30+i,k)-0.5)*0.08,Y-0.006*(i%3),pz,w+H(31+i,k)*0.14,0.12,w/n*1.04,(H(32+i,k)-0.5)*0.04,plank(H(33+i,k))); }
+    for(const sx of [-1,1]) for(const sz of [-1,1]) put(P.trunkF,x+sx*(w/2-0.1),Y-1.75,z+sz*(w/2-0.1),0.07,1.72,0.07,0,PLANKS[2]);
     if(kind===1){ put(P.log,x,Y+0.45,z-0.5,1.6,0.16,0.42,0.3,PLANKS[3]); put(P.trunkF,x-0.5,Y,z-0.42,0.06,0.42,0.06,0,PLANKS[2]); put(P.trunkF,x+0.5,Y,z-0.6,0.06,0.42,0.06,0,PLANKS[2]); }   /* a bench */
     else if(kind===0){ put(P.trunkF,x,Y,z,0.06,2.3,0.06,0,PLANKS[2]); put(P.glow,x,Y+2.45,z,4.5,4.5,4.5,0,pk(GLOWS,H(13,i))); } });                                                       /* the lamp at the end of a pier */
   L.lamps.forEach(([l,z,sd],i)=>{ const x=trailX(z)+l; put(P.trunkF,x,Y-0.4,z+0.62,0.045,1.9,0.045,0,PLANKS[2]); put(P.glow,x,Y+1.6,z+0.62,2.6,2.6,2.6,0,pk(GLOWS,H(15,i))); }); }
