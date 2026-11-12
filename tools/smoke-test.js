@@ -25,8 +25,10 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   await p.evaluate(()=>document.getElementById('bookClose').click());
   // pausing unrolls Dad's map; tapping the map rolls it up; un-pausing carries on
   await p.evaluate(()=>document.getElementById('pauseBtn').click()); await p.waitForTimeout(1200);
+  if(await p.evaluate(()=>window.hikeDebug.mapOpen())) errs.push('the map should be rolled up when the game is first paused');
+  await p.evaluate(()=>document.getElementById('mapScroll').click()); await p.waitForTimeout(1100);
   const mapOpen=await p.evaluate(()=>window.hikeDebug.mapOpen()&&document.getElementById('mapSvg').childElementCount>10);
-  if(!mapOpen) errs.push('the map did not unroll on pause');
+  if(!mapOpen) errs.push('the map did not unroll when tapped');
   await p.screenshot({path:require('os').tmpdir()+'/hike-map.png'});
   await p.evaluate(()=>document.getElementById('mapSheet').click());
   if(await p.evaluate(()=>window.hikeDebug.mapOpen())) errs.push('the map did not roll up when tapped');
