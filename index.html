@@ -1725,16 +1725,33 @@ const squirrel=new THREE.Group(), rabbit=new THREE.Group(), flutter=new THREE.Gr
     ball(dark,0.02,1,1,1,-0.07,0.4,0.3),ball(dark,0.02,1,1,1,0.07,0.4,0.3),ball(white,0.08,1,1,1,0,0.22,-0.26));
   const wm=new THREE.MeshBasicMaterial({color:0xffb38a,side:THREE.DoubleSide}), wl=new THREE.Mesh(wingGeo,wm), wr=new THREE.Mesh(wingGeo,wm); wr.scale.x=-1; flutter.add(wl,wr); flutter.userData={wl,wr}; flutter.scale.set(0.32,0.32,0.66);
   [squirrel,rabbit,flutter].forEach(g=>{ g.visible=false; scene.add(g); }); }
-/* fish in the river: only their shadows, dark shapes sliding along just under the surface, up and down the bend */
-const fishes=[];
-{ const sh=new THREE.Shape(); sh.moveTo(0,0.34); sh.quadraticCurveTo(0.12,0.12,0.05,-0.16); sh.lineTo(0.13,-0.37); sh.lineTo(0,-0.29); sh.lineTo(-0.13,-0.37); sh.lineTo(-0.05,-0.16); sh.quadraticCurveTo(-0.12,0.12,0,0.34);
-  const geo=new THREE.ShapeGeometry(sh,8); geo.rotateX(Math.PI/2);   /* lying flat, nose toward +z */
-  for(let i=0;i<12;i++){ const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x163848,transparent:true,opacity:0.3+rnd()*0.16,depthWrite:false,side:THREE.DoubleSide})), sc=1+rnd()*1.1;
-    m.scale.setScalar(sc); m.renderOrder=2; m.visible=false; scene.add(m); fishes.push({g:m,lane:rnd(),ph:rnd()*30,sp:0.5+rnd()*0.8,dir:i%3?1:-1,sc}); } }
-function updateFish(dt){ const on=state.started&&mode==='trail'&&party.s>14&&party.s<94;
-  fishes.forEach((f,i)=>{ f.g.visible=on; if(!on) return;
-    const span=30, z=RIVER_Z-15+(((time*f.sp*f.dir+f.ph)%span)+span)%span, x=x0(z)+riverBank(z)+1.3+f.lane*(riverWide(z)-2.6)+Math.sin(time*0.4+f.ph)*0.4;
-    f.g.position.set(x,riverY(z)+0.012,z); f.g.rotation.y=(f.dir>0?0:Math.PI)+Math.sin(time*5+f.ph)*0.2; f.g.scale.x=f.sc*(1+0.08*Math.sin(time*5+f.ph+1)); }); }
+/* Fish in the river: only their shadows, dark shapes just under the surface. They behave like fish. Mostly each one holds its place nose
+   to the current with its tail barely moving; now and then it darts off somewhere else with a few quick beats and glides to a stop; it
+   turns by bending, not by spinning; and they keep loosely together in twos and threes, the others drifting after whichever one moves. */
+const fishes=[], FISH_N=12, fishW=u=>u<0.62?0.115*Math.sin(Math.PI*Math.pow(u/0.62,0.7)*0.5+0.0)*(1-0.55*Math.pow(u/0.62,3))+0.004:u<0.8?lerp(0.052,0.02,(u-0.62)/0.18):lerp(0.02,0.14,(u-0.8)/0.2);   /* half its width from nose (u=0) to the tips of the tail (u=1) */
+{ for(let i=0;i<12;i++){ const pos=new Float32Array((FISH_N+1)*6), idx=[]; for(let k=0;k<FISH_N;k++){ const a=k*2; idx.push(a,a+1,a+2,a+1,a+3,a+2); }
+    const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3)); geo.setIndex(idx);
+    const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x163848,transparent:true,opacity:0.34,depthWrite:false,side:THREE.DoubleSide})), sc=1+rnd()*1.1;
+    m.scale.setScalar(sc); m.renderOrder=2; m.visible=false; m.frustumCulled=false; scene.add(m);
+    fishes.push({g:m,sc,o:0.3+rnd()*0.16,lead:i-i%3,u:rnd(),z:RIVER_Z-12+rnd()*24,tu:0,tz:0,th:0,v:0.2,beat:rnd()*6,bend:0,wait:rnd()*4,live:false,ph:rnd()*6}); } }
+function updateFish(dt){ const on=!!state.started&&mode==='trail'&&party.s>14&&party.s<94;
+  const X=(u,z)=>x0(z)+riverBank(z)+1.3+u*(riverWide(z)-2.6);
+  fishes.forEach((f,i)=>{ f.g.visible=on; if(!on){ f.live=false; return; }
+    if(!f.live){ f.live=true; f.x=X(f.u,f.z); f.tx=f.x; f.tz=f.z; f.th=0; }
+    const L=fishes[f.lead], own=L===f;
+    f.wait-=dt;
+    if(own){ if(f.wait<=0){ f.wait=3+Math.random()*7; f.tz=clamp(f.z+(Math.random()<0.7?1:-1)*(1.5+Math.random()*6),RIVER_Z-14,RIVER_Z+14); f.tu=clamp(f.u+(Math.random()-0.5)*0.7,0.04,0.96); f.tx=X(f.tu,f.tz); f.v=Math.max(f.v,1.1+Math.random()*0.9); } }   /* off somewhere new: a burst */
+    else if(f.wait<=0){ f.wait=0.8+Math.random()*2.5; const a=f.ph+i*2.1, tx=L.tx+Math.cos(a)*(0.7+0.5*(i%3)), tz=clamp(L.tz-0.5-0.6*(i%3)+Math.sin(a)*0.5,RIVER_Z-14,RIVER_Z+14);
+      if(Math.hypot(tx-f.tx,tz-f.tz)>0.6){ f.tx=tx; f.tz=tz; f.v=Math.max(f.v,0.9+Math.random()*0.8); } }                                                                                   /* the others follow, each to its own place beside and behind */
+    const dx=f.tx-f.x, dz=f.tz-f.z, d=Math.hypot(dx,dz), want=d>0.35?Math.atan2(dx,dz):0.25*Math.sin(time*0.3+f.ph);   /* arrived: turn back to face up the current */
+    let da=want-f.th; da=Math.atan2(Math.sin(da),Math.cos(da)); const turn=clamp(da*2.2,-1.9,1.9); f.th+=turn*dt; f.bend=damp(f.bend,clamp(turn*0.55,-0.9,0.9),5,dt);
+    f.v=damp(f.v,d>0.35?0.38:0.05,d>0.35?0.7:1.6,dt);                                                             /* each burst dies away into a glide */
+    f.x+=Math.sin(f.th)*f.v*dt; f.z+=Math.cos(f.th)*f.v*dt-(d>0.35?0:0.02*dt);
+    { const lo=X(0.02,f.z), hi=X(0.98,f.z); if(f.x<lo){ f.x=lo; f.tx=Math.max(f.tx,lo+0.6); } if(f.x>hi){ f.x=hi; f.tx=Math.min(f.tx,hi-0.6); } f.z=clamp(f.z,RIVER_Z-14.5,RIVER_Z+14.5); }
+    f.beat+=dt*(2.2+f.v*9); const amp=0.03+0.075*Math.min(1,f.v/1.2), p=f.g.geometry.attributes.position;
+    for(let k=0;k<=FISH_N;k++){ const u=k/FISH_N, w=fishW(u), zz=0.36-u*0.74, off=amp*(0.15+u*u*1.9)*Math.sin(f.beat-u*4.2)+f.bend*u*u*0.3;   /* the beat runs down the body and is widest at the tail; a turn bends the whole fish */
+      p.setXYZ(k*2,off-w,0,zz); p.setXYZ(k*2+1,off+w,0,zz); } p.needsUpdate=true;
+    f.g.position.set(f.x,riverY(f.z)+0.012,f.z); f.g.rotation.y=f.th; f.g.material.opacity=f.o*(0.8+0.2*Math.sin(time*0.37+f.ph)); }); }
 /* a fox, for the aspen grove and the autumn woods: russet coat, white chest and tail-tip, black socks and ears (it faces +z) */
 const fox=new THREE.Group();
 { const red=L('#d9702f'), white=L('#fff6ea'), dark=L('#2e2430'), blk=new THREE.MeshBasicMaterial({color:0x1d1620});
