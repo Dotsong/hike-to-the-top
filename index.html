@@ -4433,8 +4433,8 @@ function updateSpeech(dt){
     bubbles.forEach((bb,i)=>{ const A=meetBub.at[i]||(meetBub.at[i]={x:innerWidth/2,y:innerHeight/2});
       if(fresh||mcam.id==='behind'||mcam.id==='through'){ bb.head.getWorldPosition(hp); hp.project(camera); const pan=mcam.id==='pan'; if(pan) hp.x=-1; const beh=hp.z>1&&!pan, on=!pan&&!beh&&Math.abs(hp.x)<0.9&&hp.y>-0.75&&hp.y<0.62;   /* (during a pan the words keep to the bottom left, out of the way) */
         let tx=on?(hp.x*0.5+0.5)*innerWidth:((beh?-hp.x:hp.x)<0?0:innerWidth), ty=on?(-hp.y*0.5+0.5)*innerHeight-6:innerHeight*0.9;
-        if(on&&i<2){ bb.head.getWorldPosition(hp2); hp2.y+=0.62*(i?1.08:1.3); hp2.project(camera); ty=(-hp2.y*0.5+0.5)*innerHeight-4; }   /* a girl's bubble starts above the top of her hair, however close the camera is: never across her face */
-        { const lim=innerHeight*(narr.t>0||narr.q.length?0.42:0.25); if(on&&ty<lim){ if(i<2) ty=innerHeight*0.93; else ty=lim; } }   /* (and if that would put it up in the narrator's line, it goes underneath her instead) */
+        let neckY=ty; if(on&&i<2){ bb.head.getWorldPosition(hp2); hp2.y+=0.43*(i?1.08:1.3); hp2.project(camera); ty=(-hp2.y*0.5+0.5)*innerHeight+24; }   /* a girl's bubble starts just above the top of her hair, however close the camera is: never across her face (it hangs 34 px above its anchor, so this leaves a finger's width between them) */
+        { const lim=innerHeight*(narr.t>0||narr.q.length?0.42:0.25); if(on&&ty<lim){ if(i<2) ty=Math.min(innerHeight*0.96,neckY+(bb.el.firstElementChild.offsetHeight||90)+46); else ty=lim; } }   /* (no room above her: then close under her chin) */   /* (and if that would put it up in the narrator's line, it goes underneath her instead) */
         if(fresh){ A.x=tx; A.y=ty; } else { A.x+=(tx-A.x)*0.06; A.y+=(ty-A.y)*0.06; } }   /* (while the camera itself is travelling, it drifts along gently) */
       xs[i]=A.x; bb.el.style.transform=`translate3d(${clamp(A.x,edge,innerWidth-edge).toFixed(1)}px,${A.y.toFixed(1)}px,0)`; bb.el.style.visibility=state.started?'visible':'hidden'; });
     bubbles.forEach((bb,i)=>bb.el.classList.toggle('right',xs[i]>innerWidth/2)); return; }
