@@ -674,6 +674,10 @@ function ridge(x,z){ if(z<123||z>145) return 0; const dR=Math.abs(x-pR);
 /* which forest grows here: 0 the home woods, -1 aspen, 1 autumn */
 function biomeAt(x,z){ if(z<=GATE_B) return 0; if(choice){ const k=bioKeyAt(z); return k==='aspen'||k==='autumn'||z<SITES[1].b+8?choice:0; }   /* once a path is chosen its forest is the only one there is: nothing of the other shows, even across the gap between the paths */
   paths(z); return x<(pL+pR)/2?-1:1; }
+/* the frozen pond in the winter forest: a shallow hollow a little way off the trail, iced right across */
+const ICE_Z=338, ICE_LAT=11.5, ICE_R=5, ICE_W=1.25;
+const iceOn=()=>!!picks[1]&&legKey(1)==='winter';
+function iceK(x,z){ if(Math.abs(z-ICE_Z)>9||!iceOn()) return 0; const dx=(x-trailX(ICE_Z)-ICE_LAT)/ICE_W, dz=z-ICE_Z; return 1-smooth(ICE_R-0.6,ICE_R+2.2,Math.hypot(dx,dz)); }
 function groundY(x,z){
   paths(z); const ty=trailY(z);
   if(x>pL&&x<pR) return ty+0.3*clamp(Math.min(x-pL,pR-x)-FLAT,0,2)+ridge(x,z);   /* the wedge between the two paths: a low, flat-topped mound */
@@ -684,6 +688,7 @@ function groundY(x,z){
   let y=ty+(lerp(open,walls,g)+bumps)*landK(z);
   { const wk=wallK(z); if(wk>0) y+=wk*5.4*smooth(2.4,6.5,a)*(1-0.45*smooth(14,30,a))*(0.55+0.45*Math.min(1,landK(z))); }   /* the banks of a gully or a canyon */
   { const pk=pondK(z); if(pk>0) y=lerp(y,ty-0.55,pk*smooth(2.25,3,a)); }                                                    /* the pond: water everywhere but the causeway */
+  { const ik=iceK(x,z); if(ik>0) y=lerp(y,trailY(ICE_Z)-0.62,ik); }
   y+=band(x,z,a);
   if(skyOpen&&z>SKY_B-9){ const q=smooth(SKY_B-9,SKY_B-2,z);   /* the sky garden's ridge: a few metres of crest, then a long fall on both sides, all the way to the last cave and past it */
     if(q>0) y=lerp(y,ty-34*(1-Math.exp(-e*0.055))+bumps*0.55-0.3*smooth(0,1.5,e),q); }
@@ -1200,7 +1205,7 @@ const spots={tree:[],gold:[],pine:[],rock:[],mush:[],flower:[],aspen:[],quake:[]
 /* One tree. What kind it is depends on where it stands: home woods, gully, aspen grove or autumn woods. */
 const densAt=z=>0.3+0.7*smooth(-0.5,0.4,Math.sin(z*0.083+1.3)+0.6*Math.sin(z*0.031));
 function plantTree(r,id,x,z,first,s0,fact,ring){
-  if(wet(x,z)||!ring&&restDist(x,z)<12.4||homeDist(x,z)<8.5||inVillage(x,z)) return;
+  if(wet(x,z)||iceK(x,z)>0||!ring&&restDist(x,z)<12.4||homeDist(x,z)<8.5||inVillage(x,z)) return;
   if(!ring&&z>GATE_B+20&&hash(r,id,17)>densAt(z)) return;   /* thick groves and open glades take turns along the trail */
   { const nk=hash(r,id,12)<newK(z)||mtnShut&&z>MTN?bioKeyAt(z):prevKeyAt(z), NB=BIO[nk];   /* (once the mist has closed behind them on the mountain trail, none of the last place's trees are left standing on it) */   /* further up the mountain, each place draws its own kind of tree (see BIO) */
     if(NB&&NB.tree){ if(!ring&&NB.keep!==undefined&&hash(r,id,16)>NB.keep) return;
@@ -1334,7 +1339,7 @@ function rebuildForest(s0){
           if(!NB.base) continue; } }
       /* is there a signpost in this slice? keep its patch of ground clear */
       const sm=((z0+1.5-SIGN_AT)%SIGN_EVERY+SIGN_EVERY)%SIGN_EVERY, sign=side<0&&(sm<3||sm>SIGN_EVERY-3)||side>0&&inGate;   /* nothing small grows where the cave rocks are */
-      const clear=(x,z)=>!(Math.abs(z-BENCH_S)<3&&Math.abs(x-trailX(z)-BENCH_LAT)<3.4)&&!wet(x,z)&&restDist(x,z)>12&&homeDist(x,z)>7&&!inVillage(x,z);   /* the rest site is furnished from REST_KIT instead */
+      const clear=(x,z)=>!(Math.abs(z-BENCH_S)<3&&Math.abs(x-trailX(z)-BENCH_LAT)<3.4)&&!wet(x,z)&&!(iceK(x,z)>0)&&restDist(x,z)>12&&homeDist(x,z)>7&&!inVillage(x,z);   /* the rest site is furnished from REST_KIT instead */
       /* the understory of the deep woods: ferns, and small tangled trees like the ones the thicket is made of */
       for(let j=0;j<2;j++){ const id=q+60+j; if(hash(r,id,1)>0.62*dp) continue;
         const d=side*(2.4+hash(r,id,2)*7), z=z0+hash(r,id,3)*3, x=edge(z)+d; if(!clear(x,z)) continue;
@@ -1424,6 +1429,10 @@ function rebuildForest(s0){
       else if(key) drawGate(BIO[key].gate,r,z0,GA[gi],GB[gi]); }
     /* The rest site, furnished from REST_KIT: a ring of big trees with gaps where the trail comes in and the two paths go out,
        and the same boulders, logs, mushrooms, ferns and flowers, in the same places, as the rest scene the girls will sit down in. */
+    if(iceOn()&&ICE_Z>=z0&&ICE_Z<z0+3){ const cx=trailX(ICE_Z)+ICE_LAT;   /* round the frozen pond: stones on the bank with snow on them, drifts, and dead reeds standing in the ice */
+      for(let i=0;i<13;i++){ const a=i/13*6.283+hash(i,3,77)*0.35, rr=ICE_R+0.5+hash(i,4,77)*0.9, x=cx+Math.cos(a)*rr*ICE_W, z=ICE_Z+Math.sin(a)*rr, y=floorY(x,z), sz=0.3+hash(i,5,77)*0.45;
+        if(i%3) { put(P.rock,x,y+sz*0.3,z,sz*1.2,sz*0.8,sz,hash(i,6,77)*6,ROCKS[i%3]); put(P.bush,x,y+sz*0.72,z,sz*0.95,sz*0.25,sz*0.8,0,SNOW); } else put(P.bush,x,y+0.12,z,1.1+sz,0.38,0.8+sz,a,SNOW); }
+      for(let i=0;i<16;i++){ const a=2.2+hash(i,7,77)*1.5, rr=ICE_R-0.9+hash(i,8,77)*1.0, x=cx+Math.cos(a)*rr*ICE_W, z=ICE_Z+Math.sin(a)*rr; put(P.trunkF,x,trailY(ICE_Z)-0.4,z,0.022,1.0+hash(i,9,77)*0.7,0.022,0,TAN,(hash(i,10,77)-0.5)*0.3,(hash(i,11,77)-0.5)*0.3); } }
     if(picks[2]&&VILLAGE_Z>=z0&&VILLAGE_Z<z0+3&&FOLK[legKey(2)]) drawVillage(legKey(2));
     if(wondersOn&&z0>=HILL_B-4&&z0<SKY_A-5) mtnWonders(r,z0);
     for(let si=0;si<3;si++){ const Z=SITES[si].rest, X=SX[si]; if(!(Z>=z0&&Z<z0+3)) continue; const KIT=kitFor(si), SD=si&&SITE_DECOR[legKey(si-1)]||SITE_DECOR.all;   /* only what belongs in the place the site stands in */
@@ -2651,7 +2660,7 @@ function backToStart(){
 }
 function resetHike(){ leaveBench(true); bench.done=false;
   if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); if(mode==='moon') leaveMoon(); if(mode==='cave') leaveCave(); if(mode==='falls') leaveFalls(); riverAsk=0; forceRiver=false; $('riverDock').hidden=true; forceSecret=false; $('homeDock').hidden=true; $('phoneDock').hidden=true; $('endDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
-  note.found=0; clearPrints(); fork.village=false; fork.cloud=false; choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
+  note.found=0; clearPrints(); fork.village=false; fork.ice=false; fork.cloud=false; choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
 }
 /* ---------- zone select (for testing): jump straight to any place on the mountain ---------- */
@@ -2739,6 +2748,7 @@ const noteMark=document.createElement('div'); noteMark.className='fm'; noteMark.
 { const b=document.createElement('button'); b.type='button'; b.className='fm-btn'; b.id='noteBtn'; b.style.setProperty('--tint','#c9a03c'); b.setAttribute('aria-label','Something is lying here. Pick it up.');
   b.innerHTML='<svg class="bi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" style="fill:var(--tint)"/><path d="M9 9.2a3.1 3.1 0 1 1 4.6 2.7c-1 .6-1.6 1.2-1.6 2.4" fill="none" stroke="#fffaf0" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1.3" fill="#fffaf0"/></svg><span class="lbl">What is that?</span>';
   b.addEventListener('pointerdown',e=>e.stopPropagation()); b.addEventListener('click',e=>{ e.stopPropagation(); pickUpNote(); }); noteMark.appendChild(b); $('marks').appendChild(noteMark); }
+const noteKeyHere=()=>fork.site?legKey(fork.site-1):'deep';
 function pickUpNote(){ if(mode!=='rest'||!rest||note.state!==0||rest.leaving||rest.phase<2) return; note.state=1; noteMark.hidden=true; hushBubbles(); speakIn=30;
   pipB.queue.length=0; pipB.cur=null; pipB.queue.push({k:'walk',to:[NOTE_AT.x+0.45,NOTE_AT.z+0.1],speed:1.3},{k:'pose',pose:'crouch',dur:2.2,face:-1.6,note:true},{k:'pose',pose:'hop',dur:1.4,face:0.6});
   juneB.queue.length=0; juneB.cur=null; juneB.queue.push({k:'pose',pose:'sitlook',dur:6,face:-2.2});
@@ -2952,7 +2962,8 @@ function updateRestBrain(b,dt){
 function enterRest(){
   const tok=++restToken; $('fade').classList.add('on');
   setTimeout(()=>{ if(tok!==restToken||!state.started) return;
-    note.state=0; note.k=0; setDock(fork.site); rest=buildRest(fork.site); Object.assign(rest,{t:0,phase:0,t2:0,ready:false,canAct:false,leaving:null,th:0.6,cam0:camTheta,focus:0,fx:0,fk:0});
+    note.state=0; note.k=0; setDock(fork.site); rest=buildRest(fork.site);
+    if(saved.notes.includes(noteKeyHere())){ note.state=2; if(rest.paper) rest.paper.visible=false; }   /* the note that was hidden here has already been found: nothing lies behind the seat, and no button asks about it */ Object.assign(rest,{t:0,phase:0,t2:0,ready:false,canAct:false,leaving:null,th:0.6,cam0:camTheta,focus:0,fx:0,fk:0});
     scene.remove(june.g,pip.g); rest.scene.add(june.g,pip.g); june.pack.visible=pip.pack.visible=false;
     mode='rest'; landY=()=>0; zoom=1; userPhi=0;
     BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(REST_SEATS[i][0],1.3+i*0.4); b.face=b.faceT=Math.PI; b.actIn=7+i*5+Math.random()*4; });   /* standing in front of the log, about to sit down */
@@ -2963,7 +2974,7 @@ function updateRest(dt,rawDt){
   rest.t+=dt;
   BRAINS.forEach(b=>updateRestBrain(b,dt));
   /* the scene: sit down and sigh, look around for a while, notice the two paths, then the buttons appear */
-  if(rest.phase===0&&rest.t>4.5){ rest.phase=1; playScript(restSay().lines.concat(known.notes.length&&saved.notes.length<ALL_NOTES.length?[[1,'I bet Dad hid another note here. He always does.'],[0,'Have a look around, then.']]:[])); }
+  if(rest.phase===0&&rest.t>4.5){ rest.phase=1; playScript(restSay().lines.concat(known.notes.length&&!saved.notes.includes(noteKeyHere())?[[1,'I bet Dad hid another note here. He always does.'],[0,'Have a look around, then.']]:[])); }
   else if(rest.phase===1&&rest.t>8&&quiet()){ rest.phase=2; rest.t2=rest.t; rest.canAct=true; speakIn=6; narrate('For a while nobody said anything important. That is what rest sites are for.'); }
   else if(rest.phase===2&&rest.t>rest.t2+12&&!(note.state===1)){ rest.canAct=false; if(quiet()&&!BRAINS.some(b=>b.cur||b.queue.length)){ rest.phase=3; narrate(fork.site?'And once again, the trail had two ideas about where to go next.':'Then Pip noticed something. The trail had two ideas about where to go next.'); playScript(restPathLines());
       pipB.queue.push({k:'pose',pose:'sitpoint',dur:5,face:0}); juneB.queue.push({k:'pose',pose:'sit',dur:3},{k:'pose',pose:'sitlook',dur:4,face:0}); } }
@@ -4677,10 +4688,40 @@ const bench=(()=>{ const g=new THREE.Group(), st=L('#a59f94'), dk=L('#8b857b');
     geo.computeVertexNormals(); const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); m.castShadow=m.receiveShadow=true; g.add(m); };
   blk(st,2.75,0.2,0.64,0,0.62,0); blk(dk,0.4,1.0,0.5,-0.95,0.03,0); blk(dk,0.4,1.0,0.5,0.95,0.03,0);
   g.visible=false; scene.add(g); return {g,on:0,done:false,t:0,wt:0,back:false,chirp:3}; })();
-const benchBirds=[['#8b6a4c','#dcc7a4'],['#6f7f93','#e8dccb'],['#a0553c','#e8cdaa'],['#5f6e55','#dad4aa'],['#7a6a5e','#f0e5d2']].map(([c1,c2],i)=>{ const g=new THREE.Group(), body=new THREE.Group(), a=L(c1), dk=new THREE.MeshBasicMaterial({color:0x1a1410}); g.add(body);
-  body.add(ball(a,0.07,1,0.95,1.5,0,0.1,0),ball(L(c2),0.06,0.9,0.8,1.2,0,0.085,0.025),ball(a,0.05,1,1,1,0,0.17,0.08),ball(dk,0.012,1,1,1,-0.036,0.182,0.108),ball(dk,0.012,1,1,1,0.036,0.182,0.108),ball(L('#d99a3a'),0.016,1,1,2.4,0,0.165,0.135),ball(a,0.03,1.2,0.35,3,0,0.105,-0.14));
+function makeBird([c1,c2,crest,mask,size],i){ const g=new THREE.Group(), body=new THREE.Group(), a=L(c1), dk=new THREE.MeshBasicMaterial({color:0x1a1410}); g.add(body);
+  body.add(ball(a,0.07,1,0.95,1.5,0,0.1,0),ball(L(c2),0.06,0.9,0.8,1.2,0,0.085,0.025),ball(a,0.05,1,1,1,0,0.17,0.08),ball(dk,0.012,1,1,1,-0.036,0.182,0.108),ball(dk,0.012,1,1,1,0.036,0.182,0.108),ball(L(mask?'#e8742a':'#d99a3a'),0.016,1,1,2.4,0,0.165,0.135),ball(a,0.03,1.2,0.35,3,0,0.105,-0.14));
+  if(crest){ const c=new THREE.Mesh(new THREE.ConeGeometry(0.03,0.1,6),a); c.position.set(0,0.235,0.045); c.rotation.x=-0.55; c.castShadow=true; body.add(c); }   /* a crest, swept back */
+  if(mask) body.add(ball(dk,0.03,1,0.8,0.7,0,0.162,0.112));                                                                                                  /* a cardinal's black face */
+  else if(crest) body.add(ball(dk,0.052,1,0.16,1,0,0.135,0.075),ball(L('#f4f6fa'),0.03,1.25,0.3,1.6,0,0.125,-0.07));                                           /* a jay's black collar, and a bar of white across its back */
   const wings=[-1,1].map(sd=>{ const piv=new THREE.Group(); piv.position.set(sd*0.05,0.13,0); piv.add(ball(a,0.06,1.9,0.18,1.1,sd*0.1,0,-0.01)); body.add(piv); return piv; });
-  g.scale.setScalar(1.2); g.visible=false; scene.add(g); return {g,body,wings,st:0,t:0,wait:0.5+i*1.9,from:new THREE.Vector3(),to:new THREE.Vector3(),spot:-1,hop:0,ry:0,by:0,peck:0,act:1,dur:2.4}; });
+  g.scale.setScalar(size||1.2); g.visible=false; scene.add(g); return {g,body,wings,st:0,t:0,wait:0.5+i*1.9,from:new THREE.Vector3(),to:new THREE.Vector3(),spot:-1,hop:0,ry:0,by:0,peck:0,act:1,dur:2.4}; }
+const benchBirds=[['#8b6a4c','#dcc7a4'],['#6f7f93','#e8dccb'],['#a0553c','#e8cdaa'],['#5f6e55','#dad4aa'],['#7a6a5e','#f0e5d2']].map(makeBird);
+/* a small bird's every moment, wherever it is: gliding in to land or bursting away; or, once down, hopping, pecking and looking about */
+function birdStep(b,dt){ b.t+=dt; b.g.visible=true;
+    if(b.st!==2){ const u=Math.min(1,b.t/b.dur), e=b.st===1?1-(1-u)*(1-u):u*u;
+      b.g.position.lerpVectors(b.from,b.to,e); b.g.position.y+=(b.st===1?Math.sin(u*Math.PI)*0.7:0)+0.1*Math.sin(b.t*9)*(b.st===1?1-u:u);
+      b.ry=Math.atan2(b.to.x-b.from.x,b.to.z-b.from.z); b.body.rotation.x=-0.3; b.wings.forEach((w,i)=>{ w.rotation.z=(i?1:-1)*0.95*Math.sin(b.t*34); });
+      if(u>=1){ if(b.st===1){ b.st=2; b.t=0; b.dur=6+Math.random()*10; b.act=0.5; b.hop=0; b.peck=0; b.by=b.to.y; } else { b.st=0; b.wait=2+Math.random()*6; b.g.visible=false; } } }
+    else { b.wings.forEach((w,i)=>{ w.rotation.z=(i?1:-1)*-1.25; }); b.act-=dt;
+      if(b.act<=0&&b.hop<=0){ const q=Math.random(); b.act=0.45+Math.random()*1.3;
+        if(q<0.34) b.ry+=(Math.random()-0.5)*2.6; else if(q<0.7) b.peck=0.42; else if(b.spot<0){ b.hop=0.26; b.ry+=(Math.random()-0.5)*1.2; } else b.ry+=(Math.random()-0.5)*1.5; }
+      if(b.hop>0){ b.hop-=dt; const p=b.g.position; p.x+=Math.sin(b.ry)*dt; p.z+=Math.cos(b.ry)*dt; b.by=groundY(p.x,p.z); }   /* a hop along the ground */
+      b.g.position.y=b.by+(b.hop>0?Math.sin(Math.PI*(1-b.hop/0.26))*0.09:0);
+      if(b.peck>0){ b.peck-=dt; b.body.rotation.x=1.0*Math.sin(Math.PI*clamp(1-b.peck/0.42,0,1)); } else b.body.rotation.x=0; }
+    b.g.rotation.y=b.ry; }
+/* Blue jays and cardinals in the winter forest: bright against the snow, never far from the trail. They come down on the snow a little way
+   ahead of the girls, hop about and peck, and when the girls come close (or have gone by) they are off again to somewhere further on. */
+const winterBirds=[['#3f78c8','#f1f4f8',1,0,1.55],['#cf2229','#dc4638',1,1,1.45],['#4a84d4','#eef2f7',1,0,1.6],['#d42a2a','#e2523e',1,1,1.5],['#3a6fbe','#f1f4f8',1,0,1.5],['#c81f2b','#d8402f',1,1,1.4]].map(makeBird);
+let winterChirp=6;
+function updateWinterBirds(dt){ const on=!!state.started&&mode==='trail'&&bioKeyAt(party.s)==='winter'&&gateK(party.s)<0.5;
+  const perch=b=>{ for(let k=0;k<10;k++){ const z=party.s+3.5+Math.random()*15, x=trailX(z)+(Math.random()<0.5?-1:1)*(2.7+Math.random()*7); if(wet(x,z)||restDist(x,z)<13) continue; b.to.set(x,groundY(x,z),z); if(solids.every(o=>Math.hypot(x-o.x,z-o.z)>o.r+0.4)) break; } };
+  let down=0;
+  for(const b of winterBirds){ if(!on){ b.g.visible=false; b.st=0; b.wait=0.5+Math.random()*5; continue; }
+    if(b.st===0){ b.wait-=dt; if(b.wait>0) continue; perch(b); const a=Math.random()*6.283; b.from.set(b.to.x+Math.cos(a)*12,b.to.y+6+Math.random()*3,b.to.z+Math.sin(a)*12); b.st=1; b.t=0; b.dur=2.3+Math.random()*0.7; }
+    birdStep(b,dt);
+    if(b.st===2){ down++; const p=b.g.position, near=Math.min(Math.hypot(p.x-juneB.pos.x,p.z-juneB.pos.y),Math.hypot(p.x-pipB.pos.x,p.z-pipB.pos.y));
+      if(b.t>b.dur||near<2.3||p.z<party.s-4){ b.from.copy(p); perch(b); b.st=1; b.t=0; b.dur=1.5+b.from.distanceTo(b.to)*0.09; if(near<2.3) Music.amb('flutter'); } } }   /* startled, or left behind: on to the next place */
+  if(down){ winterChirp-=dt; if(winterChirp<=0){ winterChirp=7+Math.random()*9; Music.amb('chirp'); } } }
 function benchW(lx,lz,o){ const hd=heading(BENCH_S), cx=trailX(BENCH_S)+Math.cos(hd)*BENCH_LAT, cz=BENCH_S-Math.sin(hd)*BENCH_LAT;
   const x=cx+Math.cos(hd)*lx+Math.sin(hd)*lz, z=cz-Math.sin(hd)*lx+Math.cos(hd)*lz; return o?o.set(x,groundY(x,z),z):[x,z]; }
 function startBench(){ const B=bench; B.on=1; B.done=true; B.t=0; B.wt=0; B.back=false; party.vT=0; party.rest=99999; const hd=heading(BENCH_S);
@@ -4704,22 +4745,23 @@ function updateBench(dt){ const B=bench, near=!!state.started&&mode==='trail'&&f
       b.spot=-1; for(const k of Math.random()<0.5?[0,1]:[1,0]) if(Math.random()<0.45&&!benchBirds.some(o=>o!==b&&o.spot===k)){ b.spot=k; break; }
       if(b.spot>=0){ benchW((b.spot?1:-1)*(1.14+Math.random()*0.1),(Math.random()-0.5)*0.3,b.to); b.to.y=B.g.position.y+0.725; } else benchW((Math.random()-0.5)*4.6,0.8+Math.random()*2.3,b.to);   /* an end of the bench, if one is free, or the ground in front */
       const a=Math.random()*6.283; b.from.set(b.to.x+Math.cos(a)*12,b.to.y+5+Math.random()*3,b.to.z+Math.sin(a)*12); b.st=1; b.t=0; b.dur=2.2+Math.random()*0.7; }
-    b.t+=dt; b.g.visible=true;
-    if(b.st!==2){ const u=Math.min(1,b.t/b.dur), e=b.st===1?1-(1-u)*(1-u):u*u;   /* gliding in to land, or bursting away */
-      b.g.position.lerpVectors(b.from,b.to,e); b.g.position.y+=(b.st===1?Math.sin(u*Math.PI)*0.7:0)+0.1*Math.sin(b.t*9)*(b.st===1?1-u:u);
-      b.ry=Math.atan2(b.to.x-b.from.x,b.to.z-b.from.z); b.body.rotation.x=-0.3; b.wings.forEach((w,i)=>{ w.rotation.z=(i?1:-1)*0.95*Math.sin(b.t*34); });
-      if(u>=1){ if(b.st===1){ b.st=2; b.t=0; b.dur=6+Math.random()*10; b.act=0.5; b.hop=0; b.peck=0; b.by=b.to.y; } else { b.st=0; b.wait=2+Math.random()*6; b.g.visible=false; } } }
-    else { perched++; b.wings.forEach((w,i)=>{ w.rotation.z=(i?1:-1)*-1.25; }); b.act-=dt;
-      if(b.act<=0&&b.hop<=0){ const q=Math.random(); b.act=0.45+Math.random()*1.3;
-        if(q<0.34) b.ry+=(Math.random()-0.5)*2.6; else if(q<0.7) b.peck=0.42; else if(b.spot<0){ b.hop=0.26; b.ry+=(Math.random()-0.5)*1.2; } else b.ry+=(Math.random()-0.5)*1.5; }
-      if(b.hop>0){ b.hop-=dt; const p=b.g.position; p.x+=Math.sin(b.ry)*dt; p.z+=Math.cos(b.ry)*dt; b.by=groundY(p.x,p.z); }   /* a hop along the ground */
-      b.g.position.y=b.by+(b.hop>0?Math.sin(Math.PI*(1-b.hop/0.26))*0.09:0);
-      if(b.peck>0){ b.peck-=dt; b.body.rotation.x=1.0*Math.sin(Math.PI*clamp(1-b.peck/0.42,0,1)); } else b.body.rotation.x=0;
-      if(b.t>b.dur||!B.on) birdOff(b); }
-    b.g.rotation.y=b.ry; }
+    birdStep(b,dt); if(b.st===2){ perched++; if(b.t>b.dur||!B.on) birdOff(b); } }
   if(perched&&B.on){ B.chirp-=dt; if(B.chirp<=0){ B.chirp=4+Math.random()*7; Music.amb('chirp'); } }
 }
 $('benchGo').addEventListener('click',()=>leaveBench(false));
+/* the ice itself: pale blue-grey, cloudy toward the middle, with a few long cracks and a dusting of blown snow */
+const icePond=(()=>{ const c=document.createElement('canvas'); c.width=c.height=512; const g=c.getContext('2d'), gr=g.createRadialGradient(256,256,20,256,256,256);
+  gr.addColorStop(0,'#6f9dbd'); gr.addColorStop(0.6,'#8bb5d0'); gr.addColorStop(1,'#b4d3e4'); g.fillStyle=gr; g.fillRect(0,0,512,512);
+  let sd=7; const R=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  for(let i=0;i<26;i++){ const x=R()*512, y=R()*512, r=30+R()*70, q=g.createRadialGradient(x,y,0,x,y,r); q.addColorStop(0,'rgba(255,255,255,0.4)'); q.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=q; g.fillRect(x-r,y-r,r*2,r*2); }   /* snow blown across it */
+  g.strokeStyle='rgba(255,255,255,0.85)'; g.lineWidth=1.6; for(let i=0;i<7;i++){ let x=100+R()*312, y=100+R()*312, a=R()*6.283; g.beginPath(); g.moveTo(x,y); for(let k=0;k<7;k++){ a+=(R()-0.5)*0.9; x+=Math.cos(a)*34; y+=Math.sin(a)*34; g.lineTo(x,y); if(k===3){ g.moveTo(x,y); g.lineTo(x+Math.cos(a+1)*40,y+Math.sin(a+1)*40); g.moveTo(x,y); } } g.stroke(); }   /* cracks */
+  g.fillStyle='rgba(120,90,50,0.55)'; for(let i=0;i<9;i++){ g.beginPath(); g.ellipse(120+R()*272,120+R()*272,7,4,R()*3,0,6.283); g.fill(); }   /* leaves frozen in */
+  const m=new THREE.Mesh(new THREE.CircleGeometry(ICE_R+1.6,40),new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(c),color:0xa9bccb})); m.rotation.x=-Math.PI/2; m.scale.x=ICE_W; m.receiveShadow=true; m.visible=false; scene.add(m); return m; })();
+function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
+  icePond.position.set(trailX(ICE_Z)+ICE_LAT,trailY(ICE_Z)-0.4,ICE_Z);
+  if(!fork.ice&&fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>ICE_Z-7&&party.s<ICE_Z+3&&quiet()){ fork.ice=true;
+    narrate('A little way off the trail a pond had frozen right across, smooth and pale as a dinner plate.');
+    playScript([[1,'June! The pond is FROZEN!'],[0,'Solid as a window. We\'ll look from here, though. You can\'t tell how thick it is.'],[1,'There are leaves stuck inside it. Like a leaf museum.']]); speakIn=14; } }
 function updateCurtains(){ const rise=fork.site===2&&!skyShut?smooth(BOULDER_S-4,BOULDER_S+1,party.s):0;   /* over the boulder: the mist stays shut behind them, over the hill and the place below it */
   for(const c of curtains){ const on=c.ahead?!skyOpen&&party.s>SKY_A-190:skyShut||rise>0.01; c.m.visible=on; if(!on) continue; c.m.material.opacity=0.62*(c.ahead||skyShut?1:rise);
     const z=c.ahead?SKY_A+8+c.k*3:skyShut?SKY_B-2-c.k*2.5:MTN+53-c.k*2.2; c.m.position.set(trailX(z)+c.dx,trailY(z)+17+c.dy,z); c.m.material.color.copy(scene.fog.color).lerp(WHITE,0.45); } }
@@ -4891,7 +4933,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
