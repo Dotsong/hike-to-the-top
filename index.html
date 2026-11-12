@@ -4300,7 +4300,7 @@ function nextLine(key,src){ const d=decks[key]||(decks[key]=[]); if(!d.length){ 
 /* one bubble at a time: every line waits its turn and stays up long enough to read */
 const lineTime=tx=>1.6+tx.length*0.06;
 function showLine(w,tx){ bubbles.forEach((bb,i)=>{ if(i!==w){ bb.t=0; bb.el.classList.remove('show'); } });
-  const bb=bubbles[w]; bb.el.querySelector('.txt').textContent=tx; bb.t=lineTime(tx); bb.el.classList.add('show'); curLine={w,t:bb.t}; }
+  const bb=bubbles[w]; bb.el.querySelector('.txt').textContent=tx; bb.t=lineTime(tx)*(frogKing.on||MEETS.some(D=>D.on)?1.7:1); bb.el.classList.add('show');   /* (in a meeting each line stays up a good deal longer) */ curLine={w,t:bb.t}; }
 function say(i,text){ script.push([i,text]); }
 function speak(line,i){ if(i===undefined) i=Math.random()<0.5?0:1;
   if(Array.isArray(line)) script.push([i,line[0]],[1-i,line[1]]); else script.push([i,line]); }
@@ -5529,7 +5529,7 @@ function meetShot(){ let D=null, frog=false; if(frogKing.here&&(frogKing.on||par
   let id='behind'; if(D.on===2){ if(D.li<=1&&D.t<3.4) id='through'; else { if(w===2) mcam.spk='ots-girls'; else if(w===0||w===1){ mcam.spk='ots-actor'; mcam.who=w; } id=mcam.spk; if(frog&&(D.li===8&&w===1||D.sn>=0&&D.sn<1.7)) id='snack'; } }
   if(id==='behind'){ const far=clamp(dl-1.2,0,6)*0.12; P.set(_mm.x-dx*(2.2+far),hy+0.05,_mm.z-dz*(2.2+far)); Lk.copy(_ma); }
   else if(id==='through'){ P.set(_mm.x+dx*0.5,hy-0.12,_mm.z+dz*0.5); Lk.copy(_ma); }
-  else if(id==='ots-girls'){ const b=low?1.75:1.3, sd=low?1.05:0.9; P.set(_mm.x-dx*b+sx*sd,hy+(low?0.5:0.14),_mm.z-dz*b+sz*sd); Lk.copy(_ma); }   /* (higher and wider when they are crouching, to see past a backpack) */
+  else if(id==='ots-girls'){ const b=low?2.0:1.5, sd=low?0.95:0.9; P.set(_mm.x-dx*b+sx*sd,hy+(low?1.05:0.5),_mm.z-dz*b+sz*sd); Lk.copy(_ma); }   /* (higher and wider when they are crouching, to see past a backpack) */
   else if(id==='ots-actor'){ const g=(mcam.who?pip:june).g.position; P.set(_ma.x+dx*0.85-sx*0.75,_ma.y+0.32,_ma.z+dz*0.85-sz*0.75); Lk.set(g.x,g.y+(low?0.55:0.95),g.z); }
   else { P.set(_ma.x-dx*0.75+sx*1.2,_ma.y+0.12,_ma.z-dz*0.75+sz*1.2); Lk.set(_ma.x-dx*0.62,_ma.y-0.2,_ma.z-dz*0.62); }   /* the snack: down at the planks, a hand's breadth from it */
   return {id,cut:id!=='behind'&&id!=='through'}; }
@@ -5703,7 +5703,7 @@ function frame(now){
       chase.set(trailX(s0)-Math.sin(hd)*4.6,trailY(s0)+8.6,s0-Math.cos(hd)*4.6); look.set(trailX(s0+1.2),trailY(s0)+0.9,s0+1.2);                       /* high behind, looking down */
       if(S.lo>0.002){ const cs=s0-4.9, e=S.lo*S.lo*(3-2*S.lo); chase.lerp(_p.set(trailX(cs)+0.35,trailY(cs)+0.42,cs),e); look.lerp(_s.set(trailX(s0+16),trailY(s0+16)+5.2,s0+16),e); }   /* low behind, looking up the ridge at the sky */
       camera.position.lerp(chase,k); target.lerp(look,k); } }
-  { const sh=meetShot(); mcam.k=damp(mcam.k,sh?1:0,sh?1.4:0.8,dt);
+  { const sh=meetShot(); mcam.k=damp(mcam.k,sh?1:0,sh?2.4:0.8,dt);   /* (it goes straight there from wherever it was, through reeds, trunks, rocks or the girls themselves: nothing holds it back, not even the rule that keeps it above the ground) */
     if(sh){ if(sh.cut&&sh.id!==mcam.id||mcam.k<0.02){ mcam.pos.copy(mcam.p); mcam.look.copy(mcam.l); } else { const q=1-Math.exp(-2.6*rawDt); mcam.pos.lerp(mcam.p,q); mcam.look.lerp(mcam.l,q); } mcam.id=sh.id; }
     if(mcam.k>0.002){ camera.position.lerp(mcam.pos,mcam.k); target.lerp(mcam.look,mcam.k); } }
   camera.lookAt(target);
