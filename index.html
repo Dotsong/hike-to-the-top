@@ -1744,26 +1744,28 @@ const fox=new THREE.Group();
 const giantLife=[], GL={on:false,t:0};
 { const sh=L('#7a2e22'), dk=L('#4a1c18'), eye=new THREE.MeshBasicMaterial({color:0x140c10}), g1=L('#9ccf4a'), g2=L('#7fb53a'), yel=L('#f4c531'), blk=L('#2a2220'), fuzz=L('#f8dc6a'),
     gauze=new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.5,depthWrite:false}), FLY=[['#f08a2c','#f8cc5c'],['#5aa0e8','#b4dcff'],['#e86a9a','#ffd4e2'],['#f2dc48','#fff7b8'],['#9a6ae0','#dcc8ff']];
-  const Z0=GB[2]+7, Z1=MTN-5, add=c=>{ c.g.visible=false; scene.add(c.g); giantLife.push(c); };
-  for(let i=0;i<5;i++){ const g=new THREE.Group(), legs=[];   /* the ants */
+  const Z0=GB[2]+7, Z1=MTN-5; let seed=11; const R=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  /* where each one lives: the first couple of every kind close by the path just inside the gateway; the rest scattered far and wide, right out to the horizon on both sides */
+  const add=(c,i)=>{ const sd=i%2?1:-1; if(i<2){ c.hz=Z0+3+R()*12; c.hx=sd*(4+R()*5); } else { c.hz=lerp(Z0,Z1,R()); c.hx=sd*(13+Math.pow(R(),1.4)*72); } c.side=sd; c.g.visible=false; scene.add(c.g); giantLife.push(c); };
+  for(let i=0;i<10;i++){ const g=new THREE.Group(), legs=[];   /* the ants */
     g.add(ball(sh,0.34,1,0.9,1.35,0,0.62,-0.62),ball(dk,0.2,1,0.95,1.2,0,0.6,-0.04),ball(sh,0.24,1,0.95,1.05,0,0.68,0.42),ball(eye,0.05,1,1,1,-0.14,0.76,0.56),ball(eye,0.05,1,1,1,0.14,0.76,0.56),
       ball(dk,0.03,0.8,0.8,7,-0.12,0.95,0.78),ball(dk,0.03,0.8,0.8,7,0.12,0.95,0.78),ball(dk,0.035,3,1,1,0,0.6,0.64));
     g.children[5].rotation.set(-0.5,0.35,0); g.children[6].rotation.set(-0.5,-0.35,0);
     for(const sd of [-1,1]) for(let k=0;k<3;k++){ const piv=new THREE.Group(); piv.position.set(sd*0.14,0.58,-0.22+k*0.2); const up=ball(dk,0.03,9,1,1,sd*0.26,0.1,0), lo=ball(dk,0.028,1,11,1,sd*0.5,-0.2,0); up.rotation.z=sd*0.35; lo.rotation.z=sd*0.25; piv.add(up,lo); g.add(piv); legs.push({piv,ph:(k+(sd>0?1:0))%2*Math.PI}); }
-    g.scale.setScalar(0.85+0.3*((i*7)%5)/4); add({kind:'ant',g,legs,side:i%2?1:-1,hz:lerp(Z0+3,Z1-3,(i+0.5)/5),sp:1.0+0.35*((i*3)%4)/3}); }
-  for(let i=0;i<4;i++){ const g=new THREE.Group(), segs=[];   /* the inchworms */
+    g.scale.setScalar(0.85+0.3*((i*7)%5)/4); add({kind:'ant',g,legs,sp:1.0+0.35*((i*3)%4)/3},i); }
+  for(let i=0;i<7;i++){ const g=new THREE.Group(), segs=[];   /* the inchworms */
     for(let k=0;k<11;k++){ const m=ball(k%2?g2:g1,k===10?0.19:0.16,1,1,1,0,0,0); g.add(m); segs.push(m); } const eyes=[ball(eye,0.035,1,1,1,0,0,0),ball(eye,0.035,1,1,1,0,0,0)]; g.add(eyes[0],eyes[1]);
-    add({kind:'worm',g,segs,eyes,side:i%2?-1:1,hz:lerp(Z0+3,Z1-3,(i+0.5)/4),rate:0.36+0.05*i}); }
-  for(let i=0;i<5;i++){ const g=new THREE.Group(), body=new THREE.Group(); g.add(body);   /* the bumblebees: round, striped and furry, on wings too small for them */
+    add({kind:'worm',g,segs,eyes,rate:0.36+0.03*i},i+1); }
+  for(let i=0;i<9;i++){ const g=new THREE.Group(), body=new THREE.Group(); g.add(body);   /* the bumblebees: round, striped and furry, on wings too small for them */
     body.add(ball(blk,0.33,1,0.95,1.2,0,0,-0.3),ball(yel,0.338,1,0.96,0.36,0,0,-0.16),ball(yel,0.3,1,0.95,0.3,0,0,-0.52),ball(fuzz,0.27,1,1,1,0,0.02,0.14),ball(blk,0.17,1,1,1,0,0,0.42),ball(eye,0.06,1,1.3,1,-0.11,0.03,0.5),ball(eye,0.06,1,1.3,1,0.11,0.03,0.5),
       ball(blk,0.02,1,1,7,-0.07,0.14,0.56),ball(blk,0.02,1,1,7,0.07,0.14,0.56)); body.children[7].rotation.x=body.children[8].rotation.x=-0.7;
     for(let k=0;k<3;k++) for(const sd of [-1,1]) body.add(ball(blk,0.025,1,7,1,sd*0.14,-0.33,-0.1+k*0.14));   /* legs dangling */
     const wings=[-1,1].map(sd=>{ const piv=new THREE.Group(); piv.position.set(sd*0.12,0.22,0.08); const w=ball(gauze,0.3,1.55,0.05,0.75,sd*0.4,0,-0.12); w.castShadow=false; piv.add(w); body.add(piv); return piv; });
-    add({kind:'bee',g,body,wings,hz:lerp(Z0+2,Z1-2,(i+0.5)/5),sp:2.3,lo:1.7,hi:3.3,ph:i*1.7}); }
-  for(let i=0;i<5;i++){ const g=new THREE.Group(), body=new THREE.Group(), a=L(FLY[i][0]), b=L(FLY[i][1]); g.add(body);   /* the butterflies */
+    add({kind:'bee',g,body,wings,sp:2.3,lo:1.7,hi:3.3,ph:i*1.7},i); }
+  for(let i=0;i<10;i++){ const g=new THREE.Group(), body=new THREE.Group(), a=L(FLY[i%5][0]), b=L(FLY[i%5][1]); g.add(body);   /* the butterflies */
     body.add(ball(dk,0.07,1,1,6.5,0,0,0),ball(dk,0.1,1,1,1,0,0.02,0.5),ball(dk,0.015,1,1,14,-0.06,0.16,0.68),ball(dk,0.015,1,1,14,0.06,0.16,0.68)); body.children[2].rotation.set(-0.6,-0.25,0); body.children[3].rotation.set(-0.6,0.25,0);
     const wings=[-1,1].map(sd=>{ const piv=new THREE.Group(); piv.position.set(sd*0.04,0.03,0); piv.add(ball(a,0.5,1.55,0.035,1.15,sd*0.74,0,0.24),ball(b,0.4,1.3,0.035,1.05,sd*0.5,0,-0.36),ball(b,0.14,1,0.3,1,sd*0.95,0.01,0.34)); body.add(piv); return piv; });
-    add({kind:'fly',g,body,wings,hz:lerp(Z0+2,Z1-2,(i+0.5)/5),sp:1.5,lo:2.3,hi:5,ph:i*2.3}); }
+    add({kind:'fly',g,body,wings,sp:1.5,lo:2.3,hi:5,ph:i*2.3},i+1); }
   GL.Z0=Z0; GL.Z1=Z1; }
 /* everything in the garden that cannot be walked or flown through: the tall things that grow there (noted as they are planted) and the houses of the village */
 function giantObst(){ const o=bugSolids.slice(); if(picks[2]) VILLAGE.forEach(([dz,lat,sz])=>{ const z=VILLAGE_Z+dz; o.push({x:trailX(z)+lat,z,r:sz*1.2}); }); return o; }
@@ -1774,12 +1776,12 @@ function updateGiantLife(dt){ const on=state.started&&mode==='trail'&&!!picks[2]
   GL.t+=dt; const t=GL.t, obs=giantObst(), Z0=GL.Z0, Z1=GL.Z1;
   for(const c of giantLife){
     if(!c.live){ c.live=true; c.stuck=0; c.leg=0; c.pause=0; c.ry=Math.random()*6.283; c.p=Math.random();   /* each starts on its own patch, somewhere clear */
-      for(let k=0;k<30;k++){ c.z=clamp(c.hz+(Math.random()-0.5)*8,Z0,Z1); c.x=trailX(c.z)+(c.side||(Math.random()<0.5?-1:1))*(3.4+Math.random()*8); if(bugClear(obs,c.x,c.z,c.kind==='worm'?3:0.9)) break; }
+      for(let k=0;k<30;k++){ c.z=clamp(c.hz+(Math.random()-0.5)*8,Z0,Z1); c.x=trailX(c.z)+c.side*Math.max(3.4,Math.abs(c.hx)+(Math.random()-0.5)*8); if(bugClear(obs,c.x,c.z,c.kind==='worm'?3:0.9)) break; }
       c.tx=c.x; c.tz=c.z; c.h=c.th=c.lo?lerp(c.lo,c.hi,Math.random()):0; c.dir=c.dd=Math.random()*6.283; }
     if(c.kind==='ant'){ const dx=c.tx-c.x, dz=c.tz-c.z, d=Math.hypot(dx,dz);
       if(c.pause>0){ c.pause-=dt; }   /* stops, feels the air, and is off again */
       else if(d<0.45||c.stuck>1){ c.stuck=0; if(Math.random()<0.3) c.pause=0.5+Math.random()*1.2;
-        for(let k=0;k<12;k++){ c.tz=clamp(c.hz+(Math.random()-0.5)*15,Z0,Z1); c.tx=trailX(c.tz)+c.side*(3.2+Math.random()*10); if(bugClear(obs,c.tx,c.tz,0.9)) break; } }
+        for(let k=0;k<12;k++){ c.tz=clamp(c.hz+(Math.random()-0.5)*15,Z0,Z1); c.tx=trailX(c.tz)+c.side*Math.max(3.2,Math.abs(c.hx)+(Math.random()-0.5)*15); if(bugClear(obs,c.tx,c.tz,0.9)) break; } }
       else { const st=c.sp*dt, ox=c.x, oz=c.z; c.x+=dx/d*st; c.z+=dz/d*st; bugPush(obs,c,0.75);
         { const lat=c.x-trailX(c.z); if(lat*c.side<2.7) c.x=trailX(c.z)+c.side*2.7; }   /* and it keeps off the path */
         const mx=c.x-ox, mz=c.z-oz, mv=Math.hypot(mx,mz); if(mv<st*0.4) c.stuck+=dt; else c.stuck=Math.max(0,c.stuck-dt*0.5);
@@ -1790,7 +1792,7 @@ function updateGiantLife(dt){ const on=state.started&&mode==='trail'&&!!picks[2]
     else if(c.kind==='worm'){ const L0=2.3, N=c.segs.length, was=c.p; c.p+=dt*c.rate;
       /* stretched flat, it draws its tail up to its head in a tall loop; then, before the head reaches out again, it looks for a way that is clear */
       if(was<0.5&&c.p>=0.5){ c.x+=Math.sin(c.dir)*L0*0.5; c.z+=Math.cos(c.dir)*L0*0.5; bugPush(obs,c,0.5);   /* (should something have sprung up where it stands, it shuffles clear) */
-        const ok=a=>{ for(let u=0.25;u<=1.001;u+=0.25){ const x=c.x+Math.sin(a)*L0*u, z=c.z+Math.cos(a)*L0*u, lat=(x-trailX(z))*c.side; if(lat<2.6||lat>13.5||z<Z0||z>Z1||Math.abs(z-c.hz)>9||!bugClear(obs,x,z,0.42)) return false; } return true; };
+        const ok=a=>{ for(let u=0.25;u<=1.001;u+=0.25){ const x=c.x+Math.sin(a)*L0*u, z=c.z+Math.cos(a)*L0*u, lat=(x-trailX(z))*c.side; if(lat<2.6||Math.abs(lat-Math.abs(c.hx))>9||z<Z0||z>Z1||Math.abs(z-c.hz)>9||!bugClear(obs,x,z,0.42)) return false; } return true; };
         if(!ok(c.dir)||Math.random()<0.12){ let found=false; for(let k=0;k<10&&!found;k++){ const a=c.dir+(Math.random()-0.5)*(1.2+k*0.5); if(ok(a)){ c.dir=a; found=true; } } if(!found) c.dir+=Math.PI; } }
       if(c.p>=1) c.p-=1;
       { let a=c.dir-c.dd; a=Math.atan2(Math.sin(a),Math.cos(a)); c.dd+=a*Math.min(1,dt*5); }
@@ -1800,7 +1802,7 @@ function updateGiantLife(dt){ const on=state.started&&mode==='trail'&&!!picks[2]
     else { const bee=c.kind==='bee', dx=c.tx-c.x, dz=c.tz-c.z, d=Math.hypot(dx,dz);
       if(c.pause>0) c.pause-=dt;   /* a bee hangs in the air a moment at each stop */
       else if(d<0.5||c.stuck>1.2){ c.stuck=0; if(bee) c.pause=0.6+Math.random()*1.6; c.th=lerp(c.lo,c.hi,Math.random());
-        for(let k=0;k<12;k++){ c.tz=clamp(c.hz+(Math.random()-0.5)*18,Z0,Z1); c.tx=trailX(c.tz)+(Math.random()-0.5)*26; if(bugClear(obs,c.tx,c.tz,1.2)) break; } }
+        for(let k=0;k<12;k++){ c.tz=clamp(c.hz+(Math.random()-0.5)*18,Z0,Z1); c.tx=trailX(c.tz)+c.hx+(Math.random()-0.5)*26; if(bugClear(obs,c.tx,c.tz,1.2)) break; } }
       else { const st=c.sp*dt*(bee?1:0.75+0.4*Math.sin(t*1.3+c.ph)), ox=c.x, oz=c.z, wob=bee?0:Math.sin(t*1.9+c.ph)*0.8;   /* a butterfly never flies straight */
         c.x+=(dx/d+dz/d*wob)*st; c.z+=(dz/d-dx/d*wob)*st; bugPush(obs,c,bee?0.75:1.3);
         const mx=c.x-ox, mz=c.z-oz, mv=Math.hypot(mx,mz); if(mv<st*0.35) c.stuck+=dt; else c.stuck=Math.max(0,c.stuck-dt*0.5);
