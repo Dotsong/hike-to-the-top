@@ -2186,7 +2186,7 @@ const Music=(()=>{
   const CH_SKY=[{bass:36,notes:[60,64,67,72],pcs:[0,4,7,2,9]},{bass:35,notes:[59,62,67,74],pcs:[7,11,2,9,4]},{bass:33,notes:[57,60,64,67],pcs:[9,0,4,7,2]},{bass:41,notes:[57,60,65,67],pcs:[5,9,0,7,2,4]}];
   const MOODS={home:{bell:1},deep:{bell:0.8,drone:0.55,glass:0.35},
     aspen:{bell:0.8,glass:0.65,flute:0.75},            /* bright and airy: chimes and a flute over the bells */
-    autumn:{bell:0.6,strings:0.9,wood:0.55},         /* warm strings, a little wood */
+    autumn:{bell:0.6,strings:0.9,wood:0.55,viola:1},   /* warm strings, a little wood, and a viola singing over them */
     winter:{bell:0.35,glass:1,choir:0.3},           /* icy glass chimes, very still */
     grass:{bell:0.4,strings:0.9,flute:0.8,harp:0.5},/* wide open: strings and a flute */
     marsh:{bell:0.4,wood:1,flute:0.55},             /* plopping marimba */
@@ -2198,7 +2198,7 @@ const Music=(()=>{
     mtn:{bell:0.25,glass:0.45,choir:0.32,drone:0.9,flute:0.25,myst:1},   /* ethereal and mysterious */
     sky:{bell:0.35,harp:1,choir:0.55,strings:0.35,men:1,cello:1,sky:1},               /* harps and a full choir */
     cave:{bell:0.15,glass:0.3,drone:0.8,myst:1}};
-  const LAYERS=['bell','harp','choir','flute','glass','wood','strings','drone','men','cello','myst','sky'], mix={}, tgt={}; LAYERS.forEach(l=>{ mix[l]=tgt[l]=l==='bell'?1:0; });
+  const LAYERS=['bell','harp','choir','flute','glass','wood','strings','drone','men','cello','viola','myst','sky'], mix={}, tgt={}; LAYERS.forEach(l=>{ mix[l]=tgt[l]=l==='bell'?1:0; });
   let rise=0, riseT=0, arpI=0, harpBus, choirBus, strBus, menBus, menLevel=0, moodNow='home';
   function mood(a,b,k,r,m){ const A=MOODS[a]||MOODS.home, B=MOODS[b]||A; k=k||0; LAYERS.forEach(l=>{ tgt[l]=(A[l]||0)*(1-k)+(B[l]||0)*k; }); riseT=r||0; menLevel=m||0; moodNow=a+(k>0?'>'+b+':'+k.toFixed(2):'')+(r?' rise '+r.toFixed(2):''); }
   const mtof=m=>440*Math.pow(2,(m-69)/12);
@@ -2324,6 +2324,9 @@ const Music=(()=>{
       if(mix.choir>0.05) choir(cur.notes,t,dur,mix.choir,rise);
       if(mix.men>0.05) men(cur,t,dur,mix.men);
       if(grand&&mix.cello>0.3&&pos===0){ const ph=SKY_TUNE[(chordIdx-1)%4], a=mix.cello*(1+0.7*rise); bowed(ph,t,0,0.045*a,1500); bowed(ph,t,-12,0.05*a,650); }   /* cello, and the bass an octave below */
+      if(!grand&&mix.viola>0.3&&pos===0){ const v=m=>{ while(m<55) m+=12; while(m>74) m-=12; return m; }, n=cur.notes.map(v).sort((a,b)=>a-b), k=(chordIdx-1)%4;   /* the viola: a slow, warm line through the notes of each chord, a different turn each bar */
+        const ph=[[[n[0],6],[n[1],2],[n[2],8]],[[n[2],4],[n[1],4],[n[0],6],[n[1],2]],[[n[1],6],[n[2],2],[v(n[0]+12),4],[n[2],4]],[[n[2],6],[n[1],2],[n[0],8]]][k];
+        bowed(ph,t,0,0.042*mix.viola,2300); }
       if(grand&&rise>0.3&&pos===0) for(let i=0;i<6;i++) harp(SCALE[i+(chordIdx%2)],t+i*0.08,0.02+0.02*rise);   /* a sweep up the harp to open each bar */
     }
     if(grand&&rise>0.6&&pos%8===0) drum(t,0.05+0.07*rise);
