@@ -5092,6 +5092,15 @@ function simStep(dt){ time+=dt;
   updateSpeech(dt); updateNarrator(dt); }
 function setPace(p){ pace=p; const b=$('paceBtn'); b.textContent='Pace ×'+p; b.setAttribute('aria-label','Pace: '+(p===1?'normal speed':p+' times as fast')+'. Tap to change.'); }
 $('paceBtn').addEventListener('click',()=>setPace(pace>=8?1:pace*2));
+/* No creature simply vanishes. Whenever the game puts one away (a deer that has crossed, a bird that has flown, a fox that has slipped off
+   between the trees) it thins out over most of a second instead: it stays in the picture, growing fainter, and only then is gone. */
+const FADES=[];
+function fadeable(g,dur){ let want=g.visible, fade=0; const mats=new Set(); g.traverse(o=>{ if(o.material) mats.add(o.material); });
+  const show=k=>mats.forEach(m=>{ if(m.userData.o0===undefined){ m.userData.o0=m.opacity; m.userData.t0=m.transparent; } if(k>=1){ m.opacity=m.userData.o0; m.transparent=m.userData.t0; } else { m.transparent=true; m.opacity=m.userData.o0*k; } });
+  Object.defineProperty(g,'visible',{configurable:true,get(){ return want||fade>0; },set(v){ v=!!v; if(v){ if(fade>0) show(1); fade=0; } else if(want&&state.started&&mode==='trail') fade=1; want=v; }});
+  FADES.push(dt=>{ if(fade<=0) return; fade-=dt/(dur||0.8); if(fade<=0){ fade=0; show(1); } else show(fade*fade*(3-2*fade)); }); }
+[fox,gaggle,flock,squirrel,rabbit,flutter,deer,hedgehog].concat(herd.map(d=>d.g),benchBirds.map(b=>b.g),winterBirds.map(b=>b.g),giantLife.map(c=>c.g)).forEach(g=>fadeable(g));
+function stepFades(dt){ for(const f of FADES) f(dt); }
 function frame(now){
   const rawDt=Math.min(0.05,(now-last)/1000); last=now; idle+=rawDt;
   const dt=paused?0:rawDt; time+=dt;
@@ -5169,7 +5178,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); stepFades(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
