@@ -2079,7 +2079,7 @@ function updateParty(dt){
     else if(fork.stage===3&&party.s>=SITES[fork.site].b+1.2){ /* out of the thicket or the cave: the new forest opens up, and they walk right on into it, talking */
       fork.stage=4; party.restIn=70+Math.random()*30; pipB.skip=6; BRAINS.forEach(b=>{ b.actIn=14+Math.random()*8; }); onReveal(); }
     else if(party.rest>0){ party.rest-=dt; if(party.rest<=0){ party.vT=WALK; party.restIn=60+Math.random()*40; } }
-    else { party.restIn-=dt; if(party.restIn<=0&&!nearStop(30)&&gateK(party.s)<0.05&&!juneB.cur&&!pipB.cur&&!juneB.queue.length&&!pipB.queue.length&&quiet()) startRest(); }
+    else { party.restIn-=dt; if(party.restIn<=0&&!EVT.cur&&!nearStop(30)&&gateK(party.s)<0.05&&!juneB.cur&&!pipB.cur&&!juneB.queue.length&&!pipB.queue.length&&quiet()) startRest(); }
   }
   if(state.started&&fork.site===2&&fork.stage===4&&!fork.village&&party.rest<=0&&party.s>=VILLAGE_Z-3.5&&party.s<VILLAGE_Z+5){ fork.village=true; onVillage(); }   /* the village: stop and say hello */
   if(state.started&&fork.site===2&&fork.stage===4&&!fork.cloud&&party.s>=MTN+26&&party.s<MTN+50){ fork.cloud=true; onCloud(); }   /* halfway up the hill: the mist settles */
@@ -2142,7 +2142,7 @@ function updateBrain(b,dt){
     if(sp>0.06||hopping){ const lane=b.d+dodge(b.pos.y+0.8), a=pt(b.pos.y+1.6,lane+sidestep(b.pos.y,lane)); moveToward(b,a[0],a[1],hopping?Math.max(sp,1.9):sp,dt); walking=true; }   /* stepping round any boulder or log on the path */ else b.faceT=heading(b.pos.y);
     if(b.skip>0) b.skip-=dt;
     if(state.started&&party.rest<=0&&fork.stage!==1){ b.actIn-=dt;
-      if(b.actIn<=0&&!b.other.cur&&!b.other.queue.length){
+      if(b.actIn<=0&&!b.other.cur&&!b.other.queue.length&&!EVT.cur){
         if(fork.stage!==2&&Math.abs(es)<0.5&&party.restIn>8&&!nearStop(11)&&fork.stage!==3&&gateK(party.s)<0.05){ planAct(b); b.actIn=14+Math.random()*16; } } }
   } else if(st.k==='walk'){ walking=true; if(moveToward(b,st.to[0],st.to[1],st.speed||1.6,dt)<0.04) b.cur=null;
   } else if(st.k==='say'){ sayIf(b,st.text); b.cur=null;
@@ -4047,7 +4047,7 @@ function updateSpeech(dt){
   if(curLine){ curLine.t-=dt; if(curLine.t<=0){ curLine=null; lineGap=0.45; } }
   else if(lineGap>0) lineGap-=dt;
   else if(script.length){ const [w,tx]=script.shift(); if(bubbles[w]&&bubbles[w].root.visible) showLine(w,tx); }
-  else if(state.started&&party.rest<=0&&fork.stage!==1){ speakIn-=dt; if(speakIn<=0){ chatter(); speakIn=8+Math.random()*8; } }
+  else if(state.started&&party.rest<=0&&fork.stage!==1&&!EVT.cur){ speakIn-=dt; if(speakIn<=0){ chatter(); speakIn=8+Math.random()*8; } }
   const xs=[];
   bubbles.forEach((bb,i)=>{ bb.head.getWorldPosition(hp); hp.project(camera);
     const x=(hp.x*0.5+0.5)*innerWidth, y=(-hp.y*0.5+0.5)*innerHeight; xs[i]=x;
@@ -4194,9 +4194,12 @@ const shootStar=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0
 const pebbleMesh=new THREE.Mesh(rockGeo,L('#8b8f8a')); pebbleMesh.scale.set(0.13,0.1,0.11); pebbleMesh.castShadow=true; pebbleMesh.visible=false; scene.add(pebbleMesh);   /* the pebble that comes skittering down the slope */
 const EVT={cur:null,inT:18,last:'',lastPat:-1};
 const eventPlace=()=>bioKeyAt(party.s)||(deep(party.s)>0.5?'deep':'home');
+const MUST_EVENT={birds:1,herd:1,deer:1,geese:1,fox:1}, mustEvent=k=>!!MUST_EVENT[k]||!!(SMALL[k]&&SMALL[k].bird!==undefined);
+function calmNow(){ return quiet()&&!narr.q.length&&narr.t<=0&&!juneB.cur&&!pipB.cur&&!juneB.queue.length&&!pipB.queue.length&&party.restIn>9&&!nearStop(16)&&whale.state!==1&&!bench.on&&!riverAsk&&!coatUp.on; }
+const holdEvents=t=>{ EVT.inT=Math.max(EVT.inT,t); };   /* something else has the stage: nothing new for this long */
 function tell(lines){ if(script.length>2) script.length=2; script.push(...lines); speakIn=10; }   /* like announce, for lines with set speakers */
 function endEvent(){ herd.forEach(d=>d.g.visible=false); fox.visible=false; gaggle.visible=false; flock.visible=false; squirrel.visible=false; rabbit.visible=false; flutter.visible=false; deer.visible=hedgehog.visible=pileMesh.visible=false; acorns.forEach(a=>a.visible=false);
-  if(EVT.cur&&EVT.cur.kind==='swirl'&&gust.t<0) gustMesh.count=0; EVT.cur=null; EVT.inT=26+Math.random()*26; }
+  if(EVT.cur&&EVT.cur.kind==='swirl'&&gust.t<0) gustMesh.count=0; EVT.cur=null; EVT.inT=26+Math.random()*26; speakIn=Math.max(speakIn,7); BRAINS.forEach(b=>{ b.actIn=Math.max(b.actIn,6+Math.random()*5); }); party.restIn=Math.max(party.restIn,8); }   /* and a breath afterwards before the girls start chatting, wandering off or stopping for a snack */
 function startEvent(kind){
   const e=EVT.cur={kind,t:0,said:false,cue:false,s0:party.s,place:eventPlace()}; EVT.last=kind;
   if(NARR_EVENT[kind]) narrate(NARR_EVENT[kind]);
@@ -4228,9 +4231,14 @@ function startEvent(kind){
 function updateEvents(dt){
   const e=EVT.cur;
   if(!e){ if(!state.started||party.rest>0||fork.stage===1||fork.stage===2||gateK(party.s)>0.15) return;
-    EVT.inT-=dt; if(EVT.inT>0) return;
+    EVT.inT-=dt; if(EVT.inT>0){ EVT.wait=0; return; }
     let menu=(EVENT_MENU[eventPlace()]||[]).filter(k=>k!==EVT.last||EVENT_MENU[eventPlace()].length<2); if(party.s>34&&fork.stage<4) menu=menu.filter(k=>k!=='rabbit');   /* the rabbit needs open ground beside the trail */
-    if(!menu.length){ EVT.inT=20; return; } startEvent(pick(menu)); return; }
+    /* One thing at a time. Something new only begins in a lull: nobody talking, the narrator silent, neither girl in the middle of doing
+       something, no snack stop or crossroads just ahead, no whale in the mist. If its moment comes and there is no lull, it waits for one.
+       But the creatures do not wait on the girls for ever: after a while the ones that are simply there to be seen (birds overhead, deer,
+       the fox, the geese) come anyway. */
+    if(!calmNow()){ EVT.wait=(EVT.wait||0)+dt; if(EVT.wait<14) return; menu=menu.filter(mustEvent); if(!menu.length) return; }
+    EVT.wait=0; if(!menu.length){ EVT.inT=20; return; } startEvent(pick(menu)); return; }
   e.t+=dt; const t=e.t, hd=heading(party.s), px=trailX(party.s), py=trailY(party.s);
   if(e.small&&e.kind!=='birds'){ const S=e.small;
     if(e.reps>0&&t>e.nextSnd){ e.reps--; e.nextSnd=t+0.8+Math.random()*0.9; smallSound(S); }
@@ -4669,7 +4677,7 @@ const whale=(()=>{ const c=document.createElement('canvas'); c.width=512; c.heig
   const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),color:0x66727f,transparent:true,opacity:0,fog:false,depthWrite:false,side:THREE.DoubleSide}));
   m.visible=false; m.renderOrder=2; m.frustumCulled=false; scene.add(m); return {m,base,state:0,t:0,dir:1}; })();
 const WHALE_LASTS=30; let whaleCam=0;
-function startWhale(){ whale.state=1; whale.t=0; whale.dir=Math.cos(camTheta)>0?1:-1; Music.sfx('whale');
+function startWhale(){ holdEvents(WHALE_LASTS+6); whale.state=1; whale.t=0; whale.dir=Math.cos(camTheta)>0?1:-1; Music.sfx('whale');
   narrate('Something very large and very slow went by inside the cloud, singing to nobody in particular.'); playScript([[1,'June... what is THAT?'],[0,'...I think it\'s a whale. A whale in the sky.'],[1,'It sounds lonely. HELLO, WHALE!']]); speakIn=18; }
 function updateWhale(dt){ const W=whale;
   if(W.state===0&&state.started&&mode==='trail'&&fork.site===2&&fork.stage===4&&!skyOpen&&party.s>SKY_A-40&&party.s<SKY_A-12) startWhale();
@@ -4730,7 +4738,7 @@ function startBench(){ const B=bench; B.on=1; B.done=true; B.t=0; B.wt=0; B.back
   BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.queue.push({k:'walk',to:benchW(i?0.45:-0.42,0.03),speed:1.3},{k:'pose',pose:'sit',dur:99999,face:hd}); });
   narrate('Just below the cloud, somebody long ago had set a bench of stone beside the trail, for exactly this.');
   playScript([[1,'A bench! Made of ROCK!'],[0,'One last sit before the cloud. Come on.'],[1,'It\'s cold on my bottom. I like it.']]); }
-function leaveBench(silent){ const B=bench; if(!B.on) return; B.on=0; $('benchDock').hidden=true; party.rest=0.01; BRAINS.forEach(b=>{ b.queue.length=0; b.cur=null; });
+function leaveBench(silent){ const B=bench; if(!B.on) return; B.on=0; holdEvents(14); $('benchDock').hidden=true; party.rest=0.01; BRAINS.forEach(b=>{ b.queue.length=0; b.cur=null; });
   if(silent) return; hushBubbles(); Music.amb('flutter'); playScript([[0,'Right. Into the cloud we go.'],[1,'Bye, bench. Bye, birds!']]); speakIn=12; }
 function birdOff(b){ b.st=3; b.t=0; b.dur=2+Math.random()*0.6; b.spot=-1; b.from.copy(b.g.position); const a=Math.random()*6.283; b.to.set(b.from.x+Math.cos(a)*12,b.from.y+5+Math.random()*3,b.from.z+Math.sin(a)*12); }
 function updateBench(dt){ const B=bench, near=!!state.started&&mode==='trail'&&fork.site===2&&!skyOpen&&Math.abs(party.s-BENCH_S)<90;
@@ -4739,7 +4747,7 @@ function updateBench(dt){ const B=bench, near=!!state.started&&mode==='trail'&&f
   if(!B.on&&near&&!B.done&&fork.stage===4&&party.rest<=0&&!riverAsk&&party.s>BENCH_S-1.4&&party.s<BENCH_S+0.8) startBench();
   if(B.on===1&&juneB.cur&&juneB.cur.pose==='sit'&&pipB.cur&&pipB.cur.pose==='sit'&&quiet()){ B.on=2; $('benchDock').hidden=false; }
   if(B.on===2){ B.t+=dt; if(whale.state!==1) B.wt+=dt;
-    if(!B.back&&B.wt>28){ B.back=true; whale.state=1; whale.t=0; whale.dir=-whale.dir; Music.sfx('whale');   /* they have sat long enough: it comes back the other way, for another look */
+    if(!B.back&&B.wt>28){ B.back=true; holdEvents(WHALE_LASTS+6); whale.state=1; whale.t=0; whale.dir=-whale.dir; Music.sfx('whale');   /* they have sat long enough: it comes back the other way, for another look */
       narrate('The girls sat so still, for so long, that the whale came back for another look.'); playScript([[1,'June! JUNE! It came back!'],[0,'Shh. I think it wanted to see us, too.'],[1,'Bye, whale. We\'re going up there next.']]); } }
   let perched=0;
   for(const b of benchBirds){
@@ -4759,9 +4767,21 @@ const icePond=(()=>{ const c=document.createElement('canvas'); c.width=c.height=
   g.strokeStyle='rgba(255,255,255,0.85)'; g.lineWidth=1.6; for(let i=0;i<7;i++){ let x=100+R()*312, y=100+R()*312, a=R()*6.283; g.beginPath(); g.moveTo(x,y); for(let k=0;k<7;k++){ a+=(R()-0.5)*0.9; x+=Math.cos(a)*34; y+=Math.sin(a)*34; g.lineTo(x,y); if(k===3){ g.moveTo(x,y); g.lineTo(x+Math.cos(a+1)*40,y+Math.sin(a+1)*40); g.moveTo(x,y); } } g.stroke(); }   /* cracks */
   g.fillStyle='rgba(120,90,50,0.55)'; for(let i=0;i<9;i++){ g.beginPath(); g.ellipse(120+R()*272,120+R()*272,7,4,R()*3,0,6.283); g.fill(); }   /* leaves frozen in */
   const m=new THREE.Mesh(new THREE.CircleGeometry(ICE_R+1.6,40),new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(c),color:0xa9bccb})); m.rotation.x=-Math.PI/2; m.scale.x=ICE_W; m.receiveShadow=true; m.visible=false; scene.add(m); return m; })();
+/* Some of the mountain trail's floating rocks do not stay put. A dozen of them drift: slow loops out over the slopes, two or three sailing
+   right across above the path, each turning a little and rising and falling as it goes. */
+const driftRocks=[]; { let sd=23; const R=()=>(sd=(sd*16807)%2147483647)/2147483647, cols=['#8d857a','#7b746c','#a09787','#6f6a66'], cone=new THREE.ConeGeometry(1,1,7); cone.rotateX(Math.PI);
+  for(let i=0;i<12;i++){ const g=new THREE.Group(), m=L(cols[i%4],{flatShading:true}), sz=0.9+R()*R()*3.2, top=new THREE.Mesh(rockGeo,m), under=new THREE.Mesh(cone,L(cols[(i+1)%4],{flatShading:true}));
+    top.scale.set(sz*1.3,sz*0.8,sz*1.1); top.rotation.y=R()*6; under.scale.set(sz*0.8,sz*1.3,sz*0.8); under.position.y=-sz*1.05; g.add(top,under);
+    if(i%3!==1){ const moss=new THREE.Mesh(blobGeo,L(i%2?'#7fae4e':'#6a9a4a')); moss.scale.set(sz*0.9,sz*0.16,sz*0.75); moss.position.y=sz*0.62; g.add(moss); }
+    if(i%2){ const crumb=new THREE.Mesh(rockGeo,m); crumb.scale.setScalar(sz*0.28); crumb.position.set(sz*1.2,-sz*1.6,sz*0.5); g.add(crumb); }
+    g.children.forEach(c=>{ c.castShadow=true; }); g.visible=false; scene.add(g);
+    const over=i%4===0;   /* these cross above the path */
+    driftRocks.push({g,z:lerp(MTN+40,SKY_A-12,(i+R()*0.8)/12),lat:over?0:(i%2?1:-1)*(12+R()*34),h:over?13+R()*6:8+R()*14,ax:over?26+R()*14:5+R()*9,az:4+R()*7,w:(over?0.05:0.08+R()*0.07)*(R()<0.5?-1:1),ph:R()*6.283,spin:(R()-0.5)*0.12}); } }
+function updateDriftRocks(){ const on=!!state.started&&mode==='trail'&&wondersOn&&!skyOpen; driftRocks.forEach(d=>{ d.g.visible=on; if(!on) return; const a=time*d.w+d.ph, z=d.z+Math.sin(a*1.0+1)*d.az;
+    d.g.position.set(trailX(z)+d.lat+Math.sin(a)*d.ax,trailY(z)+d.h+1.4*Math.sin(time*0.21+d.ph),z); d.g.rotation.set(0.07*Math.sin(time*0.3+d.ph),time*d.spin+d.ph,0.07*Math.sin(time*0.23+d.ph*2)); }); }
 function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
   icePond.position.set(trailX(ICE_Z)+ICE_LAT,trailY(ICE_Z)-0.4,ICE_Z);
-  if(!fork.ice&&fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>ICE_Z-7&&party.s<ICE_Z+3&&quiet()){ fork.ice=true;
+  if(!fork.ice&&fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>ICE_Z-7&&party.s<ICE_Z+3&&quiet()&&!EVT.cur){ fork.ice=true; holdEvents(16);
     narrate('A little way off the trail a pond had frozen right across, smooth and pale as a dinner plate.');
     playScript([[1,'June! The pond is FROZEN!'],[0,'Solid as a window. We\'ll look from here, though. You can\'t tell how thick it is.'],[1,'There are leaves stuck inside it. Like a leaf museum.']]); speakIn=14; } }
 function updateCurtains(){ const rise=fork.site===2&&!skyShut?smooth(BOULDER_S-4,BOULDER_S+1,party.s):0;   /* over the boulder: the mist stays shut behind them, over the hill and the place below it */
@@ -4935,7 +4955,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
