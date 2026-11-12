@@ -2683,6 +2683,8 @@ const Music=(()=>{
     else if(kind==='thunk'){ tone(170,70,0,0.13,0.05); hiss(0,0.08,0.02,900,0.8); }                                                   /* something small landing */
     else if(kind==='thump'){ hiss(0,0.55,0.035,420,0.6); tone(120,60,0.05,0.2,0.045); }                                                /* snow sliding off a branch */
     else if(kind==='splash'){ hiss(0,0.28,0.03,1900,0.7); tone(520,210,0,0.1,0.022); tone(900,500,0.09,0.08,0.012); }
+    else if(kind==='ribbit'){ const f=92+Math.random()*16; [0,0.34].forEach((at,k)=>{ for(let i=0;i<7;i++){ tone(f*(k?1.18:1),f*(k?1.5:0.86),at+i*0.034,0.03,0.05,'sawtooth'); } tone(f*2,f*(k?3:1.7),at,0.24,0.02,'triangle'); }); }   /* a big frog: a deep, creaky rib-bit */
+    else if(kind==='chorus'){ for(let j=0;j<5;j++){ const f=140+Math.random()*130, at=Math.random()*1.8, n=2+Math.floor(Math.random()*4); for(let i=0;i<n;i++){ tone(f,f*0.8,at+i*0.2,0.11,0.011,'triangle'); tone(f*2.02,f*1.7,at+i*0.2,0.08,0.004,'triangle'); } } }   /* a lot of frogs, further off, all at once */
     else if(kind==='croak'){ const f=150+Math.random()*60, n=3+Math.floor(Math.random()*3); for(let i=0;i<n;i++){ tone(f,f*0.8,i*0.24,0.13,0.022,'triangle'); tone(f*2.02,f*1.7,i*0.24,0.1,0.008,'triangle'); } }
     else if(kind==='chime'){ [[1568,0],[2093,0.28],[2637,0.6],[1976,1.05]].forEach(([f,at])=>{ tone(f,f,at,1.9,0.016); tone(f*2.76,f*2.76,at,0.7,0.003); }); }
     else if(kind==='whistle'){ const f=2500+Math.random()*300; tone(f,f*1.32,0,0.17,0.02); tone(f,f*1.32,0.34,0.17,0.02); }              /* a marmot */
@@ -3267,7 +3269,7 @@ function updateRest(dt,rawDt){
   if(rest.leaving){ const lv=rest.leaving; lv.t+=dt;   /* off they go: a few steps toward the chosen path, then fade back to the trail */
     if(lv.t>3.6&&!lv.fading){ lv.fading=true; const tok=restToken; $('fade').classList.add('on');
       setTimeout(()=>{ if(tok!==restToken||mode!=='rest') return; leaveRest(lv.c); $('fade').classList.remove('on'); },950); } }
-  chirpRest-=dt; if(chirpRest<=0){ if(fork.site===2&&legKey(1)==='marsh'){ Music.amb(pick(['croak','croak','peeper','peeper','midge','plonk'])); chirpRest=1+Math.random()*2.4; } else { Music.sfx('chirp'); chirpRest=5+Math.random()*8; } }   /* (in the marsh it is frogs, not birds) */
+  chirpRest-=dt; if(chirpRest<=0){ if(fork.site===2&&legKey(1)==='marsh'){ Music.amb(pick(['croak','croak','chorus','chorus','peeper','peeper','midge','plonk'])); chirpRest=1+Math.random()*2; } else { Music.sfx('chirp'); chirpRest=5+Math.random()*8; } }   /* (in the marsh it is frogs, not birds) */
   rest.update(dt,time); if(noteT>0){ noteT-=dt; if(noteT<=0||rest.leaving) hideDadNote(); }
   /* camera: drifts slowly round the girls; when they notice the paths it settles behind them, looking the way they are looking */
   if(rest.phase<3) rest.th+=dt*0.035*motion; else { let dd=Math.PI-0.5-rest.th; dd=Math.atan2(Math.sin(dd),Math.cos(dd)); rest.th+=dd*(1-Math.exp(-0.55*dt)); }
@@ -4398,6 +4400,9 @@ function updateSpeech(dt){
   else if(script.length){ const [w,tx]=script.shift(); if(bubbles[w]&&bubbles[w].root.visible) showLine(w,tx); }
   else if(state.started&&party.rest<=0&&fork.stage!==1&&!EVT.cur){ speakIn-=dt; if(speakIn<=0){ chatter(); speakIn=8+Math.random()*8; } }
   const xs=[];
+  if(mode==='trail'&&(frogKing.on||MEETS.some(D=>D.on))){   /* in a meeting the camera cuts about, so the bubbles do not follow heads: each speaker's words come up in the same place every time */
+    bubbles.forEach((bb,i)=>{ const x=innerWidth*[0.3,0.5,0.7][i], y=innerHeight*0.47; xs[i]=x; bb.el.style.transform=`translate3d(${clamp(x,Math.min(250,innerWidth*0.42),innerWidth-Math.min(250,innerWidth*0.42)).toFixed(1)}px,${y.toFixed(1)}px,0)`; bb.el.style.visibility=state.started?'visible':'hidden'; });
+    bubbles.forEach((bb,i)=>bb.el.classList.toggle('right',xs[i]>innerWidth/2)); return; }
   bubbles.forEach((bb,i)=>{ bb.head.getWorldPosition(hp); hp.project(camera);
     const x=(hp.x*0.5+0.5)*innerWidth, y=(-hp.y*0.5+0.5)*innerHeight; xs[i]=x;
     const vis=state.started&&bb.root.visible&&hp.z<1&&x>-80&&x<innerWidth+80&&y>-40&&y<innerHeight+120;
@@ -5365,7 +5370,7 @@ function updateMarsh(dt){ const M=marsh, Y=trailY0(MARSH_A), wy=Y-0.22, near=!!s
   /* little flying things */
   M.bugs.visible=on; if(on){ const p=M.bugs.geometry.attributes.position; M.sw.forEach((w,i)=>{ const L2=marshLamps.length?marshLamps[(i*3)%marshLamps.length]:null; if(i%2===0&&L2&&Math.abs(L2.z-party.s)<30){ w.cx=L2.x; w.cy=L2.y+0.1; w.cz=L2.z; } else { const z=party.s+((w.dz+40)%34)-6; w.cx=trailX(z)+w.lat+Math.sin(time*0.2+w.ph)*0.8; w.cy=Y+w.h+0.3*Math.sin(time*0.33+w.ph); w.cz=z; } });
     M.bd.forEach((b,i)=>{ const w=M.sw[b.s], a=b.a+time*b.w, q=b.b+time*b.u; p.setXYZ(i,w.cx+Math.cos(a)*b.r*(0.6+0.4*Math.sin(q)),w.cy+Math.sin(q*1.3)*b.r*0.55,w.cz+Math.sin(a)*b.r*(0.6+0.4*Math.cos(q*0.7))); }); p.needsUpdate=true;
-    M.snd-=dt; if(M.snd<=0){ M.snd=0.9+Math.random()*2.2; Music.amb(Math.random()<0.6?'croak':'peeper'); } M.bz-=dt; if(M.bz<=0){ M.bz=2+Math.random()*3; Music.amb(Math.random()<0.5?'midge':'buzz'); } } }
+    M.snd-=dt; if(M.snd<=0){ M.snd=0.7+Math.random()*1.6; Music.amb(Math.random()<0.6?'croak':'peeper'); } M.ch=(M.ch||0)-dt; if(M.ch<=0){ M.ch=1.7+Math.random()*1.2; Music.amb('chorus'); }   /* and under the near ones, the whole marsh singing */ M.bz-=dt; if(M.bz<=0){ M.bz=2+Math.random()*3; Music.amb(Math.random()<0.5?'midge':'buzz'); } } }
 /* Once everything has been found and the river can be crossed, the bend in it says so: a soft golden glow on the water where the
    stepping stones are, slow sparks rising out of it, and a warm light on the bank. It is there from the moment the hike begins. */
 const riverGold=(()=>{ const g=new THREE.Group(); g.visible=false; scene.add(g);
@@ -5411,7 +5416,7 @@ function updateFrogKing(dt){ const K=frogKing, on=!!state.started&&mode==='trail
       narrate('In the middle of the boardwalk, exactly where nobody could go round him, sat a frog. He was wearing a crown.'); } return; }
   K.t+=dt;
   if(K.on===1){ if(J.cur&&J.cur.pose&&Pp.cur&&Pp.cur.pose&&K.t>1.5){ K.on=2; K.t=0; playScript(FROGK_SAY); speakIn=9999; } return; }
-  if(K.on===2){ if(curLine&&curLine!==K.last){ K.last=curLine; K.li++; if(K.li===9){ K.sn=0; } }
+  if(K.on===2){ if(curLine&&curLine!==K.last){ K.last=curLine; K.li++; if(K.li===9){ K.sn=0; } if(curLine.w===2) Music.amb('ribbit'); } K.rb=(K.rb||0)-dt; if(curLine&&curLine.w===2&&K.rb<=0&&curLine.t>1.2){ K.rb=2.1+Math.random()*1.2; if(K.t>3) Music.amb('ribbit'); }   /* he croaks as he talks */
     const down=K.li>=2||(K.li===1&&K.t>2.5); set(J,down?(curLine&&curLine.w===0?'crouch':'crouch'):'look',hd); set(Pp,K.li===8||K.sn>=0&&K.sn<0.7?'scoop':down?'crouch':'point',hd);   /* down on their heels, to be at a king's height */
     if(K.sn>=0){ K.sn+=dt; const u=Math.min(1,K.sn/0.7); K.snack.visible=u<1; K.snack.position.set(lerp(Pp.pos.x-0.1,K.pos.x,u),Y+lerp(0.35,0.3,u)+Math.sin(Math.PI*u)*0.35,lerp(Pp.pos.y+0.3,FROGK_S-0.2,u)); if(u>=1&&K.gulp<=0&&K.sn<1.2){ K.gulp=0.5; Music.amb('plonk'); } }
     if(K.gulp>0){ K.gulp-=dt; const q=Math.sin(Math.PI*clamp(1-K.gulp/0.5,0,1)); K.g.scale.set(2.7*(1+0.14*q),2.7*(1-0.12*q),2.7*(1+0.14*q)); } else K.g.scale.setScalar(2.7);
