@@ -5542,7 +5542,7 @@ function meetShot(){ let D=null, frog=false; if(frogKing.here&&(frogKing.on||par
   let id='behind'; if(D.on===2){ if(D.li<=1&&D.t<3.4) id='through'; else { if(w===2) mcam.spk='ots-girls'; else if(w===0||w===1){ mcam.spk='ots-actor'; mcam.who=w; } id=mcam.spk; if(frog&&D.sn>=0&&D.sn<3) id='snack'; } }
   if(id==='behind'){ const far=clamp(dl-1.2,0,6)*0.12; P.set(_mm.x-dx*(2.2+far),hy+0.05,_mm.z-dz*(2.2+far)); Lk.copy(_ma); }
   else if(id==='through'){ P.set(_mm.x+dx*0.5,hy-0.12,_mm.z+dz*0.5); Lk.copy(_ma); }
-  else if(id==='ots-girls'){ const b=low?2.0:1.5, sd=low?0.95:0.9; P.set(_mm.x-dx*b+sx*sd,hy+(low?1.05:0.5),_mm.z-dz*b+sz*sd); Lk.copy(_ma); }   /* (higher and wider when they are crouching, to see past a backpack) */
+  else if(id==='ots-girls'){ const b=low?2.0:1.5, sd=low?1.45:1.35; P.set(_mm.x-dx*b+sx*sd,hy+(low?1.35:0.8),_mm.z-dz*b+sz*sd); Lk.copy(_ma); }   /* (higher and wider when they are crouching, to see past a backpack) */
   else if(id==='ots-actor'){ const g=(mcam.who?pip:june).g.position; P.set(_ma.x+dx*0.85-sx*0.75,_ma.y+0.32,_ma.z+dz*0.85-sz*0.75); Lk.set(g.x,g.y+(low?0.55:0.95),g.z); }
   else { P.set(_ma.x-dx*0.75+sx*1.2,_ma.y+0.12,_ma.z-dz*0.75+sz*1.2); Lk.set(_ma.x-dx*0.62,_ma.y-0.2,_ma.z-dz*0.62); }   /* the snack: down at the planks, a hand's breadth from it */
   return {id,cut:id!=='behind'&&id!=='through'}; }
