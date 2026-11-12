@@ -969,7 +969,10 @@ const BIO={
       else { const sz=0.9+T.h*1.6; if(T.n(24)<0.2) put(P.arock,T.x,T.y+sz*0.3,T.z,sz*1.4,sz*0.7,sz,T.ry,ALP_STONE[Math.floor(T.n(22)*3)]); else put(P.rock,T.x,T.y+sz*0.3,T.z,sz*1.4,sz*0.7,sz,T.ry,pk(GREYS,T.n(22)));   /* about one rock in five has lichen on it */ const snow=T.n(23)<0.4; if(snow) put(P.bush,T.x,T.y+sz*0.68,T.z,sz*0.9,sz*0.12,sz*0.7,0,SNOW);
  } },   /* a slab of rock, some with old snow */
     props(R){ if(R.n(30)<0.14){ const p=R.at(1.9,31); for(let k=0;k<4;k++) put(P.rock,p.x,p.y+0.14+k*0.24,p.z,0.34-k*0.06,0.15,0.3-k*0.05,R.n(32+k)*6,pk(GREYS,R.n(36+k))); }                 /* a cairn marking the way */
-      if(R.n(40)<0.55){ const p=R.at(1.7+R.n(41)*5,42), col=pk(PETALS,R.n(43)); put(P.bush,p.x,p.y+0.05,p.z,0.5,0.14,0.45,0,GREENS[3]); for(let k=0;k<6;k++) put(P.petal,p.x+(R.n(44+k)-0.5)*0.7,p.y+0.2,p.z+(R.n(50+k)-0.5)*0.7,0.8,0.8,0.8,0,col); }   /* a cushion of tiny flowers */
+      if(R.n(40)<0.55){ const p=R.at(1.7+R.n(41)*5,42), col=pk(PETALS,R.n(43)); const w=0.42+R.n(45)*0.3, hgt=w*0.5;   /* a cushion plant: a tight dark-green dome hugging the ground out of the wind, with a smaller one grown into its side, starred all over with tiny flowers */
+        put(P.bush,p.x,p.y-hgt*0.25,p.z,w,hgt,w*0.92,R.n(46)*6,CUSHION[0]); put(P.bush,p.x+w*0.62,p.y-hgt*0.3,p.z+w*0.25,w*0.6,hgt*0.72,w*0.56,0,CUSHION[1]); put(P.bush,p.x-w*0.3,p.y-hgt*0.32,p.z-w*0.55,w*0.5,hgt*0.62,w*0.5,0,CUSHION[2]);
+        for(let k=0;k<16;k++){ const a=R.n(240+k)*6.283, u=Math.sqrt(R.n(260+k))*0.92, fx=p.x+Math.cos(a)*u*w, fz=p.z+Math.sin(a)*u*w*0.92, fy=p.y-hgt*0.25+hgt*Math.sqrt(1-u*u)+0.012;
+          put(P.petal,fx,fy,fz,0.5,0.22,0.5,0,col); if(k%3===0) put(P.petal,fx,fy+0.012,fz,0.2,0.2,0.2,0,POLLEN); } }
       for(let j=0;j<8;j++){ const far=Math.pow(R.n(300+j),1.25), d=4.5+far*135, p=R.at(d,310+j); if(p.y<-800||R.n(320+j)>0.9) continue;   /* and rocks, rocks, rocks: strewn over the whole mountainside, bigger the further off they lie, right out to where the ground meets the sky */
         const sz=(0.45+R.n(330+j)*R.n(340+j)*2.4)*(1+d*0.022), kind=R.n(350+j), ry=R.n(360+j)*6, lich=R.n(400+j)<0.2, RP=lich?P.arock:P.rock, col=lich?ALP_STONE[Math.floor(R.n(370+j)*3)]:pk(GREYS,R.n(370+j));
         if(kind<0.5) put(RP,p.x,p.y+sz*0.25,p.z,sz*1.35,sz*0.7,sz,ry,col,(R.n(380+j)-0.5)*0.3);
@@ -1378,6 +1381,7 @@ function logVar(x,y,z,len,th,yaw,r,id){ const h=k=>hash(r,id,50+k), v=h(0), bark
   put(P.log,x,y+th*0.42,z,len,th,th,yaw,bark); if(moss) put(P.bush,x,y+th*0.86,z,len*0.24,th*0.2,th*0.45,yaw,MOSS);
   for(let k=0;k<5;k++){ const u=(h(1+k)-0.5)*len*0.8, sd=k%2?1:-1, q=0.13+h(6+k)*0.1; put(P.bush,x+ax*u+az*sd*th*0.52,y+th*(0.3+h(11+k)*0.35),z+az*u-ax*sd*th*0.52,q,q*0.28,q,yaw,CREAM); } }
 const ALP_STONE=[C('#9c9a94'),C('#8e8d88'),C('#a8a59d')];   /* (a painted rock is tinted lighter than a plain one, since the paint darkens it) */
+const CUSHION=[C('#4f7d3c'),C('#5d8a45'),C('#466f38')];
 const GROUND_LICHEN=[C('#a98450'),C('#a09d62'),C('#96a288'),C('#b3aa88')];
 const LICHEN=[C('#d9902e'),C('#c8c655'),C('#b7c7a8'),C('#e6dca4'),C('#c77a2a')], MOSSES=[C('#6f9a45'),C('#86a84e'),C('#5c8640')];
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
