@@ -1673,7 +1673,7 @@ const stars=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial
   const hillB=new THREE.Mesh(new THREE.SphereGeometry(300,24,12),far('#b6cdb4')); hillB.scale.y=0.36; hillB.position.set(-380,-40,-40); peak.add(hillB); }
 
 /* specks of pollen drifting in the sunbeams */
-const MOTES=70, moteBase=[], motePos=new Float32Array(MOTES*3);
+const MOTES=140, moteBase=[], motePos=new Float32Array(MOTES*3);   /* half of them are in the air everywhere; the other half join in only where it is snowing */
 for(let i=0;i<MOTES;i++) moteBase.push([rnd()*28,rnd()*6.5,rnd()*28,rnd()*10]);
 const moteGeo=new THREE.BufferGeometry(); moteGeo.setAttribute('position',new THREE.BufferAttribute(motePos,3));
 const motes=new THREE.Points(moteGeo,new THREE.PointsMaterial({size:0.14,map:spriteTex,color:0xfff2b8,transparent:true,opacity:0.75,depthWrite:false,blending:THREE.AdditiveBlending}));
@@ -4738,6 +4738,7 @@ function frame(now){
   { const rk=state.started?Math.max(waterBed,Math.exp(-Math.pow((party.s-RIVER_Z+2)/13,2))):0; if(Math.abs(rk-riverHeard)>0.03){ riverHeard=rk; Music.river(rk); } }
 
   /* pollen in the sunbeams; past the fork it turns into leaves drifting down */
+  moteGeo.setDrawRange(0,bioKeyAt(party.s)==='winter'&&gateK(party.s)<0.6?MOTES:MOTES/2);   /* twice as much snow in the air of the winter forest as there is dust or pollen anywhere else */
   for(let i=0;i<MOTES;i++){ const b=moteBase[i], x=wrap(b[0]+Math.sin(time*0.2+b[3])*0.9,target.x), z=wrap(b[2]+Math.cos(time*0.17+b[3])*0.9,target.z);
     motePos[i*3]=x; motePos[i*3+1]=trailY(z)+0.5+((b[1]-moteFall)%6.5+6.5)%6.5+Math.sin(time*0.5+b[3]*2)*0.35; motePos[i*3+2]=z; }
   moteGeo.attributes.position.needsUpdate=true;
