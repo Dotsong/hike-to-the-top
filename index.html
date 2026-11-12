@@ -4872,7 +4872,7 @@ const whale=(()=>{ const c=document.createElement('canvas'); c.width=512; c.heig
   const geo=new THREE.PlaneGeometry(46,18.7,28,1), base=Float32Array.from(geo.attributes.position.array);
   const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),color:0x66727f,transparent:true,opacity:0,fog:false,depthWrite:false,side:THREE.DoubleSide}));
   m.visible=false; m.renderOrder=2; m.frustumCulled=false; scene.add(m); return {m,base,state:0,t:0,dir:1}; })();
-const WHALE_LASTS=30; let whaleCam=0;
+const WHALE_LASTS=30; let whaleCam=0; const skyCam={t:0,dn:0,lo:0,free:false};
 function startWhale(){ holdEvents(WHALE_LASTS+6); whale.state=1; whale.t=0; whale.dir=Math.cos(camTheta)>0?1:-1; Music.sfx('whale');
   narrate('Something very large and very slow went by inside the cloud, singing to nobody in particular.'); playScript([[1,'June... what is THAT?'],[0,'...I think it\'s a whale. A whale in the sky.'],[1,'It sounds lonely. HELLO, WHALE!']]); speakIn=18; }
 function updateWhale(dt){ const W=whale;
@@ -5227,6 +5227,16 @@ function frame(now){
   { const gy=groundY(camera.position.x,camera.position.z); if(camera.position.y<gy+0.7) camera.position.y=gy+0.7;
     if(inK>0) camera.position.y=lerp(camera.position.y,clamp(camera.position.y,gy+0.9,gy+1.9),inK); }   /* stay under the roof */
   if(whaleCam>0.001) target.y+=3.1*whaleCam;
+  /* Coming into the sky garden. While the girls are still in the mist the view rises and tips down on them from behind, so that there is
+     nothing to see but two small figures and the white. Five seconds after they step out it sinks, slowly, almost to the planks behind
+     them: the path runs away ahead along the ridge, and the lights in the sky stand over it. (A finger on the screen takes the view back.) */
+  { const S=skyCam, inSky=fork.site===2&&mode==='trail'&&state.started; if(!inSky||party.s<SKY_A-1){ S.t=0; S.free=false; } if(pointers.size&&(S.dn>0.05||S.lo>0.05)) S.free=true;
+    if(inSky&&party.s>SKY_B+1) S.t+=dt; const lowOn=inSky&&!S.free&&S.t>5&&party.s<TOP_A-9, dnOn=inSky&&!S.free&&party.s>SKY_A+2.5&&party.s<TOP_A-9&&!lowOn;
+    S.dn=damp(S.dn,dnOn?1:0,0.8,dt); S.lo=damp(S.lo,lowOn?1:0,0.45,dt);
+    if(S.dn>0.002||S.lo>0.002){ const s0=party.s, hd=camHd, k=Math.max(S.dn,S.lo);
+      chase.set(trailX(s0)-Math.sin(hd)*4.6,trailY(s0)+8.6,s0-Math.cos(hd)*4.6); look.set(trailX(s0+1.2),trailY(s0)+0.9,s0+1.2);                       /* high behind, looking down */
+      if(S.lo>0.002){ const cs=s0-4.9, e=S.lo*S.lo*(3-2*S.lo); chase.lerp(_p.set(trailX(cs)+0.35,trailY(cs)+0.42,cs),e); look.lerp(_s.set(trailX(s0+16),trailY(s0+16)+5.2,s0+16),e); }   /* low behind, looking up the ridge at the sky */
+      camera.position.lerp(chase,k); target.lerp(look,k); } }
   camera.lookAt(target);
   sky.position.copy(camera.position);
   homeG.visible=party.s<22;   /* home is left behind once they are well on their way */
