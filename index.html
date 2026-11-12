@@ -680,6 +680,12 @@ function biomeAt(x,z){ if(z<=GATE_B) return 0; if(choice){ const k=bioKeyAt(z); 
 const ICE_Z=338, ICE_LAT=11.5, ICE_R=5, ICE_W=1.25;
 const iceOn=()=>!!picks[1]&&legKey(1)==='winter';
 function iceK(x,z){ if(Math.abs(z-ICE_Z)>9||!iceOn()) return 0; const dx=(x-trailX(ICE_Z)-ICE_LAT)/ICE_W, dz=z-ICE_Z; return 1-smooth(ICE_R-0.6,ICE_R+2.2,Math.hypot(dx,dz)); }
+/* the chasm in the alpine rock garden: a crack right across the mountain, far too deep and wide to jump, with one bridge of rock left over it for the trail */
+const CHASM_A=348, CHASM_B=355.5, CHASM_Z=(CHASM_A+CHASM_B)/2, CHASM_DEEP=13;
+const chasmOn=()=>!!picks[1]&&legKey(1)==='alpine';
+const chasmK=z=>z<=CHASM_A||z>=CHASM_B||!chasmOn()?0:smooth(CHASM_A,CHASM_A+1.5,z)*(1-smooth(CHASM_B-1.5,CHASM_B,z));
+/* (the ground the girls stand on keeps a strip at the height of the trail, where the bridge is; the ground that is drawn falls away under that too) */
+const drawnY=(x,z)=>{ const k=chasmK(z); return groundY(x,z)-(k>0?CHASM_DEEP*k*(1-smooth(1.25,1.9,Math.abs(x-trailX(z)))):0); };
 function groundY(x,z){
   paths(z); const ty=trailY(z);
   if(x>pL&&x<pR) return ty+0.3*clamp(Math.min(x-pL,pR-x)-FLAT,0,2)+ridge(x,z);   /* the wedge between the two paths: a low, flat-topped mound */
@@ -691,6 +697,7 @@ function groundY(x,z){
   { const wk=wallK(z); if(wk>0) y+=wk*5.4*smooth(2.4,6.5,a)*(1-0.45*smooth(14,30,a))*(0.55+0.45*Math.min(1,landK(z))); }   /* the banks of a gully or a canyon */
   { const pk=pondK(z); if(pk>0) y=lerp(y,ty-0.55,pk*smooth(2.25,3,a)); }                                                    /* the pond: water everywhere but the causeway */
   { const ik=iceK(x,z); if(ik>0) y=lerp(y,trailY(ICE_Z)-0.62,ik); }
+  { const ck=chasmK(z); if(ck>0) y-=CHASM_DEEP*ck*smooth(1.25,1.9,a); }
   y+=band(x,z,a);
   if(skyOpen&&z>SKY_B-9){ const q=smooth(SKY_B-9,SKY_B-2,z);   /* the sky garden's ridge: a few metres of crest, then a long fall on both sides, all the way to the last cave and past it */
     if(q>0) y=lerp(y,ty-34*(1-Math.exp(-e*0.055))+bumps*0.55-0.3*smooth(0,1.5,e),q); }
@@ -703,7 +710,7 @@ function groundY(x,z){
 /* Things lying on the trail: a boulder on one half of the path, which the girls walk around, or a fallen log right across it, which they hop over. */
 const OB_FROM=68, OB_STEP=13;
 function obstacle(k){ if(k<0) return null; const s=OB_FROM+k*OB_STEP+hash(k,3,91)*6;
-  if(Math.abs(s-REST_C)<12||s>FORK-4&&s<GATE_B+8||Math.abs(s-SITES[1].rest)<12||Math.abs(s-SITES[2].rest)<12||s>TOP_A-10) return null;
+  if(Math.abs(s-REST_C)<12||s>FORK-4&&s<GATE_B+8||Math.abs(s-SITES[1].rest)<12||Math.abs(s-SITES[2].rest)<12||s>TOP_A-10||chasmOn()&&Math.abs(s-CHASM_Z)<11) return null;
   for(let i=1;i<3;i++) if(s>GA[i]-6&&s<GB[i]+8) return null;
   if(s>MTN-6||s>SITES[2].b&&Math.abs(s-VILLAGE_Z)<17) return null;   /* and nothing lies across the path along the ridge, or through a village */
   return {s,side:hash(k,5,92)<0.5?-1:1,log:hash(k,7,93)<0.45}; }
@@ -794,7 +801,7 @@ function fillRow(z){
    or it floats above a hollow or sinks into a rise. */
 const rowCache=new Map();
 function rowOf(ri){ let c=rowCache.get(ri); if(c) return c; const z=ri*ROW; fillRow(z); c={x:Float32Array.from(rowX),y:new Float32Array(NC)};
-  for(let j=0;j<NC;j++) c.y[j]=groundY(c.x[j],z); rowCache.set(ri,c); return c; }
+  for(let j=0;j<NC;j++) c.y[j]=drawnY(c.x[j],z); rowCache.set(ri,c); return c; }
 function rowY(c,x){ const X=c.x; if(x<=X[0]) return c.y[0]; if(x>=X[NC-1]) return c.y[NC-1]; let lo=0, hi=NC-1;
   while(hi-lo>1){ const m=(lo+hi)>>1; if(X[m]<=x) lo=m; else hi=m; } const w=X[hi]-X[lo]; return w<1e-6?c.y[lo]:lerp(c.y[lo],c.y[hi],(x-X[lo])/w); }
 function floorY(x,z){ const ri=Math.floor(z/ROW), t=z/ROW-ri; return lerp(rowY(rowOf(ri),x),rowY(rowOf(ri+1),x),t); }
@@ -811,7 +818,7 @@ function rebuildGround(s0){
     const g=deep(z)*0.85, bp=bioK(z), nb=BIO[bioKeyAt(z)], pb=BIO[prevKeyAt(z)], nk=newK(z), fogQ=Math.max(!skyOpen?smooth(SKY_B+2,SKY_B+12,z):skyShut?1-smooth(SKY_B-6,SKY_B-1.5,z):0,mtnShut?1-smooth(MTN+44,MTN+51,z):0), tyRow=trailY(z);   /* beyond the cloud bank the ground is only more cloud */
     const only=choice&&z>GATE_B-3?(Math.abs(trailX(z)-xl)<Math.abs(trailX(z)-xr)?-1:1):0;   /* past the gateways only the chosen path is a path; the other is just forest floor */
     for(let j=0;j<NC;j++){ const x=rowX[j], k=(i*NC+j)*3, a=only<0?Math.abs(x-xl)/wl:only>0?Math.abs(x-xr)/wr:Math.min(Math.abs(x-xl)/wl,Math.abs(x-xr)/wr);
-      gPos[k]=x; gPos[k+1]=groundY(x,z); gPos[k+2]=z;
+      gPos[k]=x; gPos[k+1]=drawnY(x,z); gPos[k+2]=z;
       const rc=restDist(x,z), rv=x>xr?riverAt(x,z):0, rg=(paths(z),ridge(x,z))+band(x,z);
       const t=Math.min(smooth(1.0,2.4,a),smooth(2.6,4.4,rc)), n=hash(r,j,9), f=hash(r,j,4), bi=bp>0?biomeAt(x,z):0, tint=bi<0?FLOOR_ASPEN:FLOOR_AUTUMN;   /* trodden earth on the paths and across the rest site */
       for(let c=0;c<3;c++){ let dirt=DIRT[c]*(0.93+n*0.1)*(1-g*0.22);
@@ -851,7 +858,7 @@ const logGeo=new THREE.CylinderGeometry(0.5,0.55,1,9); logGeo.rotateZ(Math.PI/2)
 /* trees close to the girls cast shadows; the far ones do not need to */
 const P={trunkN:pool(trunkGeo,white(),300,true), blobN:pool(blobGeo,white(),900,true), coneN:pool(coneGeo,white(),420,true),
   trunkF:pool(trunkGeo,white(),3200), blobF:pool(blobGeo,white(),6400), coneF:pool(coneGeo,white(),12000),
-  bush:pool(blobGeo,white(),4200,true), rock:pool(rockGeo,white(),1900,true), log:pool(logGeo,white(),700,true), stem:pool(stemGeo,white(),1400), cap:pool(capGeo,white(),160,true),
+  bush:pool(blobGeo,white(),4200,true), rock:pool(rockGeo,white(),3400,true), log:pool(logGeo,white(),700,true), stem:pool(stemGeo,white(),1400), cap:pool(capGeo,white(),160,true),
   petal:pool(petalGeo,white(),2600), leaf:pool(leafGeo,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}),9500)};
 /* The alpine garden's rocks are painted: the same stone, but with a skin on it. Crusts of lichen in rings and blotches (orange, yellow,
    pale grey-green, black), thin cracks, and moss grown over the top and down into the creases. It is one picture wrapped round every rock,
@@ -1496,6 +1503,15 @@ function rebuildForest(s0){
       else if(key) drawGate(BIO[key].gate,r,z0,GA[gi],GB[gi]); }
     /* The rest site, furnished from REST_KIT: a ring of big trees with gaps where the trail comes in and the two paths go out,
        and the same boulders, logs, mushrooms, ferns and flowers, in the same places, as the rest scene the girls will sit down in. */
+    if(chasmOn()&&CHASM_Z>=z0&&CHASM_Z<z0+3){ const H=(i,j)=>hash(i,j,311), tone=h=>GREYS[Math.floor(h*GREYS.length)%GREYS.length];
+      /* the bridge: a span of old rock, thin in the middle and thick where it springs from each wall, with flat slabs worn smooth along the top */
+      for(let i=0;i<=10;i++){ const u=i/10*2-1, z=lerp(CHASM_A-0.9,CHASM_B+0.9,i/10), x=trailX(z), ty=trailY(z), D=0.9+5.2*Math.pow(Math.abs(u),2.6);
+        put(P.rock,x+(H(i,1)-0.5)*0.25,ty-0.36,z,1.55+H(i,2)*0.25,0.4,0.82,(H(i,3)-0.5)*0.5,tone(H(i,4)));
+        for(let yy=0.9;yy<D+0.6;yy+=1.1){ const q=1.25+0.5*(yy/D)*Math.abs(u)+H(i,5+yy)*0.2; put(P.rock,x+(H(i,9+yy)-0.5)*0.4,ty-0.5-yy,z+u*yy*0.12,q,0.85,0.95,H(i,13+yy)*6,tone(H(i,17+yy)),H(i,21+yy)*0.4); } }
+      /* and crags all along both rims and down the walls, out to where the crack runs out of sight */
+      for(const sd of [-1,1]) for(const rim of [0,1]) for(let d=2.3;d<92;d+=1.7+d*0.02){ const i=Math.round(d*7)+rim*900+(sd>0?2000:0), zr=(rim?CHASM_B+0.25:CHASM_A-0.25)+(H(i,1)-0.5)*0.7, x=trailX(zr)+sd*(d+H(i,2)*0.9), y=groundY(x,rim?CHASM_B+0.1:CHASM_A-0.1), sz=(0.55+H(i,3)*0.8)*(1+d*0.012);
+          put(P.rock,x,y+sz*0.1,zr,sz*1.3,sz*0.75,sz,H(i,4)*6,tone(H(i,5)),H(i,6)*0.5);
+          const zw=rim?CHASM_B-0.75:CHASM_A+0.75; put(P.rock,x+0.6,y-2.2-H(i,7)*3.5,zw,sz*1.4,sz*1.5,sz*0.8,H(i,8)*6,tone(H(i,9)),H(i,10)*0.5); if(d<40) put(P.rock,x-0.5,y-6.5-H(i,11)*3,rim?CHASM_B-1.1:CHASM_A+1.1,sz*1.5,sz*1.6,sz*0.8,H(i,12)*6,tone(H(i,13))); } }
     if(iceOn()&&ICE_Z>=z0&&ICE_Z<z0+3){ const cx=trailX(ICE_Z)+ICE_LAT;   /* round the frozen pond: stones on the bank with snow on them, drifts, and dead reeds standing in the ice */
       for(let i=0;i<13;i++){ const a=i/13*6.283+hash(i,3,77)*0.35, rr=ICE_R+0.5+hash(i,4,77)*0.9, x=cx+Math.cos(a)*rr*ICE_W, z=ICE_Z+Math.sin(a)*rr, y=floorY(x,z), sz=0.3+hash(i,5,77)*0.45;
         if(i%3) { put(P.rock,x,y+sz*0.3,z,sz*1.2,sz*0.8,sz,hash(i,6,77)*6,ROCKS[i%3]); put(P.bush,x,y+sz*0.72,z,sz*0.95,sz*0.25,sz*0.8,0,SNOW); } else put(P.bush,x,y+0.12,z,1.1+sz,0.38,0.8+sz,a,SNOW); }
@@ -2103,7 +2119,8 @@ const party={s:0,v:0,vT:0,rest:0,restIn:200};   /* standing at the trailhead unt
    3 on the chosen path and heading for its gateway, 4 out the other side in the new forest */
 const fork={stage:0,t:0,entered:false,gateEvt:false,river:false,deepSaid:false,hopSaid:false,site:0,tail:0,village:false};   /* site: which rest site this is about; tail: how far through the last stretch */
 /* is a planned stop (a rest site, the mist, the last cave) less than m metres ahead? */
-function nearStop(m){ const nx=fork.stage===0?REST_C:fork.stage===4&&fork.site<2?SITES[fork.site+1].rest:1e9; if(party.s>nx-m) return true;
+function nearStop(m){ if(chasmOn()&&party.s>CHASM_A-4-m*0.5&&party.s<CHASM_B+3) return true;   /* nobody wanders off, sits down or stops for a snack on the way over the chasm */
+  const nx=fork.stage===0?REST_C:fork.stage===4&&fork.site<2?SITES[fork.site+1].rest:1e9; if(party.s>nx-m) return true;
   if(fork.site===2&&fork.stage===4) for(const i of [3,4]) if(party.s>GA[i]-m&&party.s<GB[i]+6) return true; return false; }
 const TAIL_AT=[MTN+4,BOULDER_S-7,HILL_B,SKY_A-2,SKY_B+1.2,TOP_A-2,TOP_B-1.5], TAIL_EV=['hill','boulder','trail','mist','sky','cave','top'];
 let landY=groundY;   /* the height of the ground under the girls' feet: the trail's, or the rest scene's */
@@ -2247,6 +2264,8 @@ function finishBrain(b,pose,walking,dt){
   /* nor through the fence along the sky garden's boardwalk */
   if(landY===groundY&&skyOpen&&b.pos.y>SKY_B+1&&b.pos.y<SKY_B+36){ const fx=trailX(b.pos.y)-1.36+0.34; if(b.pos.x<fx) b.pos.x=fx;
     [b.cur].concat(b.queue).forEach(st=>{ if(st&&st.k==='walk'&&st.to[0]<fx+0.08) st.to[0]=fx+0.08; }); }   /* and anywhere she means to walk to that lies beyond it is brought back to this side, so she never stands marching at the rail */
+  /* and on the bridge of rock over the chasm, keep to the middle */
+  if(landY===groundY&&chasmOn()&&b.pos.y>CHASM_A-1&&b.pos.y<CHASM_B+1){ const cx=trailX(b.pos.y); b.pos.x=clamp(b.pos.x,cx-0.7,cx+0.7); }
   /* never stand on top of your sister */
   { const o=b.other, ox=b.pos.x-o.pos.x, oz=b.pos.y-o.pos.y, od=Math.hypot(ox,oz); if(od<0.62&&od>1e-4){ const k=(0.62-od)*0.5/od; b.pos.x+=ox*k; b.pos.y+=oz*k; } }
   b.y=landY(b.pos.x,b.pos.y);
@@ -2747,7 +2766,7 @@ function backToStart(){
 }
 function resetHike(){ leaveBench(true); bench.done=false;
   if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); if(mode==='moon') leaveMoon(); if(mode==='cave') leaveCave(); if(mode==='falls') leaveFalls(); riverAsk=0; forceRiver=false; $('riverDock').hidden=true; forceSecret=false; $('homeDock').hidden=true; $('phoneDock').hidden=true; $('endDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
-  note.found=0; clearPrints(); fork.village=false; fork.ice=false; fork.cloud=false; choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
+  note.found=0; clearPrints(); fork.village=false; fork.ice=false; fork.chasm=false; fork.cloud=false; choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
 }
 /* ---------- zone select (for testing): jump straight to any place on the mountain ---------- */
@@ -4906,6 +4925,14 @@ function updateGlints(dt){ const on=!!state.started&&mode==='trail'&&bioKeyAt(pa
       G.sp.position.set(c.x+Math.cos(a)*w,c.y+c.h*u,c.z+Math.sin(a)*w); G.t=0; G.dur=0.45+Math.random()*0.6; G.size=0.7+Math.random()*1.5; G.spin=(Math.random()-0.5)*3; G.sp.material.rotation=Math.random()*1.57; G.sp.visible=true; }
     G.t+=dt; const u=G.t/G.dur; if(u>=1){ G.t=-1; G.wait=0.6+Math.random()*4.5; G.sp.visible=false; continue; }
     const k=Math.sin(Math.PI*u); G.sp.material.opacity=k*k; G.sp.scale.setScalar(G.size*(0.3+0.7*k)); G.sp.material.rotation+=G.spin*dt; } }
+/* the dark at the bottom of the chasm: nothing can be seen down there */
+const chasmDark=new THREE.Mesh(new THREE.PlaneGeometry(220,4.6),new THREE.MeshBasicMaterial({color:0x23252c,transparent:true,opacity:0.86,depthWrite:false})); chasmDark.rotation.x=-Math.PI/2; chasmDark.visible=false; chasmDark.renderOrder=1; scene.add(chasmDark);
+const chasmDark2=chasmDark.clone(); chasmDark2.material=chasmDark.material.clone(); chasmDark2.material.opacity=0.5; chasmDark2.scale.y=1.25; scene.add(chasmDark2);
+function updateChasm(){ const on=!!state.started&&mode==='trail'&&chasmOn()&&Math.abs(party.s-CHASM_Z)<150; chasmDark.visible=chasmDark2.visible=on; if(!on) return;
+  chasmDark.position.set(trailX(CHASM_Z),trailY(CHASM_Z)-9.5,CHASM_Z); chasmDark2.position.set(trailX(CHASM_Z),trailY(CHASM_Z)-6.5,CHASM_Z);
+  if(!fork.chasm&&fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>CHASM_A-10&&party.s<CHASM_A-2&&quiet()&&!EVT.cur){ fork.chasm=true; holdEvents(24);
+    narrate('Then the mountain simply stopped: a crack right across it, too deep to see the bottom of. But one bridge of rock had been left, exactly where the trail wanted to go.');
+    playScript([[1,'June... the ground is BROKEN.'],[0,'It\'s a chasm. And look, the rock goes right across. Middle of the bridge, and hold my hand.'],[1,'I\'m not looking down. ...I looked down.'],[0,'Eyes on the far side, Pip. Nearly there.']]); speakIn=20; } }
 function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
   icePond.position.set(trailX(ICE_Z)+ICE_LAT,trailY(ICE_Z)-0.4,ICE_Z);
   if(!fork.ice&&fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>ICE_Z-7&&party.s<ICE_Z+3&&quiet()&&!EVT.cur){ fork.ice=true; holdEvents(16);
@@ -5082,7 +5109,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
