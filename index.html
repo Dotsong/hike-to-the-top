@@ -1695,17 +1695,16 @@ const squirrel=new THREE.Group(), rabbit=new THREE.Group(), flutter=new THREE.Gr
     ball(dark,0.02,1,1,1,-0.07,0.4,0.3),ball(dark,0.02,1,1,1,0.07,0.4,0.3),ball(white,0.08,1,1,1,0,0.22,-0.26));
   const wm=new THREE.MeshBasicMaterial({color:0xffb38a,side:THREE.DoubleSide}), wl=new THREE.Mesh(wingGeo,wm), wr=new THREE.Mesh(wingGeo,wm); wr.scale.x=-1; flutter.add(wl,wr); flutter.userData={wl,wr}; flutter.scale.set(0.32,0.32,0.66);
   [squirrel,rabbit,flutter].forEach(g=>{ g.visible=false; scene.add(g); }); }
-/* fish in the river: a handful swimming up and down the bend with their backs just breaking the water, and now and then one jumps */
-const fishes=[]; let fishJump=5;
-{ const FM=[L('#e07a3c'),L('#c9d2d8'),L('#8a9aa6')];
-  for(let i=0;i<10;i++){ const g=new THREE.Group(), m=FM[i%3], sc=0.8+rnd()*0.7; g.add(ball(m,0.12,0.42,0.72,1.75,0,0,0),ball(m,0.08,0.16,1.05,0.9,0,0,-0.25),ball(m,0.05,0.14,0.9,0.7,0,0.09,-0.02));
-    g.children.forEach(c=>c.castShadow=false); g.scale.setScalar(sc); g.visible=false; scene.add(g); fishes.push({g,lane:rnd(),ph:rnd()*30,sp:0.7+rnd()*0.9,dir:i%3?1:-1,jump:-1}); } }
+/* fish in the river: only their shadows, dark shapes sliding along just under the surface, up and down the bend */
+const fishes=[];
+{ const sh=new THREE.Shape(); sh.moveTo(0,0.34); sh.quadraticCurveTo(0.12,0.12,0.05,-0.16); sh.lineTo(0.13,-0.37); sh.lineTo(0,-0.29); sh.lineTo(-0.13,-0.37); sh.lineTo(-0.05,-0.16); sh.quadraticCurveTo(-0.12,0.12,0,0.34);
+  const geo=new THREE.ShapeGeometry(sh,8); geo.rotateX(Math.PI/2);   /* lying flat, nose toward +z */
+  for(let i=0;i<12;i++){ const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x163848,transparent:true,opacity:0.3+rnd()*0.16,depthWrite:false,side:THREE.DoubleSide})), sc=1+rnd()*1.1;
+    m.scale.setScalar(sc); m.renderOrder=2; m.visible=false; scene.add(m); fishes.push({g:m,lane:rnd(),ph:rnd()*30,sp:0.5+rnd()*0.8,dir:i%3?1:-1,sc}); } }
 function updateFish(dt){ const on=state.started&&mode==='trail'&&party.s>14&&party.s<94;
   fishes.forEach((f,i)=>{ f.g.visible=on; if(!on) return;
-    const span=30, z=RIVER_Z-15+(((time*f.sp*f.dir+f.ph)%span)+span)%span, x=x0(z)+riverBank(z)+1.3+f.lane*(riverWide(z)-2.6); let y=riverY(z)+0.005+0.015*Math.sin(time*3+i);
-    if(f.jump>=0){ f.jump+=dt; const u=f.jump/0.85; y=riverY(z)+0.8*Math.sin(Math.PI*u); f.g.rotation.x=-f.dir*(1.1-2.2*u); if(u>=1){ f.jump=-1; f.g.rotation.x=0; Music.amb('splash'); } }
-    f.g.position.set(x,y,z); f.g.rotation.y=(f.dir>0?0:Math.PI)+Math.sin(time*6+f.ph)*0.22; });
-  fishJump-=dt; if(on&&fishJump<=0){ fishJump=3.5+Math.random()*5; const near=fishes.filter(f=>f.jump<0&&Math.abs(f.g.position.z-party.s)<16); if(near.length){ pick(near).jump=0; Music.amb('plonk'); } } }
+    const span=30, z=RIVER_Z-15+(((time*f.sp*f.dir+f.ph)%span)+span)%span, x=x0(z)+riverBank(z)+1.3+f.lane*(riverWide(z)-2.6)+Math.sin(time*0.4+f.ph)*0.4;
+    f.g.position.set(x,riverY(z)+0.012,z); f.g.rotation.y=(f.dir>0?0:Math.PI)+Math.sin(time*5+f.ph)*0.2; f.g.scale.x=f.sc*(1+0.08*Math.sin(time*5+f.ph+1)); }); }
 /* a fox, for the aspen grove and the autumn woods: russet coat, white chest and tail-tip, black socks and ears (it faces +z) */
 const fox=new THREE.Group();
 { const red=L('#d9702f'), white=L('#fff6ea'), dark=L('#2e2430'), blk=new THREE.MeshBasicMaterial({color:0x1d1620});
