@@ -841,7 +841,7 @@ const logGeo=new THREE.CylinderGeometry(0.5,0.55,1,9); logGeo.rotateZ(Math.PI/2)
 const P={trunkN:pool(trunkGeo,white(),300,true), blobN:pool(blobGeo,white(),900,true), coneN:pool(coneGeo,white(),420,true),
   trunkF:pool(trunkGeo,white(),3200), blobF:pool(blobGeo,white(),6400), coneF:pool(coneGeo,white(),12000),
   bush:pool(blobGeo,white(),4200,true), rock:pool(rockGeo,white(),1900,true), log:pool(logGeo,white(),700,true), stem:pool(stemGeo,white(),1400), cap:pool(capGeo,white(),160,true),
-  petal:pool(petalGeo,white(),2600), leaf:pool(leafGeo,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}),4600)};
+  petal:pool(petalGeo,white(),2600), leaf:pool(leafGeo,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}),9500)};
 /* A flower, as it ought to be: a thin green stalk with something on top of it. Three kinds come up at random: an open face of petals round a
    yellow middle, a cup like a tulip, and a spike with a second, smaller bloom lower down. A few are left as little buttons low in the grass.
    (pp is the pool the heads come from, pt the pool for the stalks; q is a random number that picks the kind and the height.) */
@@ -1057,9 +1057,9 @@ const inGates=z=>{ for(let i=1;i<5;i++) if(i!==3&&z>GA[i]-1&&z<GB[i]+1) return t
 /* A later gateway, drawn where the trail runs through it. A 'tunnel' is small trees meeting overhead, in that gateway's own colors (snowy boughs,
    reeds, willow, big leaves); an 'arch' is rock, or the wood of a hollow tree. */
 /* a heap of fallen leaves: not a lump, but four dozen leaves lying on one another every which way, in a low mound */
-function leafHeap(x,y,z,sz,id,r){ put(P.bush,x,y+0.02,z,sz*0.72,sz*0.2,sz*0.68,0,FALL_AUTUMN[4]);   /* (something dark underneath, so no ground shows through) */
+function leafHeap(x,y,z,sz,id,r,LP,BP){ LP=LP||P.leaf; put(BP||P.bush,x,y+0.02,z,sz*0.72,sz*0.2,sz*0.68,0,FALL_AUTUMN[4]);   /* (something dark underneath, so no ground shows through) */
   for(let k=0;k<48;k++){ const a=hash(r,id,20+k)*6.283, d=Math.sqrt(hash(r,id,70+k))*sz*1.05, hgt=sz*0.42*(1-(d/(sz*1.05))*(d/(sz*1.05)))+0.03, s1=1.5+hash(r,id,120+k)*1.3;
-    put(P.leaf,x+Math.cos(a)*d,y+hgt,z+Math.sin(a)*d,s1,1,s1*1.5,hash(r,id,170+k)*6.283,FALL_AUTUMN[k%5],(hash(r,id,220+k)-0.5)*1.5,(hash(r,id,270+k)-0.5)*1.5); } }
+    put(LP,x+Math.cos(a)*d,y+hgt,z+Math.sin(a)*d,s1,1,s1*1.5,hash(r,id,170+k)*6.283,FALL_AUTUMN[k%5],(hash(r,id,220+k)-0.5)*1.5,(hash(r,id,270+k)-0.5)*1.5); } }
 /* The gateways. Each one is built to be what the girls call it: snowy boughs hanging low over the path, a gap in a tall clipped hedge, a way
    through reeds taller than June, a stair of stone between two leaning boulders, a tree so big that its trunk is a doorway, leaves as big as
    umbrellas arching over a small path, a curtain of willow strands, a cave mouth with crystal in it. The same builder draws the gateway on
@@ -1341,7 +1341,8 @@ function rebuildForest(s0){
       /* bushes */
       for(let j=0;j<2;j++){ const id=q+20+j; if(sign||hash(r,id,1)>0.5) continue;
         const d=side*(3.1+hash(r,id,2)*6.5), z=z0+hash(r,id,3)*3, x=edge(z)+d, rad=0.45+hash(r,id,4)*0.5; if(!clear(x,z)) continue;
-        put(P.bush,x,floorY(x,z)+rad*0.3,z,rad,rad*0.7,rad,hash(r,id,5)*6,bushColor(x,z,hash(r,id,6))); }
+        if(bioK(z)>0.5&&biomeAt(x,z)>0) leafHeap(x,floorY(x,z),z,rad*1.25,id,r);   /* in the autumn woods there are no bushes, only heaps of leaves (just like the one Pip jumps in, though only that one is for jumping) */
+        else put(P.bush,x,floorY(x,z)+rad*0.3,z,rad,rad*0.7,rad,hash(r,id,5)*6,bushColor(x,z,hash(r,id,6))); }
       /* rocks and boulders with a cap of moss: small ones by the trail, big ones further back, more of them in the deep forest */
       for(let j=0;j<2;j++){ const id=q+30+j; if(sign||side<0&&inGate&&!j||hash(r,id,1)>(j?0.1+0.28*dp:0.12+0.14*dp)) continue;   /* no loose rocks beside the thicket tunnel */
         const big=j===1, d=side*(big?5+hash(r,id,2)*(side<0?13:9):2.9+hash(r,id,2)*5.5), z=z0+hash(r,id,3)*3, x=edge(z)+d; if(!clear(x,z)) continue;
@@ -1373,7 +1374,8 @@ function rebuildForest(s0){
         const z=z0+hash(r,id,3)*3; paths(z); plantTree(r,id,lerp(pL+off,pR-3.6,hash(r,id,2)),z,false,s0,false); } }
     if(gap>7&&!inGate){ for(let k=0;k<2;k++){ const id=84+k; if(hash(r,id,1)>0.45) continue;
         const z=z0+hash(r,id,3)*3, x=lerp(wl+3.1,wr-3.1,hash(r,id,2)), rad=0.4+hash(r,id,4)*0.4;
-        put(P.bush,x,floorY(x,z)+rad*0.3,z,rad,rad*0.7,rad,hash(r,id,5)*6,bushColor(x,z,hash(r,id,6))); }
+        if(bioK(z)>0.5&&biomeAt(x,z)>0) leafHeap(x,floorY(x,z),z,rad*1.25,id,r);   /* in the autumn woods there are no bushes, only heaps of leaves (just like the one Pip jumps in, though only that one is for jumping) */
+        else put(P.bush,x,floorY(x,z)+rad*0.3,z,rad,rad*0.7,rad,hash(r,id,5)*6,bushColor(x,z,hash(r,id,6))); }
       if(hash(r,88,1)<0.7){ const z=z0+hash(r,88,3)*3, x=lerp(wl+2.4,wr-2.4,hash(r,88,2)), col=PETALS[Math.floor(hash(r,88,4)*5)];
         for(let k=0;k<5;k++){ const fx=x+(hash(r,88,5+k)-0.5)*1.3, fz=z+(hash(r,88,11+k)-0.5)*1.3; flowerAt(P.petal,P.trunkF,fx,floorY(fx,fz),fz,col,hash(r,88,20+k)); } } }
     /* The thicket on the left path. It is made of the same small tangled trees as the understory: they gather from the fork onward,
@@ -1532,7 +1534,10 @@ function makeRestSet(key){
       const roof=box(5.1,0.07,2.75,'#a8502f',0,(HB+HF)/2+0.2,(ZB+ZF)/2); roof.rotation.x=tilt;
       for(let k=0;k<5;k++){ const sh=box(5.1,0.035,0.5,k%2?'#b65a35':'#9c482a',0,(HB+HF)/2+0.245+(0.55*(2-k))*Math.sin(tilt),(ZB+ZF)/2-(0.55*(2-k))*Math.cos(tilt)); sh.rotation.x=tilt; } }   /* rows of shingles */
     [[3.3,0.9,0.34],[3.9,0.5,0.26],[3.5,0.25,0.2]].forEach(([x,z,r2])=>{ const p=ball(r2,'#e07a2f',x,r2*0.8,z); p.scale.y=0.8; cyl(0.03,0.04,0.12,'#5d9b4f',x,r2*1.55,z,6); });
-    [[-3.5,1.2],[-4.2,0.4]].forEach(([x,z])=>{ const h=ball(0.9,'#d9783c',x,0.2,z); h.scale.y=0.36; }); }
+    { const LM=['#d9532f','#e07a2f','#c9402f','#e8a53a','#a8402a'].map(c=>new THREE.MeshLambertMaterial({color:c,side:THREE.DoubleSide}));   /* two heaps of raked leaves beside it: real leaves, not lumps */
+      [[-3.5,1.2,1],[-4.3,0.2,0.8]].forEach(([x,z,sz],j)=>{ const b=ball(sz*0.7,'#a8402a',x,0.03,z); b.scale.y=0.26;
+        for(let k=0;k<44;k++){ const a=hash(k,j,71)*6.283, d=Math.sqrt(hash(k,j,72))*sz, m=add(leafGeo,LM[k%5],x+Math.cos(a)*d,0.45*sz*(1-(d/sz)*(d/sz))+0.04,z+Math.sin(a)*d), s1=1.5+hash(k,j,73)*1.3;
+          m.scale.set(s1,1,s1*1.5); m.rotation.set((hash(k,j,74)-0.5)*1.5,hash(k,j,75)*6.283,(hash(k,j,76)-0.5)*1.5); } }); } }
   else if(key==='winter'){   /* a log with snow on it, beside a ring of stones with a fire going, and a snowman somebody left */
     const lg=makeSeatLog(); g.add(lg); [-1.3,0,1.2].forEach(x=>{ const s=ball(0.4,'#f4f7fb',x,SEAT_H+0.0,-0.24); s.scale.set(1.2,0.22,0.5); });
     for(let k=0;k<8;k++){ const a=k*0.785; rock(0.2,0.16,0.2,'#8b8f8a',-3.7+Math.cos(a)*0.62,0.1,1.7+Math.sin(a)*0.62); }
@@ -2688,7 +2693,7 @@ function buildRest(si){
   /* pools of instanced things, just for this scene */
   const mk=(geo,cap,shadow,mat)=>{ const m=new THREE.InstancedMesh(geo,mat||white(),cap); m.frustumCulled=false; m.castShadow=!!shadow; m.setColorAt(0,new THREE.Color(0xffffff)); m.count=0; sc.add(m); return {m,cap,n:0}; };
   const T={trunk:mk(trunkGeo,2200,true),blob:mk(blobGeo,3400,true),cone:mk(coneGeo,2400,true),rock:mk(rockGeo,400,true),box:mk(unitBox,160,true),log:mk(logGeo,20,true),stem:mk(stemGeo,60),cap:mk(capGeo,60,true),petal:mk(petalGeo,260),
-    leaf:mk(leafGeo,260,false,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}))};
+    leaf:mk(leafGeo,2400,false,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}))};
   const LIGHTS=['#79b05a','#8fbf5f','#6aa857'].map(C);
   /* the big old trees of the deep woods: thick trunk, flaring roots, a wide dark crown high overhead (the same recipe as plantTree uses on the trail) */
   /* the trees of the later places: snowy pines, slim white aspens, autumn maples, a few lone oaks */
@@ -2729,7 +2734,8 @@ function buildRest(si){
   if(D.flowers) KIT.flowers.forEach(([x,z],i)=>{ for(let k=0;k<7;k++) flowerAt(T.petal,T.trunk,x+(r()-0.5)*1.3,0,z+(r()-0.5)*1.3,PETALS[i%5],r()); });
   /* bushes round the edge, flowers in the grass, mushrooms, mossy boulders, fallen logs */
   for(let i=0;i<34;i++){ const a=r()*6.28, rr=10.2+r()*5, x=Math.sin(a)*rr, z=Math.cos(a)*rr; if(pathDist(x,z)<2.4) continue; const rad=0.5+r()*0.6, y=restFloor(x,z);
-    if(D.bush) put(T.blob,x,y+rad*0.3,z,rad,rad*0.7,rad,r()*6,BU[Math.floor(r()*BU.length)]);
+    if(PK==='autumn') leafHeap(x,y,z,rad*1.25,400+i,7,T.leaf,T.blob);   /* heaps of leaves, here as everywhere in the autumn woods */
+    else if(D.bush) put(T.blob,x,y+rad*0.3,z,rad,rad*0.7,rad,r()*6,BU[Math.floor(r()*BU.length)]);
     else if(D.tuft==='wheat') for(let k=0;k<5;k++) put(T.cone,x+(r()-0.5)*1.4,y,z+(r()-0.5)*1.4,0.3,1+r()*0.5,0.3,r()*6,WHEAT[Math.floor(r()*WHEAT.length)]);   /* stands of wheat */
     else if(D.tuft==='reed') for(let k=0;k<5;k++){ const hh=1.4+r()*0.9, rx=x+(r()-0.5)*1.1, rz=z+(r()-0.5)*1.1; put(T.trunk,rx,y,rz,0.035,hh,0.035,0,TAN); put(T.blob,rx,y+hh,rz,0.06,0.18,0.06,0,BARKS[0]); } }   /* clumps of reeds and cattails */
   if(D.mush) KIT.mush.forEach(([x,z])=>{ const col=CAPS[Math.floor(r()*3)];
@@ -4099,7 +4105,7 @@ function startEvent(kind){
   else if(kind==='leafpile'){ e.z=party.s+6.5; e.d=2.7; e.burst=false; const hd=heading(e.z);
     pipB.queue.length=0; pipB.queue.push({k:'walk',to:pt(e.z-0.5,e.d-0.2),speed:1.9},{k:'pose',pose:'hop',dur:1.7,face:hd,pile:true},{k:'pose',pose:'spin',dur:1.3});
     juneB.queue.length=0; juneB.queue.push({k:'pose',pose:'idle',dur:1.5},{k:'pose',pose:'look',dur:4.5,face:hd+0.9}); }
-  else if(kind==='geese'){ e.honks=0; Music.amb('gaggle'); }
+  else if(kind==='geese'){ e.honks=0; }
   else if(kind==='fox'){ Music.amb('rustle'); e.z=party.s+10.5; e.sg=Math.random()<0.5?-1:1; e.d=-8.5*e.sg; e.phase=0; e.wait=0; }
   else if(kind==='hedgehog'){ Music.amb('rustle'); e.z=party.s+6.2; e.sg=Math.random()<0.5?-1:1; e.d=-5.5*e.sg; }
   else if(kind==='deer'){ e.z=party.s+8.5; e.d=-5.8; e.phase=0; e.run=0; deer.scale.setScalar(1.25); }
@@ -4179,7 +4185,6 @@ function updateEvents(dt){
   else if(e.kind==='geese'){ /* a long V of wild geese, high up and unhurried, crossing the trail on a slant and calling all the way */
     const lat=-50+t*5.2, z=party.s+12+lat*0.35, x=px+lat, y=py+14+Math.sin(t*0.5)*0.4; gaggle.visible=true; gaggle.position.set(x,y,z); gaggle.rotation.y=Math.atan2(1,0.35);
     geese.forEach(b=>{ const f=Math.sin(time*4.2+b.ph)*0.6; b.wl.rotation.z=f; b.wr.rotation.z=-f; b.g.position.y+=Math.sin(time*1.3+b.ph)*0.002; });
-    if(t>1.2+e.honks*1.25&&lat<44){ e.honks++; Music.amb('gaggle'); if(e.honks%2) Music.sfx('honk'); }
     if(!e.said&&lat>8){ e.said=true; tell(nextLine('ev-geese',EVENT_LINES.geese)); } if(lat>48) endEvent(); }
   else if(e.kind==='hedgehog'){ /* trundles straight across the trail, and stops once to sniff */
     const stop=Math.abs(e.d)<0.35&&!e.sniffed; if(stop){ if(!e.wait) Music.amb('snuffle'); e.wait=(e.wait||0)+dt; if(e.wait>1.6){ e.sniffed=true; Music.amb('rustle'); } } else e.d+=e.sg*dt*0.95;
