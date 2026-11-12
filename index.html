@@ -1334,7 +1334,7 @@ const VILLAGE=[[-11.5,-6.9,1.6],[-6.5,-11.6,1.95],[-1.5,-6.5,1.45],[3.5,-10.8,1.
   [-11,11.2,1.6],[-4.5,14.8,1.95],[2.5,11.6,1.5],[8.5,14.6,1.85],[13,11.3,1.6],[-0.5,19,2.05]];
 const inVillage=(x,z)=>!!picks[2]&&Math.abs(z-VILLAGE_Z-0.5)<17&&x-trailX(z)>-20&&x-trailX(z)<22.5;
 function drawVillage(key){
-  VILLAGE.forEach(([dz,lat,sz],i)=>{ const z=VILLAGE_Z+dz, x=trailX(z)+lat, y=key==='pond'?trailY0(POND_A)+0.08:floorY(x,z)-0.06, h=k=>hash(i,k,611), t=lat<0?1:-1;   /* t: which way the trail (and so the front door) is */
+  VILLAGE.forEach(([dz,lat,sz],i)=>{ const z=VILLAGE_Z+dz, x=trailX(z)+lat, y=key==='pond'?trailY0(POND_A)-0.19:floorY(x,z)-0.06, h=k=>hash(i,k,611), t=lat<0?1:-1;   /* t: which way the trail (and so the front door) is */
     if(key==='glow'){   /* a mushroom with its cap alight, a door, a lit window, and a lamp by the path */
       put(P.trunkF,x,y,z,0.75*sz,1.5*sz,0.75*sz,0,CREAM); put(P.glow,x,y+1.5*sz,z,17*sz,9*sz,17*sz,0,pk(GLOWS,h(1)));
       put(P.bush,x+t*0.62*sz,y+0.45*sz,z,0.12*sz,0.42*sz,0.26*sz,0,BARKS[1]); put(P.glow,x+t*0.6*sz,y+1.02*sz,z+0.36*sz,2.4,2.4,2.4,0,CREAM);
@@ -1346,7 +1346,8 @@ function drawVillage(key){
     else if(key==='pond'){   /* a bubble of a house on its own lily pad, and its twin hanging upside down in the sky */
       const M=y+11, col=pk(PASTEL,h(2));
       for(const up of [1,-1]){ const yy=d=>up>0?y+d:2*M-y-d;
-        if(up<0) put(P.bush,x,yy(0.06),z,2.1*sz,0.05,2.1*sz,h(1)*6,GREENS[4]); put(P.blobF,x,yy(0.5*sz),z,0.95*sz,0.85*sz,0.95*sz,0,col);
+        put(P.bush,x,yy(0.05),z,2.2*sz,0.06,2.2*sz,h(1)*6,GREENS[4]); put(P.bush,x,yy(0.075),z,1.75*sz,0.05,1.75*sz,h(1)*6,GREENS[3]); { const na=h(5)*6.283; put(P.bush,x+Math.cos(na)*1.75*sz,yy(0.07),z+Math.sin(na)*1.75*sz,0.62*sz,0.07,0.2*sz,-na,up>0?C('#9cc4ee'):GREENS[4]); }   /* its lily pad, floating on the water, with the notch every lily pad has */
+        put(P.blobF,x,yy(0.5*sz),z,0.95*sz,0.85*sz,0.95*sz,0,col);
         put(P.bush,x+t*0.9*sz,yy(0.36*sz),z,0.1*sz,0.34*sz,0.22*sz,0,WATERC); put(P.petal,x+0.2,yy(1.38*sz),z,2.2,2.2,2.2,0,pk(BLOOM,h(4))); } }
     else {   /* a geode: a round stone cracked open, glowing from inside, with crystals growing out of the roof */
       put(P.rock,x,y+0.55*sz,z,1.25*sz,0.95*sz,1.15*sz,h(1)*6,GREYS[1]); put(P.gcone,x+t*0.98*sz,y-0.05,z,0.34*sz,0.95*sz,0.34*sz,0,pk(GEMS,h(2)));
@@ -1435,7 +1436,8 @@ function drawPondDecks(){ const Y=trailY0(POND_A)+0.05, H=(i,j)=>hash(i,j,417), 
   L.segs.forEach(([a,za,b,zb,w],si)=>{ const len=Math.hypot(b-a,zb-za), n=Math.max(2,Math.round(len/0.74)), yaw=Math.atan2(b-a,zb-za), nx=Math.cos(yaw), nz=-Math.sin(yaw);
     for(let i=0;i<=n;i++){ const u=i/n, lat=lerp(a,b,u), z=lerp(za,zb,u); put(P.log,trailX(z)+lat,Y-0.012-0.004*(si%3),z,w+H(si+20,i)*0.12,0.12,0.78,yaw+(H(si+20,i+50)-0.5)*0.05,plank(H(si+20,i+99)));
       if(i%5===0) for(const sd of [-1,1]) post(lat+sd*nx*(w/2-0.07),z+sd*nz*(w/2-0.07)); } });
-  L.discs.forEach(([l,z,r,kind],i)=>{ const x=trailX(z)+l; put(P.trunkF,x,Y-0.15-0.004*(i%3),z,r*1.32,0.17,r*1.32,H(12,i)*3,PLANKS[i%4]); for(let q=0.4+i;q<6.2+i;q+=r>2?1.05:1.6) put(P.trunkF,x+Math.cos(q)*r*0.8,Y-1.75,z+Math.sin(q)*r*0.8,0.07,1.7,0.07,0,PLANKS[2]);
+  L.discs.forEach(([l,z,r,kind],i)=>{ if(kind===2) return;   /* (a house needs no deck: it floats on a lily pad, and the plank runs to the pad's edge) */
+    const x=trailX(z)+l; put(P.trunkF,x,Y-0.15-0.004*(i%3),z,r*1.32,0.17,r*1.32,H(12,i)*3,PLANKS[i%4]); for(let q=0.4+i;q<6.2+i;q+=r>2?1.05:1.6) put(P.trunkF,x+Math.cos(q)*r*0.8,Y-1.75,z+Math.sin(q)*r*0.8,0.07,1.7,0.07,0,PLANKS[2]);
     if(kind===1){ put(P.log,x,Y+0.45,z-0.5,1.6,0.16,0.42,0.3,PLANKS[3]); put(P.trunkF,x-0.5,Y,z-0.42,0.06,0.42,0.06,0,PLANKS[2]); put(P.trunkF,x+0.5,Y,z-0.6,0.06,0.42,0.06,0,PLANKS[2]); }   /* a bench */
     else if(kind===0){ put(P.trunkF,x,Y,z,0.06,2.3,0.06,0,PLANKS[2]); put(P.glow,x,Y+2.45,z,4.5,4.5,4.5,0,pk(GLOWS,H(13,i))); } });                                                       /* the lamp at the end of a pier */
   L.lamps.forEach(([l,z,sd],i)=>{ const x=trailX(z)+l; put(P.trunkF,x,Y-0.4,z+0.62,0.045,1.9,0.045,0,PLANKS[2]); put(P.glow,x,Y+1.6,z+0.62,2.6,2.6,2.6,0,pk(GLOWS,H(15,i))); }); }
