@@ -314,7 +314,8 @@ body.is-paused .dad-note{opacity:0}
 
 .fade{position:fixed;inset:0;z-index:9;background:#05051a;opacity:0;pointer-events:none;transition:opacity .9s ease}
 .fade.on{opacity:1}
-.fade.white{background:#fffdf4}   /* stepping out of the last cave into daylight */
+.fade.white{background:#fffdf4}
+.fade.slow{transition:opacity 4.6s cubic-bezier(.3,0,.5,1)}   /* and the white clears slowly, the way eyes get used to the light */   /* stepping out of the last cave into daylight */
 .hud-off{opacity:0;pointer-events:none}
 
 @media (max-width:520px){
@@ -460,6 +461,7 @@ body.is-paused .narrator{opacity:0}
 <div class="fork-dock" id="benchDock" hidden>
   <span class="fork-q">A sit on the stone bench</span>
   <button id="benchGo" type="button">Carry on up the trail</button>
+  <button id="benchStop" type="button">Stop here for today</button>
 </div>
 <div class="fork-dock" id="riverDock" hidden>
   <span class="fork-q">Cross the river?</span>
@@ -2640,7 +2642,7 @@ function startHike(quiet){
    to it, are kept in the browser, and the title card then offers to carry on from that site as well as to start again. */
 const MARK_KEY='trail-to-the-top-bookmark';
 function loadMark(){ try{ const j=JSON.parse(localStorage.getItem(MARK_KEY)||'null'); if(j&&[0,1,2].includes(j.site)&&Array.isArray(j.picks)&&j.picks.length===3&&j.picks.every(v=>v===0||v===1||v===-1)&&(j.site<1||j.picks[0])&&(j.site<2||j.picks[1])) return j; }catch(e){} return null; }
-function markName(b){ if(b.site===0) return 'the first rest site'; if(b.site===1) return 'the rest site after the '+(b.picks[0]>0?'autumn woods':'aspen grove');
+function markName(b){ if(b.bench) return 'the stone bench below the mist'; if(b.site===0) return 'the first rest site'; if(b.site===1) return 'the rest site after the '+(b.picks[0]>0?'autumn woods':'aspen grove');
   const k=b.picks[0]>0?(b.picks[1]>0?'winter':'grass'):(b.picks[1]>0?'marsh':'alpine'); return 'the rest site after '+BIO[k].reveal.t.replace(/^The /,'the '); }
 function syncResume(){ const b=loadMark(), el=$('resumeBtn'); el.hidden=!b; if(b) el.textContent='Carry on from '+markName(b); }
 function stopForToday(){ if(mode!=='rest'||!rest||rest.leaving||!state.started) return;
@@ -2648,7 +2650,8 @@ function stopForToday(){ if(mode!=='rest'||!rest||rest.leaving||!state.started) 
   $('stopBtn').hidden=true; hideFork(); hushBubbles(); speakIn=30; narrate(ok?'That was enough mountain for one day. It would still be there tomorrow, and so would the '+restSay().seat+'.':'That was enough mountain for one day.');
   setTimeout(()=>{ if(state.started&&mode==='rest') $('fade').classList.add('on'); },2600); setTimeout(()=>{ if(state.started&&mode==='rest') backToStart(); },3500); }
 function resumeHike(){ const b=loadMark(); if(!b||state.started) return; try{ localStorage.removeItem(MARK_KEY); }catch(e){} syncResume(); startHike(true);   /* once it has been used, the saved spot is gone: the title card offers it again only after they stop at a rest site again */
-  warp('Back on the trail',b.site===0?REST_C-8:SITES[b.site].rest-7,[b.site>0?b.picks[0]:0,b.site>1?b.picks[1]:0,0]);
+  if(b.bench) warp('Back on the trail',BENCH_S-4,[b.picks[0]||1,b.picks[1]||1,b.picks[2]||1],2);   /* (stopped on the stone bench: a few steps below it, so they walk up and sit down again) */
+  else warp('Back on the trail',b.site===0?REST_C-8:SITES[b.site].rest-7,[b.site>0?b.picks[0]:0,b.site>1?b.picks[1]:0,0]);
   showCaption({t:'Back on the trail',b:'Picking up the hike at '+markName(b)+'.'}); setTimeout(()=>{ if(state.started) narrate('Another morning, June and Pip came back to where they had stopped, and carried on.'); },1400); }
 $('stopBtn').addEventListener('click',stopForToday); $('resumeBtn').addEventListener('click',resumeHike);
 function backToStart(){
@@ -3266,7 +3269,7 @@ function enterSummit(){
     hushBubbles(); speakIn=99;
     narrate('Outside, the light was so bright that for a moment there was nothing but white. Then there were steps: stone ones, going up the bare side of the mountain, this way and that.');
     showCaption({t:'The last stair',b:'Flat stones zigzagging up bare rock, strung with flags by everyone who came this way before.'});
-    fd.classList.remove('on'); setTimeout(()=>fd.classList.remove('white'),1100); },950);
+    if(white){ fd.classList.add('slow'); void fd.offsetWidth; } fd.classList.remove('on'); setTimeout(()=>fd.classList.remove('white','slow'),white?4800:1100); },950);
 }
 /* the top itself: over the ridge, and there is nowhere higher to go */
 function reachTop(){ const S=summit; S.phase=0; S.t0=S.t; S.th=Math.PI; S.cam0=camTheta; landY=()=>0;
@@ -4759,6 +4762,11 @@ function updateBench(dt){ const B=bench, near=!!state.started&&mode==='trail'&&f
   if(perched&&B.on){ B.chirp-=dt; if(B.chirp<=0){ B.chirp=4+Math.random()*7; Music.amb('chirp'); } }
 }
 $('benchGo').addEventListener('click',()=>leaveBench(false));
+/* the bench is a place to stop for the day, too: the title card then offers to carry on from it */
+function stopAtBench(){ if(bench.on!==2||!state.started) return; let ok=true; try{ localStorage.setItem(MARK_KEY,JSON.stringify({site:2,picks:[picks[0],picks[1],picks[2]],bench:1})); }catch(e){ ok=false; }
+  $('benchDock').hidden=true; hushBubbles(); speakIn=30; narrate(ok?'That was enough mountain for one day. The cloud would still be there tomorrow, and so would the bench.':'That was enough mountain for one day.');
+  setTimeout(()=>{ if(state.started&&bench.on) $('fade').classList.add('on'); },2600); setTimeout(()=>{ if(state.started&&bench.on) backToStart(); },3500); }
+$('benchStop').addEventListener('click',stopAtBench);
 /* the ice itself: pale blue-grey, cloudy toward the middle, with a few long cracks and a dusting of blown snow */
 const icePond=(()=>{ const c=document.createElement('canvas'); c.width=c.height=512; const g=c.getContext('2d'), gr=g.createRadialGradient(256,256,20,256,256,256);
   gr.addColorStop(0,'#6f9dbd'); gr.addColorStop(0.6,'#8bb5d0'); gr.addColorStop(1,'#b4d3e4'); g.fillStyle=gr; g.fillRect(0,0,512,512);
@@ -4806,16 +4814,16 @@ const slopeMist=[[-9.2,0.42],[-10.8,0.6]].map(([dy,o])=>{ const m=new THREE.Mesh
 const lowMist=[]; for(let i=0;i<44;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xfff8ec,transparent:true,opacity:0,depthWrite:false})); sp.visible=false; sp.renderOrder=1; scene.add(sp);
   lowMist.push({sp,z:SKY_B+33+(i/44)*(TOP_A-SKY_B-32)+rnd()*3,lat:(rnd()-0.5)*(i%3?34:7),w:9+rnd()*8,h:1.9+rnd()*0.7,ph:rnd()*6}); }
 /* with it, the cloud itself comes up: a sheet of mist on each side of the ridge that climbs with the path, so that by the cliff it stands just over the foot of the cave's mouth */
-const riseTex=alphaTex(64,(u,v)=>smooth(0,0.1,u)*(1-smooth(0.8,1,u))*smooth(0,0.22,v)), riseMist=[-1,1].map(sd=>{ const m=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:0xfffaf0,map:riseTex,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide})); m.visible=false; m.renderOrder=1; m.frustumCulled=false; scene.add(m); return {m,sd,built:false}; });
-function buildRiseMist(R){ const z0=SKY_B+31, z1=TOP_A+0.6, N=34, LAT=[2.6,5,14,80], pos=[], uv=[], idx=[];
-  for(let i=0;i<=N;i++){ const z=lerp(z0,z1,i/N), y=trailY(Math.min(z,TOP_A))+0.5; LAT.forEach((l,j)=>{ pos.push(trailX(z)+R.sd*l,y-(j?0.15*j:0.35),z); uv.push([0,0.14,0.5,1][j],i/N); }); }
+const riseTex=alphaTex(128,(u,v)=>smooth(0,0.34,u)*(1-smooth(0.7,1,u))*smooth(0,0.3,v)*(1-smooth(0.9,1,v))), riseMist=[-1,1,-1,1,-1,1].map((sd,q)=>{ const lay=q>>1;   /* three thin layers a side, one over another and each reaching a little nearer the path than the one above, so the mist has no edge: it only thickens */ const m=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:0xfffaf0,map:riseTex,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide})); m.visible=false; m.renderOrder=1; m.frustumCulled=false; scene.add(m); return {m,sd,lay,built:false}; });
+function buildRiseMist(R){ const z0=SKY_B+31, z1=TOP_A+0.6, N=34, LAT=[[4.6,9,20,80],[3.4,7.5,18,80],[2.4,6,16,80]][R.lay], dy=[0.6,0.2,-0.25][R.lay], pos=[], uv=[], idx=[];
+  for(let i=0;i<=N;i++){ const z=lerp(z0,z1,i/N), y=trailY(Math.min(z,TOP_A))+dy+0.12*Math.sin(i*0.9+R.lay*2+R.sd); LAT.forEach((l,j)=>{ pos.push(trailX(z)+R.sd*l,y-(j?0.15*j:0.3),z); uv.push([0,0.2,0.5,1][j],i/N); }); }
   for(let i=0;i<N;i++) for(let j=0;j<3;j++){ const a=i*4+j; idx.push(a,a+1,a+4,a+1,a+5,a+4); }
   const g=R.m.geometry; g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); R.built=true; }
 function updateSkyWeather(s,mistK){
   const k=skyOpen?smooth(SKY_B-6,SKY_B+8,s):0, on=k>0.01;
   cloudSea.visible=sunGlow.visible=sunCore.visible=on; slopeMist.forEach(L2=>L2.m.visible=on);
   auroras.forEach(a=>{ a.m.visible=on; if(!on) return; a.m.position.set(camera.position.x+a.x+Math.sin(time*0.05+a.ph)*40,camera.position.y+a.y,camera.position.z+a.z); a.m.rotation.set(0.25,a.ry+Math.sin(time*0.07+a.ph)*0.06,0);
-    a.m.scale.x=1+0.06*Math.sin(time*0.11+a.ph); a.m.material.opacity=k*(1-mistK)*(0.34+0.2*Math.sin(time*0.23+a.ph)+0.08*Math.sin(time*0.9+a.ph*3)); }); skyMist.forEach(m=>m.sp.visible=on); lowMist.forEach(m=>m.sp.visible=on); riseMist.forEach(R=>{ R.m.visible=on; if(!on) R.built=false; else { if(!R.built) buildRiseMist(R); R.m.material.opacity=0.78*k; } }); if(!on) return;
+    a.m.scale.x=1+0.06*Math.sin(time*0.11+a.ph); a.m.material.opacity=k*(1-mistK)*(0.34+0.2*Math.sin(time*0.23+a.ph)+0.08*Math.sin(time*0.9+a.ph*3)); }); skyMist.forEach(m=>m.sp.visible=on); lowMist.forEach(m=>m.sp.visible=on); riseMist.forEach(R=>{ R.m.visible=on; if(!on) R.built=false; else { if(!R.built) buildRiseMist(R); R.m.material.opacity=0.36*k; } }); if(!on) return;
   lowMist.forEach(m=>{ const zz=Math.min(m.z,TOP_A); m.sp.position.set(trailX(zz)+m.lat+Math.sin(time*0.1+m.ph)*1.6,trailY(zz)+0.32+0.14*Math.sin(time*0.17+m.ph),m.z); m.sp.scale.set(m.w,m.h,1);
     m.sp.material.opacity=(Math.abs(m.lat)<3.6?0.2:0.36)*k*smooth(SKY_B+31,SKY_B+42,m.z)*smooth(2.5,8,m.sp.position.distanceTo(camera.position))*(0.8+0.2*Math.sin(time*0.25+m.ph)); });
   cloudSea.position.set(trailX(s),trailY(s)-12.5,s);
