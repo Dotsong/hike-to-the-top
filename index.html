@@ -729,7 +729,7 @@ function sidestep(s,d){ let sh=0;   /* how far to shift a girl walking at offset
   for(const o of solids){ const ds=o.z-s; if(ds<-1.2||ds>3.2) continue; const gap=d+sh-(o.x-trailX(o.z)), need=o.r+0.75;
     if(Math.abs(gap)<need) sh+=(gap>=0?1:-1)*(need-Math.abs(gap))*smooth(3.2,1.3,ds)*smooth(-1.2,-0.3,ds); } return sh; }
 const duckAt=s=>choice<0?Math.max(0,1-Math.pow((s-GATE_OB)/1.3,2)):0;   /* how low to duck under the branch in the thicket */
-function logHop(s){ { const u=(s-BOULDER_S)/1.7; if(u>-1&&u<1) return (1-u*u)*2.7; }   /* the boulder in the mist: a much bigger scramble */
+function logHop(s){   /* (the boulder in the mist is not hopped: see updateHoist) */
   const k0=Math.floor((s-OB_FROM)/OB_STEP);   /* how far through a hop over a log a girl at s is: 0 on the ground, 1 at the top */
   for(let k=k0-1;k<=k0+1;k++){ const o=obstacle(k); if(o&&o.log){ const u=(s-o.s)/0.62; if(u>-1&&u<1) return 1-u*u; } } return 0; }
 
@@ -2365,10 +2365,10 @@ const Music=(()=>{
     giant:{bell:0.4,wood:1,harp:0.55},                /* bouncy and wooden */
     pond:{bell:0.3,harp:1,glass:0.7},             /* watery harp */
     crystal:{bell:0.5,glass:1,drone:0.5},            /* all chimes */
-    mtn:{bell:0.25,glass:0.45,choir:0.32,drone:0.9,flute:0.25,myst:1},   /* ethereal and mysterious */
+    mtn:{bell:0.2,glass:0.4,choir:0.3,drone:0.8,flute:0.2,myst:1,ether:1},   /* ethereal and mysterious */
     sky:{bell:0.35,harp:1,choir:0.55,strings:0.35,men:1,cello:1,sky:1},               /* harps and a full choir */
     cave:{bell:0.15,glass:0.3,drone:0.8,myst:1}};
-  const LAYERS=['bell','harp','choir','flute','glass','wood','strings','drone','men','cello','viola','myst','sky'], mix={}, tgt={}; LAYERS.forEach(l=>{ mix[l]=tgt[l]=l==='bell'?1:0; });
+  const LAYERS=['bell','harp','choir','flute','glass','wood','strings','drone','men','cello','viola','ether','myst','sky'], mix={}, tgt={}; LAYERS.forEach(l=>{ mix[l]=tgt[l]=l==='bell'?1:0; });
   let rise=0, riseT=0, arpI=0, harpBus, choirBus, strBus, menBus, menLevel=0, moodNow='home';
   function mood(a,b,k,r,m){ const A=MOODS[a]||MOODS.home, B=MOODS[b]||A; k=k||0; LAYERS.forEach(l=>{ tgt[l]=(A[l]||0)*(1-k)+(B[l]||0)*k; }); riseT=r||0; menLevel=m||0; moodNow=a+(k>0?'>'+b+':'+k.toFixed(2):'')+(r?' rise '+r.toFixed(2):''); }
   const mtof=m=>440*Math.pow(2,(m-69)/12);
@@ -2481,6 +2481,15 @@ const Music=(()=>{
     const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=4.1; vg.gain.value=7; vib.connect(vg); vib.start(t); vib.stop(end);
     vs.forEach((m,i)=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=mtof(m); o.detune.value=i%2?7:-7; vg.connect(o.detune); o.connect(src); o.start(t+i*0.15); o.stop(end); });
     F.forEach((fq,j)=>{ const bp=ctx.createBiquadFilter(), bg=ctx.createGain(); bp.type='bandpass'; bp.frequency.value=fq; bp.Q.value=4.5; bg.gain.value=G[j]*2.6; src.connect(bp); bp.connect(bg); bg.connect(g); }); }
+  /* the ether: a wide, glassy synth. Each note of the chord is a pair of saws a few cents apart behind a filter that opens and closes very
+     slowly, drifting from ear to ear; over it a fifth and an octave ring on in pure tones; and a slow shimmer runs up and down the chord far above */
+  function ether(c,t,dur,amp){ const end=t+dur+4.5, out=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=5; lp.frequency.setValueAtTime(500,t); lp.frequency.linearRampToValueAtTime(2300,t+dur*0.55); lp.frequency.linearRampToValueAtTime(600,end);
+    env(out,t,3.2,0.021*amp,Math.max(0.1,dur-3),4.2); lp.connect(out); let dst=out; if(ctx.createStereoPanner){ const pn=ctx.createStereoPanner(), lfo=ctx.createOscillator(), lg=ctx.createGain(); lfo.frequency.value=0.07; lg.gain.value=0.7; lfo.connect(lg); lg.connect(pn.pan); lfo.start(t); lfo.stop(end); out.connect(pn); dst=pn; }
+    dst.connect(master); dst.connect(reverb);
+    c.notes.slice(0,3).forEach((m,i)=>{ for(const det of [-9,8]){ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=mtof(m+12); o.detune.value=det+i*2; o.connect(lp); o.start(t+i*0.4); o.stop(end); } });
+    [[c.bass+31,0.5],[c.bass+36,0.35]].forEach(([m,a],i)=>{ const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.value=mtof(m); env(g,t+1+i,2.5,0.016*amp*a,Math.max(0.1,dur-4),4); o.connect(g); g.connect(master); g.connect(reverb); o.start(t); o.stop(end); });
+    const up=c.notes.map(n=>n+24).concat(c.notes.map(n=>n+36)).filter(m=>m<=98); for(let i=0;i<10;i++){ const m=up[(i*3)%up.length], at=t+0.6+i*dur/10.5, o=ctx.createOscillator(), g=ctx.createGain(); o.type='triangle'; o.frequency.value=mtof(m);
+      g.gain.setValueAtTime(0.0001,at); g.gain.linearRampToValueAtTime(0.0075*amp,at+0.25); g.gain.exponentialRampToValueAtTime(0.0001,at+2.6); panned(g).connect(reverb); o.connect(g); o.start(at); o.stop(at+2.7); } }
   /* a soft drum far below, for when the choir is at its fullest */
   function drum(t,v){ const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.setValueAtTime(72,t); o.frequency.exponentialRampToValueAtTime(44,t+0.5);
     g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+1.5); o.connect(g); g.connect(master); g.connect(reverb); o.start(t); o.stop(t+1.6); }
@@ -2495,6 +2504,7 @@ const Music=(()=>{
       if(mix.strings>0.05) strings(cur.notes.map(n=>n+12),t,dur-0.4,0.02*mix.strings*(1+1.2*rise));
       if(mix.choir>0.05) choir(cur.notes,t,dur,mix.choir,rise);
       if(mix.men>0.05) men(cur,t,dur,mix.men);
+      if(mix.ether>0.08) ether(cur,t,dur,mix.ether);
       if(grand&&mix.cello>0.3&&pos===0){ const ph=SKY_TUNE[(chordIdx-1)%4], a=mix.cello*(1+0.7*rise); bowed(ph,t,0,0.045*a,1500); bowed(ph,t,-12,0.05*a,650); }   /* cello, and the bass an octave below */
       if(!grand&&mix.viola>0.3&&pos===0){ const v=m=>{ while(m<55) m+=12; while(m>74) m-=12; return m; }, n=cur.notes.map(v).sort((a,b)=>a-b), k=(chordIdx-1)%4;   /* the viola: a slow, warm line through the notes of each chord, a different turn each bar */
         const ph=[[[n[0],6],[n[1],2],[n[2],8]],[[n[2],4],[n[1],4],[n[0],6],[n[1],2]],[[n[1],6],[n[2],2],[v(n[0]+12),4],[n[2],4]],[[n[2],6],[n[1],2],[n[0],8]]][k];
@@ -2822,7 +2832,7 @@ function backToStart(){
   closeDoors();
   const intro=$('intro'); intro.hidden=false; requestAnimationFrame(()=>intro.classList.remove('gone')); syncResume();
 }
-function resetHike(){ leaveBench(true); bench.done=false;
+function resetHike(){ leaveBench(true); bench.done=false; hoist.on=0; hoist.done=false;
   if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); if(mode==='moon') leaveMoon(); if(mode==='cave') leaveCave(); if(mode==='falls') leaveFalls(); riverAsk=0; forceRiver=false; $('riverDock').hidden=true; forceSecret=false; $('homeDock').hidden=true; $('phoneDock').hidden=true; $('endDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
   note.found=0; clearPrints(); fork.village=false; fork.ice=false; fork.chasm=false; fork.cloud=false; choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
@@ -3499,7 +3509,7 @@ function onCloud(){ narrate('About halfway up, the cloud came down and settled o
 function onTail(what){
   if(what==='hill'){ narrate('And there the ground simply stood up. The trail did not go round the hill, or through it. It went up it, this way and that.'); playScript([[1,'It goes STRAIGHT UP.'],[0,'It zigzags. That\'s how you climb something steep.'],[1,'Zig. Zag. Zig.']]); speakIn=16;
     showCaption({t:'The steep climb',b:'Switchbacks up a hill so high that its top is lost in cloud.'}); return; }
-  if(what==='boulder'){ narrate('And then, right across the trail in the middle of all that white, sat a boulder.'); playScript([[0,'I can hardly see. Hold on... there\'s a rock in the way.'],[1,'Over it! I\'ll go first!'],[0,'Hands and knees, Pip.']]); speakIn=14; return; }
+  if(what==='boulder'){ narrate('And then, right across the trail in the middle of all that white, sat a boulder.'); playScript([[0,'I can hardly see. Hold on... there\'s a rock in the way. A big one.'],[1,'Can we go round it?'],[0,'Not in this mist. We\'d lose the trail.']]); speakIn=30; return; }
   if(what==='trail'){ narrate('Higher still, the path turned to stone and the air grew thin and bright.'); showCaption({t:'The mountain trail',b:'The cloud is behind them now. Bare stone, thin bright air, and the top not far off.'}); }
   else if(what==='mist'){ playScript(BIO.sky.gate.enter); speakIn=14; narrate('Then the cloud closed round them, soft and white and very quiet.'); }
   else if(what==='sky'){ const R=BIO.sky.reveal; hushBubbles(); startGust(BIO.sky.fall,party.s); Music.gust(); revealT=0; speakIn=16; narrate(R.narr); playScript(R.lines); showCaption({t:R.t,b:R.b}); }
@@ -3935,7 +3945,7 @@ function leaveFalls(){ fallsS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={sound:k=>Music.amb(k),ty:s=>trailY(s),bench:()=>bench.on+':'+bench.t.toFixed(0)+':'+party.s.toFixed(1)+':'+benchBirds.map(b=>b.st).join(''),bugs:()=>{ const o=giantObst(); return giantLife.map(c=>{ let m=99; const P=c.kind==='worm'?c.segs.map(q=>q.position):[{x:c.x,z:c.z}]; for(const q of P) for(const k of o) m=Math.min(m,Math.hypot(q.x-k.x,q.z-k.z)-k.r); return c.kind[0]+m.toFixed(2)+'@'+(P[0].x-trailX(P[0].z)).toFixed(1); }).join(' ')+' n'+o.length; },ambNow:()=>ambLast+' bed '+ambK+' wind '+windK+' water '+waterBed,lineOk:(tx,p)=>fitsHere(tx,p),menu:p=>(EVENT_MENU[p]||[]).join(','),summitPhase:()=>summit?summit.phase+':'+summit.leg:'',music:()=>Music.moodNow(),musicLevel:only=>Music.level(only),musicMood:(a,b,k,r,m)=>{ window.__moodLock=a?[a,b,k,r,m]:null; },known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={sound:k=>Music.amb(k),hoist:()=>hoist.on+':'+hoist.t.toFixed(1)+':'+party.s.toFixed(1),ty:s=>trailY(s),bench:()=>bench.on+':'+bench.t.toFixed(0)+':'+party.s.toFixed(1)+':'+benchBirds.map(b=>b.st).join(''),bugs:()=>{ const o=giantObst(); return giantLife.map(c=>{ let m=99; const P=c.kind==='worm'?c.segs.map(q=>q.position):[{x:c.x,z:c.z}]; for(const q of P) for(const k of o) m=Math.min(m,Math.hypot(q.x-k.x,q.z-k.z)-k.r); return c.kind[0]+m.toFixed(2)+'@'+(P[0].x-trailX(P[0].z)).toFixed(1); }).join(' ')+' n'+o.length; },ambNow:()=>ambLast+' bed '+ambK+' wind '+windK+' water '+waterBed,lineOk:(tx,p)=>fitsHere(tx,p),menu:p=>(EVENT_MENU[p]||[]).join(','),summitPhase:()=>summit?summit.phase+':'+summit.leg:'',music:()=>Music.moodNow(),musicLevel:only=>Music.level(only),musicMood:(a,b,k,r,m)=>{ window.__moodLock=a?[a,b,k,r,m]:null; },known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>!MK[k].hidden),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -4416,6 +4426,7 @@ function startEvent(kind){
 function updateEvents(dt){
   const e=EVT.cur;
   if(!e){ if(!state.started||party.rest>0||fork.stage===1||fork.stage===2||gateK(party.s)>0.15) return;
+    if(fork.site===2&&!skyOpen&&party.s>SKY_A-42&&party.s<BENCH_S+4){ EVT.inT=Math.max(EVT.inT,8); return; }   /* from the whale to the stone bench, nothing else happens: that stretch is theirs */
     EVT.inT-=dt; if(EVT.inT>0){ EVT.wait=0; return; }
     let menu=(EVENT_MENU[eventPlace()]||[]).filter(k=>k!==EVT.last||EVENT_MENU[eventPlace()].length<2); if(party.s>34&&fork.stage<4) menu=menu.filter(k=>k!=='rabbit');   /* the rabbit needs open ground beside the trail */
     /* One thing at a time. Something new only begins in a lull: nobody talking, the narrator silent, neither girl in the middle of doing
@@ -5036,6 +5047,28 @@ function updatePondFish(dt){ const F=pondFish, wy=trailY0(POND_A)-0.2, on=!!stat
   F.spl.forEach(S=>{ if(S.t<0) return; S.t+=dt; const u=S.t/1.1; if(u>=1||!on){ S.t=-1; S.ring.visible=false; S.drops.forEach(o=>o.d.visible=false); return; }
     S.ring.visible=true; S.ring.position.set(S.x,S.y+0.02,S.z); S.ring.scale.setScalar(0.25+1.5*u); S.ring.material.opacity=0.8*(1-u);
     S.drops.forEach(o=>{ o.vy-=7.5*dt; const p=o.d.position; p.x+=o.vx*dt; p.y+=o.vy*dt; p.z+=o.vz*dt; o.d.visible=p.y>S.y-0.05; }); }); }
+/* The boulder in the mist is taller than June. The girls stop in front of it, look it over, and then go up it the way they will go up the
+   ledges of the last cave: Pip onto June's shoulders and over the edge, then round to haul June up after her; and down the far side. */
+const hoist={on:0,t:0,done:false}, BOULDER_H=1.72;
+function updateHoist(dt){ const H=hoist, J=juneB, Pp=pipB, bx=trailX(BOULDER_S), by=trailY(BOULDER_S), jx=bx-0.25, jz=BOULDER_S-1.55, hd=heading(BOULDER_S);
+  if(!H.on){ if(!H.done&&state.started&&fork.site===2&&fork.stage===4&&party.rest<=0&&party.s>BOULDER_S-3.4&&party.s<BOULDER_S-1.6){ H.on=1; H.t=0; party.vT=0; party.rest=99999; holdEvents(40);
+      J.queue.length=Pp.queue.length=0; J.cur=Pp.cur=null; J.queue.push({k:'walk',to:[jx,jz],speed:1.2},{k:'pose',pose:'look',dur:99999,face:hd}); Pp.queue.push({k:'walk',to:[jx+0.95,jz-0.7],speed:1.2},{k:'pose',pose:'idle',dur:99999,face:hd});
+      tell([[1,'It\'s taller than YOU, June.'],[0,'Too tall to hop, too wide to go round. So... over. Onto my shoulders, Pip.'],[1,'And then I pull you up!'],[0,'That\'s the plan.']]); narrate('They stood and looked at it for a while. It did not get any smaller.'); speakIn=60; } return; }
+  if(Math.abs(party.s-(BOULDER_S-2.5))>4||mode!=='trail'){ H.on=0; H.done=true; party.rest=0.01; return; }   /* (whisked off somewhere else in the middle of it) */
+  if(H.on===1){ if(J.cur&&J.cur.pose&&Pp.cur&&Pp.cur.pose&&quiet()){ H.on=2; H.t=0; say(1,'Heave... HO!'); } return; }
+  H.t+=dt; const t=H.t, L0=landY(jx,jz), top=by+BOULDER_H, sh=0.98-0.22*(1-smooth(1.5,2.2,t)), set=(b,pose,face)=>{ b.cur={k:'pose',pose,dur:99999,face}; b.queue.length=0; };
+  let jo=null, po=null, jp='idle', pq='idle', pf=hd;
+  if(t<1.6) jp='crouch'; else if(t<4.4) jp='idle'; else if(t<5.4) jp='wave'; else if(t<8){ jp=t<7?'hop':'idle'; jo=[jx,lerp(L0,top,smooth(5.4,6.7,t)),lerp(jz,BOULDER_S-0.1,smooth(6.2,7,t))]; }
+  if(t<1.2){ Pp.pos.set(lerp(Pp.pos.x,jx+0.05,Math.min(1,dt*4)),lerp(Pp.pos.y,jz-0.6,Math.min(1,dt*4))); }
+  else if(t<2.8){ const u=smooth(1.2,2.5,t); po=[jx,L0+sh*u,lerp(jz-0.6,jz,u)]; pq='hop'; }
+  else if(t<4.4){ const u=smooth(2.9,4.1,t); po=[lerp(jx,bx+0.4,u),lerp(L0+sh,top,u),lerp(jz,BOULDER_S+0.05,smooth(3.5,4.4,t))]; pq='crouch'; }
+  else if(t<8){ po=[bx+0.4,top,BOULDER_S+0.05]; if(t<7){ pq='scoop'; pf=hd+Math.PI; } else pq='hop'; }
+  if(t>=8){ const u=smooth(8,9.5,t), gy=landY(bx,BOULDER_S+1.8), arc=Math.sin(Math.PI*u)*0.35; jp=pq=u<1?'hop':'idle';   /* and a slither and a jump down the far side */
+    jo=[lerp(jx,bx-0.3,u),lerp(top,gy,u)+arc,lerp(BOULDER_S-0.1,BOULDER_S+1.9,u)]; po=[bx+0.4,lerp(top,gy,smooth(8.3,9.8,t))+Math.sin(Math.PI*smooth(8.3,9.8,t))*0.35,lerp(BOULDER_S+0.05,BOULDER_S+1.6,smooth(8.3,9.8,t))]; }
+  set(J,jp,hd); set(Pp,pq,pf); if(po&&t>=1.2&&t<8) Pp.pos.set(jx+1.1,jz);
+  if(jo) june.g.position.set(jo[0],jo[1],jo[2]); if(po) pip.g.position.set(po[0],po[1],po[2]);
+  if(t>10){ H.on=0; H.done=true; J.pos.set(bx-0.3,BOULDER_S+1.9); Pp.pos.set(bx+0.4,BOULDER_S+1.6); J.cur=Pp.cur=null; J.queue.length=Pp.queue.length=0; party.s=BOULDER_S+2.6; party.rest=0.01; hushBubbles();
+    playScript([[1,'We did it! We\'re rock climbers!'],[0,'Best team on the mountain. Come on.']]); speakIn=12; narrate('One sister is not tall enough for a boulder like that. Two sisters are.'); } }
 function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
   icePond.position.set(trailX(ICE_Z)+ICE_LAT,trailY(ICE_Z)-0.4,ICE_Z);
   if(!fork.ice&&fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>ICE_Z-7&&party.s<ICE_Z+3&&quiet()&&!EVT.cur){ fork.ice=true; holdEvents(16);
@@ -5159,7 +5192,7 @@ function frame(now){
   else {
   /* the walk, and the strip of forest that travels with it */
   updateParty(dt);
-  BRAINS.forEach(b=>updateBrain(b,dt));
+  BRAINS.forEach(b=>updateBrain(b,dt)); updateHoist(dt);
   { const so=party.s>=SKY_A+1, sh=party.s>=SKY_B+1.5, ms=party.s>=BOULDER_S+1.5&&fork.site===2, wo=party.s>=MTN+34&&fork.site===2; if(so!==skyOpen||sh!==skyShut||ms!==mtnShut||wo!==wondersOn){ skyOpen=so; skyShut=sh; mtnShut=ms; wondersOn=wo; groundRow=forestRow=null; } }   /* deep in the mist: now the sky garden is put in place */
   const gr=Math.floor(party.s/ROW), fr=Math.floor(party.s/3);
   if(gr!==groundRow){ groundRow=gr; rebuildGround(party.s); }
