@@ -2411,6 +2411,10 @@ function finishBrain(b,pose,walking,dt){
   g.upper.position.y=0.3-drop; g.upper.rotation.set(rg.lean,0,rg.side);
   g.legs.forEach((l,i)=>{ l.position.y=0.3-drop; l.scale.y=Math.max(0.05,(0.3-drop)/0.3); l.rotation.x=i?rg.lrx:rg.llx; l.rotation.z=(i?1:-1)*rg.lsp; });
   g.head.rotation.set(rg.hx,rg.hy,rg.hz);
+  /* when there is somebody to look at, she looks at them: the head turns and tips until her eyes are on the spot, whatever the rest of her is doing */
+  if(b.gaze) b.gazeP=b.gaze; b.gk=damp(b.gk||0,b.gaze?1:0,4,dt);
+  if(b.gk>0.01&&b.gazeP){ const sc=g.g.scale.y, ex=b.gazeP.x-g.g.position.x, ey=b.gazeP.y-(g.g.position.y+(0.97-drop)*sc), ez=b.gazeP.z-g.g.position.z; let yaw=Math.atan2(ex,ez)-b.face; yaw=clamp(Math.atan2(Math.sin(yaw),Math.cos(yaw)),-1.15,1.15);
+    const pit=clamp(Math.atan2(-ey,Math.hypot(ex,ez))-rg.lean-rg.tilt,-0.55,0.95); g.head.rotation.x=lerp(rg.hx,pit,b.gk); g.head.rotation.y=lerp(rg.hy,yaw,b.gk); g.head.rotation.z=rg.hz*(1-b.gk); }
   g.armL.rotation.set(rg.lax,0,rg.laz); g.armR.rotation.set(rg.rax,0,rg.raz);
   g.tails.forEach((t,i)=>{ t.rotation.z=(i?1:-1)*(0.1+Math.sin(time*2.2+i)*0.08)+(walking?Math.sin(b.walkPhase*2)*0.15:0); });
   b.blinkIn-=dt; if(b.blinkIn<0){ b.blink=0.13; b.blinkIn=2.5+Math.random()*3.5; }
@@ -2906,7 +2910,7 @@ function backToStart(){
   closeDoors();
   const intro=$('intro'); intro.hidden=false; requestAnimationFrame(()=>intro.classList.remove('gone')); syncResume();
 }
-function resetHike(){ leaveBench(true); bench.done=false; cross.on=0; frogKing.on=0; frogKing.done=false; MEETS.forEach(D=>{ D.on=0; D.done=false; D.after=false; }); hoist.on=0; hoist.done=false;
+function resetHike(){ leaveBench(true); bench.done=false; cross.on=0; frogKing.on=0; frogKing.done=false; frogKing.pre=false; juneB.gaze=pipB.gaze=null; MEETS.forEach(D=>{ D.on=0; D.done=false; D.after=false; D.pre=false; }); hoist.on=0; hoist.done=false;
   if(mode==='rest') leaveRest(0); if(mode==='summit') leaveSummit(); if(mode==='home') leaveHome(); if(mode==='moon') leaveMoon(); if(mode==='cave') leaveCave(); if(mode==='falls') leaveFalls(); riverAsk=0; forceRiver=false; $('riverDock').hidden=true; forceSecret=false; $('homeDock').hidden=true; $('phoneDock').hidden=true; $('endDock').hidden=true; restToken++; $('fade').classList.remove('on'); lookBack=1; hikeT=0;
   note.found=0; clearPrints(); fork.village=false; fork.ice=false; fork.chasm=false; fork.cloud=false; choice=0; picks[0]=picks[1]=picks[2]=0; fork.site=0; fork.tail=0; syncRoute(); fork.stage=0; fork.t=0; fork.entered=false; fork.gateEvt=false; fork.river=false; fork.deepSaid=false; fork.hopSaid=false; hushNarrator(); gust.t=-1; gustMesh.count=0; bloom=0; revealT=-1; party.s=0; party.v=party.vT=WALK; party.rest=0; party.restIn=200;
   placeGirls(); groundRow=forestRow=null; camHd=heading(0); endEvent(); hideFork();
@@ -5380,17 +5384,19 @@ const frogKing=(()=>{ const g=new THREE.Group(), body=new THREE.Group(), fg=L('#
   g.scale.setScalar(2.7); g.visible=false; scene.add(g);
   const snack=new THREE.Mesh(new THREE.SphereGeometry(0.05,8,6),L('#e0b070')); snack.scale.set(1,0.5,1); snack.visible=false; scene.add(snack);
   const lamp=new THREE.PointLight(0xffe6a0,0,6,1.5); scene.add(lamp);
-  return {g,body,head,throat,snack,lamp,on:0,done:false,t:0,li:-1,last:null,gulp:0,sn:-1,pos:new THREE.Vector3()}; })();
+  return {g,body,head,throat,snack,lamp,on:0,done:false,t:0,li:-1,last:null,gulp:0,sn:-1,pos:new THREE.Vector3(),eye:new THREE.Vector3(),pre:false}; })();
 const FROGK_SAY=[[1,'June. There\'s a frog on the path. With a CROWN.'],[2,'Ahem. Down here, if you please.'],[2,'I am the Frog King. Thank you for finding my kingdom. Not many do.'],[0,'Your Majesty. It\'s a lovely marsh.'],
   [2,'It is. Enjoy your time in it. But be careful: keep to the planks, and mind the dark water.'],[2,'One more thing. A king gets hungry. Might you have... a snack?'],[1,'But they\'re MY snacks. I only have nine.'],
   [0,'Pip. He welcomed us into his whole kingdom. Being kind and friendly back is the right thing to do.'],[1,'...Fine. He can have ONE. A good one.'],[2,'Mmm. Excellent. A royal thank-you to you both.'],[0,'See? That felt good, didn\'t it?'],[1,'A little bit. He does have a nice mustache.'],[2,'Safe travels, small explorers.']];
-function updateFrogKing(dt){ const K=frogKing, on=!!state.started&&mode==='trail'&&marshOn()&&fork.site===1&&!K.done&&Math.abs(party.s-FROGK_S)<45; K.here=on; if(!on){ if(K.g.visible) K.g.visible=false; K.snack.visible=false; K.lamp.intensity=0; if(K.on){ K.on=0; K.done=true; party.rest=0.01; } return; }
+function updateFrogKing(dt){ const K=frogKing, on=!!state.started&&mode==='trail'&&marshOn()&&fork.site===1&&!K.done&&Math.abs(party.s-FROGK_S)<45; K.here=on; if(!on){ if(K.on){ juneB.gaze=pipB.gaze=null; } if(K.g.visible) K.g.visible=false; K.snack.visible=false; K.lamp.intensity=0; if(K.on){ K.on=0; K.done=true; party.rest=0.01; } return; }
   const hd=heading(FROGK_S), Y=trailY(FROGK_S)+0.115, J=juneB, Pp=pipB, set=(b,pose,face)=>{ b.cur={k:'pose',pose,dur:99999,face}; b.queue.length=0; };
   if(K.on<3){ K.pos.set(trailX(FROGK_S),Y,FROGK_S); K.g.position.copy(K.pos); K.g.rotation.set(0,hd+Math.PI,0); } K.g.visible=true; K.lamp.position.set(K.pos.x,Y+0.9,FROGK_S-0.5); K.lamp.intensity=1.1;
   const talking=!!(curLine&&curLine.w===2); K.throat.scale.setScalar(1+(talking?0.5*Math.abs(Math.sin(time*7)):0.3*Math.max(0,Math.sin(time*2.2)))); K.body.rotation.x=talking?-0.1+0.05*Math.sin(time*7):0;
+  if(K.on===0&&!K.pre&&party.s>FROGK_S-9){ K.pre=true; if(EVT.cur) endEvent(); holdEvents(45); hushBubbles(); }   /* as the camera begins to close in, whatever else was going on is over */
+  K.eye.set(K.g.position.x,K.g.position.y+0.42,K.g.position.z); if(K.on){ J.gaze=Pp.gaze=K.eye; }
   if(K.on===0){ if(party.s>FROGK_S-1.4){ K.done=true; K.g.visible=false; K.lamp.intensity=0; return; }   /* (set down past him: he is not at home today) */
-    if(fork.stage===4&&party.rest<=0&&party.s>FROGK_S-3.6){ K.on=1; K.t=0; K.li=-1; K.last=null; K.sn=-1; party.vT=0; party.rest=99999; holdEvents(90); hushBubbles();
-      J.queue.length=Pp.queue.length=0; J.cur=Pp.cur=null; J.queue.push({k:'walk',to:[trailX(FROGK_S-1.25)-0.42,FROGK_S-1.25],speed:1.1},{k:'pose',pose:'look',dur:99999,face:hd}); Pp.queue.push({k:'walk',to:[trailX(FROGK_S-1.2)+0.42,FROGK_S-1.2],speed:1.1},{k:'pose',pose:'point',dur:99999,face:hd});
+    if(fork.stage===4&&party.rest<=0&&party.s>FROGK_S-4.7){ K.on=1; K.t=0; K.li=-1; K.last=null; K.sn=-1; party.vT=0; party.rest=99999; holdEvents(90); hushBubbles();
+      J.queue.length=Pp.queue.length=0; J.cur=Pp.cur=null; J.queue.push({k:'walk',to:[trailX(FROGK_S-2.2)-0.45,FROGK_S-2.2],speed:1.1},{k:'pose',pose:'look',dur:99999,face:hd}); Pp.queue.push({k:'walk',to:[trailX(FROGK_S-2.15)+0.45,FROGK_S-2.15],speed:1.1},{k:'pose',pose:'point',dur:99999,face:hd});
       bubbles[2].head=K.head; bubbles[2].root=K.g; $('bubFriend').querySelector('.who').textContent='The Frog King';
       narrate('In the middle of the boardwalk, exactly where nobody could go round him, sat a frog. He was wearing a crown.'); } return; }
   K.t+=dt;
@@ -5402,7 +5408,7 @@ function updateFrogKing(dt){ const K=frogKing, on=!!state.started&&mode==='trail
     if(K.li>=FROGK_SAY.length-1&&quiet()&&K.t>6){ K.on=3; K.t=0; K.v=[Math.cos(hd)*2.3,-Math.sin(hd)*2.3]; Music.amb('croak'); narrate('And with that, and a plop, His Majesty went back to ruling the marsh.'); } return; }
   { const T=0.7, u=K.t/T; K.pos.x+=K.v[0]*dt; K.pos.z+=K.v[1]*dt; K.g.position.set(K.pos.x,lerp(Y,trailY0(MARSH_A)-0.3,u)+Math.sin(Math.PI*Math.min(1,u))*0.7,K.pos.z); K.g.rotation.set(-0.8+1.6*u,hd+Math.PI/2,0,'YXZ');   /* a royal leap */
     set(J,'wave',hd+1.2); set(Pp,'wave',hd+1.2);
-    if(u>=1){ pondSplash(K.pos.x,trailY0(MARSH_A)-0.22,K.pos.z); K.done=true; K.on=0; K.g.visible=false; K.lamp.intensity=0; J.cur=Pp.cur=null; party.rest=0.01; bubbles[2].head=nobody.head; bubbles[2].root=nobody.g;
+    if(u>=1){ pondSplash(K.pos.x,trailY0(MARSH_A)-0.22,K.pos.z); K.done=true; K.on=0; K.g.visible=false; K.lamp.intensity=0; J.gaze=Pp.gaze=null; J.cur=Pp.cur=null; party.rest=0.01; bubbles[2].head=nobody.head; bubbles[2].root=nobody.g;
       playScript([[1,'I met a KING.'],[0,'And you were generous to him. I\'m proud of you, Pip.']]); speakIn=12; } } }
 /* The moving ones: a woodpecker hammering at its tree and an owl on its bough; bees over the flowers in the wheat; dragonflies on the
    marsh; moths round the lamp in the moonlit wood; pond skaters on the still water; bats under the roof of the crystal hollow; and,
@@ -5487,9 +5493,11 @@ meetDef({key:'alpine',s:333,lat:-2.9,name:'The Old Goat',headY:2.75,
     [-1,1].forEach(sd=>{ const h1=new THREE.Mesh(new THREE.ConeGeometry(0.028,0.26,6),horn); h1.position.set(sd*0.05,0.17,-0.06); h1.rotation.set(-0.9,0,sd*-0.25); hd.add(h1); });
     const beard=new THREE.Group(); beard.position.set(0,-0.1,0.12); const bb=new THREE.Mesh(new THREE.ConeGeometry(0.055,0.5,7),wht); bb.rotation.x=Math.PI; bb.position.y=-0.25; beard.add(bb); hd.add(beard); this.hd=hd; this.beard=beard; this.tail=gt.children[3]; return g; },
   anim(D,t,talking){ D.hd.rotation.y=0.25*Math.sin(t*0.3); D.hd.rotation.x=talking?0.08*Math.sin(t*6):0.03*Math.sin(t*0.8); D.beard.rotation.x=(talking?0.25:0.12)*Math.sin(t*(talking?6:3.2)); D.beard.rotation.z=0.1*Math.sin(t*3.2); D.tail.rotation.y=((t%3.1)<0.4)?0.6*Math.sin(t*30):0; }});
-function updateMeets(dt){ for(const D of MEETS){ const here=!!state.started&&mode==='trail'&&legKey(1)===D.key&&Math.abs(party.s-D.s)<60; D.here=here&&fork.site===1; D.g.visible=here; if(!here){ if(D.flake) D.flake.visible=false; if(D.on){ D.on=0; D.done=true; party.rest=0.01; } continue; }
+function updateMeets(dt){ for(const D of MEETS){ const here=!!state.started&&mode==='trail'&&legKey(1)===D.key&&Math.abs(party.s-D.s)<60; D.here=here&&fork.site===1; D.g.visible=here; if(!here){ if(D.flake) D.flake.visible=false; if(D.on){ D.on=0; D.done=true; party.rest=0.01; juneB.gaze=pipB.gaze=null; } continue; }
     const x=trailX(D.s)+D.lat, J=juneB, Pp=pipB, sg=Math.sign(D.lat); D.g.position.set(x,floorY(x,D.s),D.s); D.g.rotation.y=Math.atan2(trailX(D.s-1.1)-x,-1.1);
     D.anim(D,time,D.on===2&&!!curLine&&curLine.w===2,dt); const set=(b,pose)=>{ b.cur={k:'pose',pose,dur:99999,face:Math.atan2(x-b.pos.x,D.s-b.pos.y)}; b.queue.length=0; };
+    if(D.here&&!D.done&&!D.pre&&party.s>D.s-9&&party.s<D.s){ D.pre=true; if(EVT.cur) endEvent(); holdEvents(45); hushBubbles(); }
+    if(D.on){ D.head.getWorldPosition(D.eye||(D.eye=new THREE.Vector3())); D.eye.y-=0.45; J.gaze=Pp.gaze=D.eye; }
     if(D.on===0){ if(D.done){ if(D.afterSay&&!D.after&&fork.site===1&&party.s>D.afterS&&party.s<D.afterS+6&&quiet()&&party.rest<=0){ D.after=true; narrate(D.afterNarr); tell(D.afterSay); } continue; }
       if(party.s>D.s-1){ D.done=true; D.after=true; continue; }   /* (set down past them: no meeting today) */
       if(fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>D.s-3.6){ D.on=1; D.t=0; D.li=-1; D.last=null; party.vT=0; party.rest=99999; holdEvents(90); hushBubbles(); J.queue.length=Pp.queue.length=0; J.cur=Pp.cur=null;
@@ -5498,7 +5506,7 @@ function updateMeets(dt){ for(const D of MEETS){ const here=!!state.started&&mod
     D.t+=dt;
     if(D.on===1){ if(J.cur&&J.cur.pose&&Pp.cur&&Pp.cur.pose&&D.t>1.4){ D.on=2; D.t=0; playScript(D.say); speakIn=9999; } continue; }
     if(curLine&&curLine!==D.last){ D.last=curLine; D.li++; } const ps=D.pose(D.li); set(J,ps[0]); set(Pp,ps[1]);
-    if(D.li>=D.say.length-1&&quiet()&&D.t>6){ D.on=0; D.done=true; J.cur=Pp.cur=null; party.rest=0.01; bubbles[2].head=nobody.head; bubbles[2].root=nobody.g; narrate(D.endNarr); speakIn=10; } } }
+    if(D.li>=D.say.length-1&&quiet()&&D.t>6){ D.on=0; D.done=true; J.gaze=Pp.gaze=null; J.cur=Pp.cur=null; party.rest=0.01; bubbles[2].head=nobody.head; bubbles[2].root=nobody.g; narrate(D.endNarr); speakIn=10; } } }
 /* How a meeting is filmed. As the girls come up to whoever is waiting, the camera works its way round behind them at the height of their
    heads, so that the stranger is framed between the two of them. As the talk begins it goes forward, through the gap, until the stranger
    has the middle of the picture. After that it cuts: over the girls' shoulders when the stranger speaks, over the stranger's shoulder
