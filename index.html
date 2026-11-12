@@ -587,7 +587,6 @@ function featY(s){ const k0=Math.round((s-FEAT0)/FEAT_STEP); let y=0; for(let k=
 function wallK(z){ if(z<GATE_B+10) return 0; const k0=Math.round((z-FEAT0)/FEAT_STEP); let w=0;   /* how high the banks stand either side of the trail here: 1 in a canyon, about half that in a gully */
   for(let k=k0-1;k<=k0+1;k++){ const f=featAt(k); if(!f||f.type==='knoll') continue; const u=(z-f.c)/(f.len*(f.type==='canyon'?1.5:1)); w=Math.max(w,(f.type==='canyon'?1:0.55)*Math.exp(-u*u*u*u)); } return w; }
 /* the upside-down pond is all water: a boardwalk on a causeway, climbing the mountain in level terraces with a short ramp between each */
-const pondK=z=>picks[2]&&legKey(2)==='pond'?smooth(GB[2]+4,GB[2]+10,z)*(1-smooth(MTN-8,MTN-2,z)):0;
 const REST_X=x0(REST_C);
 const spread=t=>t>0?18*(1-Math.exp(-t/35)):0;      /* how far each path has drifted from the middle, t metres past the fork */
 const keep=t=>1-smooth(55,85,t);                   /* the path not taken fades out between 55 and 85 m past the fork */
@@ -610,6 +609,10 @@ const VILLAGE_Z=466;   /* each of the last four places has a village, here */
 const picks=[0,0,0];   /* what was chosen at each rest site: 1 the left-hand button, -1 the right-hand one */
 function optionsAt(i){ return i===0?['autumn','aspen']:i===1?(choice>0?['winter','grass']:['marsh','alpine']):(choice>0?['glow','giant']:['pond','crystal']); }   /* [left, right] */
 const legKey=i=>picks[i]?optionsAt(i)[picks[i]>0?0:1]:null;
+/* The upside-down pond lies in a bowl. The whole place is one hollow in the mountainside with a single sheet of still water in it; the
+   trail crosses it dead level on a boardwalk just above the surface, and climbs out again at the far side. */
+const POND_A=GB[2]+1, POND_B=MTN-15, POND_UP=MTN-1, POND_ZC=(POND_A+POND_B)/2, POND_HZ=(POND_B-POND_A)/2+3.2, POND_HX=58;
+const pondOn=()=>!!picks[2]&&legKey(2)==='pond';
 /* The sky garden is not there at all until the girls are well inside the mist: until then the mountain trail simply runs on into a bank of
    cloud, with nothing beyond it. (The game's frame loop flips this as they walk in, when the mist is too thick to see the change.) */
 let skyOpen=false, skyShut=false, mtnShut=false, wondersOn=false;   /* wondersOn: the impossible rocks of the mountain trail exist only once the girls are inside the mist on the hill below it, so they are never seen from further down */
@@ -643,8 +646,9 @@ const trailY0=s=>0.05*Math.min(s,46)+0.8*Math.sin(s*0.03)*(1-smooth(36,50,s))+2.
   +0.03*Math.max(0,climbS(s)-106)+0.07*Math.max(0,climbS(s)-GATE_B)+smooth(GATE_B,GATE_B+25,s)*calm(s)*(2.2*Math.sin(s*0.045+0.6)+1.3*Math.sin(s*0.083+2))
   +0.05*Math.max(0,s-MTN)+(s>MTN?13*smooth(MTN+2,MTN+60,s):0)+0.2*Math.max(0,s-TOP_A)   /* steeper on the mountain trail, and steepest of all in the last cave */
   +(s>GATE_B+8?wildK(s)*(0.5*Math.sin(s*0.29+1)+0.35*Math.sin(s*0.47))+featY(s):0);   /* humps and hollows, gullies and knolls */
-const trailYb=s=>{ const w=s>GB[2]&&s<MTN?pondK(s):0; if(w<=0) return trailY0(s);   /* on the pond the climb is taken in level steps, 11 m long */
-  const u=(s-GB[2])/11, q=GB[2]+11*(Math.floor(u)+smooth(0.72,1,u-Math.floor(u))); return lerp(trailY0(s),trailY0(q),w); };
+const trailYb=s=>{ if(s<=POND_A||s>=POND_UP||!pondOn()) return trailY0(s); const Y=trailY0(POND_A); return s<POND_B?Y:lerp(Y,trailY0(POND_UP),smooth(POND_B,POND_UP,s)); };   /* level across the pond, then up out of the bowl */
+/* how far out from the middle of the bowl a spot is: under 0.84 it is open water, 0.84 to 1 is the shore, and beyond that the rim */
+const pondR=(x,z)=>z<POND_ZC-POND_HZ*1.35||z>POND_ZC+POND_HZ*1.35||!pondOn()?9:Math.hypot((x-trailX(POND_ZC))/POND_HX,(z-POND_ZC)/POND_HZ);
 /* the rock stair into the alpine garden is a real climb: the trail gains this much height through the gateway (evenly, so the girls walk up it
    smoothly; the steps drawn on it are cut to the same slope), and everything beyond stands that much higher */
 const STAIR_RISE=3.4, stairRise=s=>picks[1]&&legKey(1)==='alpine'?STAIR_RISE*clamp((s-GA[1]-1)/(GB[1]-GA[1]-2),0,1):0;
@@ -685,7 +689,7 @@ const CHASM_A=348, CHASM_B=355.5, CHASM_Z=(CHASM_A+CHASM_B)/2, CHASM_DEEP=13;
 const chasmOn=()=>!!picks[1]&&legKey(1)==='alpine';
 const chasmK=z=>z<=CHASM_A||z>=CHASM_B||!chasmOn()?0:smooth(CHASM_A,CHASM_A+1.5,z)*(1-smooth(CHASM_B-1.5,CHASM_B,z));
 /* (the ground the girls stand on keeps a strip at the height of the trail, where the bridge is; the ground that is drawn falls away under that too) */
-const drawnY=(x,z)=>{ const k=chasmK(z); return groundY(x,z)-(k>0?CHASM_DEEP*k*(1-smooth(1.25,1.9,Math.abs(x-trailX(z)))):0); };
+const drawnY=(x,z)=>{ const k=chasmK(z), pr=pondR(x,z); return groundY(x,z)-(k>0?CHASM_DEEP*k*(1-smooth(1.25,1.9,Math.abs(x-trailX(z)))):0)-(pr<0.9?1.5*(1-smooth(0.78,0.9,pr)):0); };   /* (and the bed of the pond lies well under what the girls walk on) */
 function groundY(x,z){
   paths(z); const ty=trailY(z);
   if(x>pL&&x<pR) return ty+0.3*clamp(Math.min(x-pL,pR-x)-FLAT,0,2)+ridge(x,z);   /* the wedge between the two paths: a low, flat-topped mound */
@@ -695,7 +699,8 @@ function groundY(x,z){
   const bumps=(Math.sin(x*0.13+z*0.11)*Math.sin(z*0.07-x*0.05)*1.3+Math.sin(x*0.31-z*0.23)*0.35)*smooth(FLAT,10,a);
   let y=ty+(lerp(open,walls,g)+bumps)*landK(z);
   { const wk=wallK(z); if(wk>0) y+=wk*5.4*smooth(2.4,6.5,a)*(1-0.45*smooth(14,30,a))*(0.55+0.45*Math.min(1,landK(z))); }   /* the banks of a gully or a canyon */
-  { const pk=pondK(z); if(pk>0) y=lerp(y,ty-0.55,pk*smooth(2.25,3,a)); }                                                    /* the pond: water everywhere but the causeway */
+  { const pr=pondR(x,z); if(pr<1.3){ const Yp=trailY0(POND_A), lip=Math.max(y,Yp+0.75*smooth(2.2,5,a));   /* the pond's bowl: a rim all round (the hillside itself, where that is higher), and inside it everything at the level of the boardwalk */
+      y=lerp(lip,y,smooth(1.0,1.3,pr)); y=lerp(Yp,y,smooth(0.84,0.98,pr)); } }
   { const ik=iceK(x,z); if(ik>0) y=lerp(y,trailY(ICE_Z)-0.62,ik); }
   { const ck=chasmK(z); if(ck>0) y-=CHASM_DEEP*ck*smooth(1.25,1.9,a); }
   y+=band(x,z,a);
@@ -710,7 +715,7 @@ function groundY(x,z){
 /* Things lying on the trail: a boulder on one half of the path, which the girls walk around, or a fallen log right across it, which they hop over. */
 const OB_FROM=68, OB_STEP=13;
 function obstacle(k){ if(k<0) return null; const s=OB_FROM+k*OB_STEP+hash(k,3,91)*6;
-  if(Math.abs(s-REST_C)<12||s>FORK-4&&s<GATE_B+8||Math.abs(s-SITES[1].rest)<12||Math.abs(s-SITES[2].rest)<12||s>TOP_A-10||chasmOn()&&Math.abs(s-CHASM_Z)<11) return null;
+  if(Math.abs(s-REST_C)<12||s>FORK-4&&s<GATE_B+8||Math.abs(s-SITES[1].rest)<12||Math.abs(s-SITES[2].rest)<12||s>TOP_A-10||chasmOn()&&Math.abs(s-CHASM_Z)<11||pondOn()&&s>POND_A-3&&s<POND_UP+2) return null;   /* (nothing lies about on the bridge of rock, or on the boardwalks of the pond) */
   for(let i=1;i<3;i++) if(s>GA[i]-6&&s<GB[i]+8) return null;
   if(s>MTN-6||s>SITES[2].b&&Math.abs(s-VILLAGE_Z)<17) return null;   /* and nothing lies across the path along the ridge, or through a village */
   return {s,side:hash(k,5,92)<0.5?-1:1,log:hash(k,7,93)<0.45}; }
@@ -858,7 +863,7 @@ const logGeo=new THREE.CylinderGeometry(0.5,0.55,1,9); logGeo.rotateZ(Math.PI/2)
 /* trees close to the girls cast shadows; the far ones do not need to */
 const P={trunkN:pool(trunkGeo,white(),300,true), blobN:pool(blobGeo,white(),900,true), coneN:pool(coneGeo,white(),420,true),
   trunkF:pool(trunkGeo,white(),3200), blobF:pool(blobGeo,white(),6400), coneF:pool(coneGeo,white(),12000),
-  bush:pool(blobGeo,white(),4200,true), rock:pool(rockGeo,white(),3400,true), log:pool(logGeo,white(),700,true), stem:pool(stemGeo,white(),1400), cap:pool(capGeo,white(),160,true),
+  bush:pool(blobGeo,white(),4200,true), rock:pool(rockGeo,white(),3400,true), log:pool(logGeo,white(),1700,true), stem:pool(stemGeo,white(),1400), cap:pool(capGeo,white(),160,true),
   petal:pool(petalGeo,white(),2600), leaf:pool(leafGeo,new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide}),9500)};
 /* The alpine garden's rocks are painted: the same stone, but with a skin on it. Crusts of lichen in rings and blotches (orange, yellow,
    pale grey-green, black), thin cracks, and moss grown over the top and down into the creases. It is one picture wrapped round every rock,
@@ -1018,23 +1023,17 @@ const BIO={
     narr:['Either the garden had grown, or the sisters had shrunk. Nobody could say which.','A blade of grass leaned over to look at them.'],
     reveal:{t:'The giant garden',b:'Mushrooms like houses and grass like towers. Or perhaps two very small sisters.',narr:'Under the big leaves, the world had changed its mind about what size things should be.',lines:[[1,'June... the mushrooms are bigger than our HOUSE.'],[0,'I think we shrank, Pip.'],[1,'Best. Shrinking. Ever.']]},
     gate:{kind:'tunnel',cols:['#6aa857','#79b05a','#5d9b4f'],label:'Under the big leaves',say:'under those enormous leaves',sub:'Leaves as big as umbrellas, arching over a very small path.',narr:'They chose the big leaves, because Pip said they looked like a door for mice.',enter:[[1,'Is it me, or is the path getting bigger?'],[0,'I think WE\'RE getting smaller.']]}},
-  pond:{floor:[0.24,0.36,0.5],dirt:[0.4,0.34,0.28],mote:'#bfe3ff',air:'drops',
+  pond:{floor:[0.34,0.5,0.4],dirt:[0.4,0.34,0.28],mote:'#bfe3ff',air:'drops',
     tree(T){ const sc=0.85+T.n(21)*0.4, th=(5.5+2.5*T.h)*sc, cr=(1.6+0.6*T.n(22))*sc, col=pk(PASTEL,T.n(23)), M=T.y+th+cr+4.5;                                                         /* a tree, and its twin hanging upside down in the sky above it */
       const one=(yb,yc)=>{ put(T.tp,T.x,yb,T.z,0.2*sc,th,0.2*sc,T.ry,ASPEN_BARK); put(T.bp,T.x,yc,T.z,cr,cr*1.1,cr,T.ry,col); put(T.bp,T.x+cr*0.6,yc-(yc>M?-0.6:0.6)*cr,T.z,cr*0.7,cr*0.7,cr*0.7,0,col); };
       one(T.y,T.y+th+cr*0.8); one(2*M-T.y-th,2*M-(T.y+th+cr*0.8)); },
     props(R){ const tilt=z=>-Math.atan(trailY(z+0.5)-trailY(z-0.5));
       if(R.side<0){   /* the boardwalk: wide planks on the causeway, a post at each edge, and every so often a spur running out over the water to a little landing */
         for(let k=0;k<4;k++){ const z=R.z0+k*0.75, x=trailX(z); put(P.log,x,trailY(z)+0.05,z,4.3+R.n(90+k)*0.2,0.13,1.24,(R.n(94+k)-0.5)*0.05,pk(PLANKS,R.n(98+k)),tilt(z)); }
-        for(const sd of [-1,1]){ const z=R.z0+0.4, x=trailX(z)+sd*2.12; put(P.trunkF,x,trailY(z)-0.75,z,0.09,1.05,0.09,0,PLANKS[2]); }
-        const n=Math.round(R.z0/3); if(n%4===1&&R.z0>GB[2]+10&&R.z0<MTN-10&&Math.abs(R.z0-VILLAGE_Z)>13){ const sd=n%8===1?1:-1, z=R.z0+1.5, x0=trailX(z), y=trailY(z)+0.05, len=6+R.n(101)*5;
-          for(let d=2.5;d<len;d+=0.75) put(P.log,x0+sd*d,y,z,0.7,0.12,1.7+R.n(102)*0.3,0,pk(PLANKS,R.n(103)+d*0.37));                     /* the spur */
-          const ex=x0+sd*(len+1.3); put(P.trunkF,ex,y-0.12,z,2.0,0.16,2.0,R.n(104)*3,PLANKS[0]);                                            /* its round landing */
-          for(const q of [0.8,2.4,4,5.6]) put(P.trunkF,ex+Math.cos(q)*1.25,y-0.8,z+Math.sin(q)*1.25,0.08,0.9,0.08,0,PLANKS[2]);
-          if(n%8===1){ put(P.trunkF,ex+0.9,y,z-0.6,0.05,1.5,0.05,0,PLANKS[2]); put(P.glow,ex+0.9,y+1.6,z-0.6,3,3,3,0,pk(GLOWS,R.n(105))); }   /* with a lantern on a post */
-          else { put(P.log,ex,y+0.42,z-0.5,1.5,0.16,0.4,0.3,PLANKS[3]); put(P.trunkF,ex-0.5,y,z-0.5,0.06,0.4,0.06,0,PLANKS[2]); put(P.trunkF,ex+0.5,y,z-0.5,0.06,0.4,0.06,0,PLANKS[2]); } }   /* or a bench for looking at the sky in the water */
-        const u=(R.z0-GB[2])/11; if(R.z0>GB[2]+8&&u-Math.floor(u)>0.72) for(const sd of [-1,1]) put(P.blobF,trailX(R.z0)+sd*(3.4+R.n(106)),trailY(R.z0+1.5)-0.5,R.z0+1.5,1.5,0.5,0.6,0,WHITE); }   /* white water where one terrace spills into the next */
-      if(R.n(30)<0.6){ const p=R.at(3.2+R.n(31)*8,32); put(P.bush,p.x,p.y+0.04,p.z,0.6,0.02,0.6,0,GREENS[4]); put(P.petal,p.x,p.y+0.12,p.z,1.4,1,1.4,0,pk(BLOOM,R.n(33))); }       /* a lily on the mirror */
-      if(R.n(40)<0.4){ const p=R.at(3+R.n(41)*10,42); put(P.glow,p.x,p.y+6+R.n(43)*5,p.z,3,1.2,1.4,R.n(44)*6,pk(GLOWS,R.n(45))); } },                                                   /* a fish, swimming through the air */
+        for(const sd of [-1,1]){ const z=R.z0+0.4, x=trailX(z)+sd*2.12; put(P.trunkF,x,trailY(z)-1.5,z,0.09,1.8,0.09,0,PLANKS[2]); }
+        }
+      for(let j=0;j<3;j++){ if(R.n(30+j*50)>0.6) continue; const p=R.at(3.2+R.n(31+j*50)*(8+j*16),32+j*50); if(p.y<-800||pondR(p.x,p.z)>0.86||pondDeckAt(p.x,p.z)) continue; const wy=trailY0(POND_A)-0.2; put(P.bush,p.x,wy+0.02,p.z,0.6,0.02,0.6,0,GREENS[4]); put(P.petal,p.x,wy+0.1,p.z,1.4,1,1.4,0,pk(BLOOM,R.n(33+j*50))); }       /* lilies floating on the mirror */
+      if(R.n(40)<0.4){ const p=R.at(3+R.n(41)*10,42); put(P.glow,p.x,trailY(p.z)+6+R.n(43)*5,p.z,3,1.2,1.4,R.n(44)*6,pk(GLOWS,R.n(45))); } },                                                   /* a fish, swimming through the air */
     lines:[['The trees are growing down from the sky!','Or we\'re walking on the sky.'],['Is that a fish? In the AIR?','It thinks it\'s in the pond.'],'I can see myself in the ground.',['Which way is up?','The way your hair isn\'t pointing.']],
     narr:['The pond was so still that it could not remember which forest was the real one.','A fish swam past at the height of June\'s shoulder, quite unbothered.'],
     reveal:{t:'The upside-down pond',b:'Water as still as glass, with a second forest hanging in the sky above the first.',narr:'Through the willow curtain the world came in two copies, and one of them was upside down.',lines:[[1,'June! There\'s a forest in the SKY!'],[0,'It\'s the pond. It\'s so still that it forgot which way is up.'],[1,'I\'m walking on a mirror!']]},
@@ -1242,7 +1241,7 @@ const spots={tree:[],gold:[],pine:[],rock:[],mush:[],flower:[],aspen:[],quake:[]
 /* One tree. What kind it is depends on where it stands: home woods, gully, aspen grove or autumn woods. */
 const densAt=z=>0.3+0.7*smooth(-0.5,0.4,Math.sin(z*0.083+1.3)+0.6*Math.sin(z*0.031));
 function plantTree(r,id,x,z,first,s0,fact,ring){
-  if(wet(x,z)||iceK(x,z)>0||!ring&&restDist(x,z)<12.4||homeDist(x,z)<8.5||inVillage(x,z)) return;
+  if(wet(x,z)||iceK(x,z)>0||pondR(x,z)<1.05&&pondDeckAt(x,z)||!ring&&restDist(x,z)<12.4||homeDist(x,z)<8.5||inVillage(x,z)) return;
   if(!ring&&z>GATE_B+20&&hash(r,id,17)>densAt(z)) return;   /* thick groves and open glades take turns along the trail */
   { const nk=hash(r,id,12)<newK(z)||mtnShut&&z>MTN?bioKeyAt(z):prevKeyAt(z), NB=BIO[nk];   /* (once the mist has closed behind them on the mountain trail, none of the last place's trees are left standing on it) */   /* further up the mountain, each place draws its own kind of tree (see BIO) */
     if(NB&&NB.tree){ if(!ring&&NB.keep!==undefined&&hash(r,id,16)>NB.keep) return;
@@ -1319,7 +1318,7 @@ const VILLAGE=[[-11.5,-6.9,1.6],[-6.5,-11.6,1.95],[-1.5,-6.5,1.45],[3.5,-10.8,1.
   [-11,11.2,1.6],[-4.5,14.8,1.95],[2.5,11.6,1.5],[8.5,14.6,1.85],[13,11.3,1.6],[-0.5,19,2.05]];
 const inVillage=(x,z)=>!!picks[2]&&Math.abs(z-VILLAGE_Z-0.5)<17&&x-trailX(z)>-20&&x-trailX(z)<22.5;
 function drawVillage(key){
-  VILLAGE.forEach(([dz,lat,sz],i)=>{ const z=VILLAGE_Z+dz, x=trailX(z)+lat, y=floorY(x,z)-0.06, h=k=>hash(i,k,611), t=lat<0?1:-1;   /* t: which way the trail (and so the front door) is */
+  VILLAGE.forEach(([dz,lat,sz],i)=>{ const z=VILLAGE_Z+dz, x=trailX(z)+lat, y=key==='pond'?trailY0(POND_A)+0.08:floorY(x,z)-0.06, h=k=>hash(i,k,611), t=lat<0?1:-1;   /* t: which way the trail (and so the front door) is */
     if(key==='glow'){   /* a mushroom with its cap alight, a door, a lit window, and a lamp by the path */
       put(P.trunkF,x,y,z,0.75*sz,1.5*sz,0.75*sz,0,CREAM); put(P.glow,x,y+1.5*sz,z,17*sz,9*sz,17*sz,0,pk(GLOWS,h(1)));
       put(P.bush,x+t*0.62*sz,y+0.45*sz,z,0.12*sz,0.42*sz,0.26*sz,0,BARKS[1]); put(P.glow,x+t*0.6*sz,y+1.02*sz,z+0.36*sz,2.4,2.4,2.4,0,CREAM);
@@ -1331,7 +1330,7 @@ function drawVillage(key){
     else if(key==='pond'){   /* a bubble of a house on its own lily pad, and its twin hanging upside down in the sky */
       const M=y+11, col=pk(PASTEL,h(2));
       for(const up of [1,-1]){ const yy=d=>up>0?y+d:2*M-y-d;
-        put(P.bush,x,yy(0.06),z,2.1*sz,0.05,2.1*sz,h(1)*6,GREENS[4]); put(P.blobF,x,yy(0.5*sz),z,0.95*sz,0.85*sz,0.95*sz,0,col);
+        if(up<0) put(P.bush,x,yy(0.06),z,2.1*sz,0.05,2.1*sz,h(1)*6,GREENS[4]); put(P.blobF,x,yy(0.5*sz),z,0.95*sz,0.85*sz,0.95*sz,0,col);
         put(P.bush,x+t*0.9*sz,yy(0.36*sz),z,0.1*sz,0.34*sz,0.22*sz,0,WATERC); put(P.petal,x+0.2,yy(1.38*sz),z,2.2,2.2,2.2,0,pk(BLOOM,h(4))); } }
     else {   /* a geode: a round stone cracked open, glowing from inside, with crystals growing out of the roof */
       put(P.rock,x,y+0.55*sz,z,1.25*sz,0.95*sz,1.15*sz,h(1)*6,GREYS[1]); put(P.gcone,x+t*0.98*sz,y-0.05,z,0.34*sz,0.95*sz,0.34*sz,0,pk(GEMS,h(2)));
@@ -1391,6 +1390,32 @@ const ALP_STONE=[C('#9c9a94'),C('#8e8d88'),C('#a8a59d')];   /* (a painted rock i
 const CUSHION=[C('#4f7d3c'),C('#5d8a45'),C('#466f38')];
 const GROUND_LICHEN=[C('#a98450'),C('#a09d62'),C('#96a288'),C('#b3aa88')];
 const LICHEN=[C('#d9902e'),C('#c8c655'),C('#b7c7a8'),C('#e6dca4'),C('#c77a2a')], MOSSES=[C('#6f9a45'),C('#86a84e'),C('#5c8640')];
+/* The boardwalks of the pond. Beside the main walk there is a whole small town of planking standing in the water: a wide square where the
+   village is, with every house on a round deck of its own and back streets behind them; before the village a loop out over the water with
+   a place to sit, and a long pier to an island with a lamp on it; after it, a jetty. (All measured across from the trail, and along it.) */
+const POND_PLAZA=[-9.5,VILLAGE_Z-13,8.8,VILLAGE_Z+11];
+const POND_SEGS=[[-13.8,VILLAGE_Z-11,-13.8,VILLAGE_Z+14,1.7],[-9.5,VILLAGE_Z-10.5,-13.8,VILLAGE_Z-10.5,1.6],[-9.5,VILLAGE_Z-1.5,-13.8,VILLAGE_Z-1.5,1.6],[-9.5,VILLAGE_Z+8,-13.8,VILLAGE_Z+8,1.6],
+  [16.9,VILLAGE_Z-8,16.9,VILLAGE_Z+11,1.7],[8.8,VILLAGE_Z-8,16.9,VILLAGE_Z-8,1.6],[8.8,VILLAGE_Z+5.5,16.9,VILLAGE_Z+5.5,1.6],
+  [2.1,POND_A+5,9,POND_A+5,1.6],[9,POND_A+5,9,POND_A+14,1.6],[2.1,POND_A+14,9,POND_A+14,1.6],
+  [-2.1,POND_A+10,-26,POND_A+10,1.6],[-14,POND_A+10,-14,POND_A+4.5,1.5],[2.1,VILLAGE_Z+15,10,VILLAGE_Z+15,1.6]];
+const POND_DISCS=[[11.6,POND_A+9.5,2.7,1],[-29,POND_A+10,3.4,0],[-14,POND_A+3,1.9,0],[12,VILLAGE_Z+15,2.3,1]];   /* (the last number: a bench, or else a lamp) */
+function pondDeckAt(x,z){ const lat=x-trailX(z); if(Math.abs(lat)<2.7) return true; if(lat>POND_PLAZA[0]-1&&lat<POND_PLAZA[2]+1&&z>POND_PLAZA[1]-1&&z<POND_PLAZA[3]+1) return true;
+  for(const [a,za,b,zb,w] of POND_SEGS){ const dl=b-a, dz=zb-za, u=clamp(((lat-a)*dl+(z-za)*dz)/(dl*dl+dz*dz),0,1); if(Math.hypot(lat-a-dl*u,z-za-dz*u)<w/2+0.9) return true; }
+  for(const [l,zz,r] of POND_DISCS) if(Math.hypot(lat-l,z-zz)<r+0.9) return true; return false; }
+/* where on the planking a girl may stand: the main walk, or anywhere in the village square */
+function pondKeepX(x,z){ const cx=trailX(z), lat=x-cx; return z>POND_PLAZA[1]+0.4&&z<POND_PLAZA[3]-0.4?cx+clamp(lat,POND_PLAZA[0]+0.6,POND_PLAZA[2]-0.6):cx+clamp(lat,-1.75,1.75); }
+function drawPondDecks(){ const Y=trailY0(POND_A)+0.05, H=(i,j)=>hash(i,j,417), plank=h=>PLANKS[Math.floor(h*4)%4];
+  const post=(lat,z)=>{ put(P.trunkF,trailX(z)+lat,Y-1.55,z,0.08,1.6,0.08,0,PLANKS[2]); };
+  POND_SEGS.forEach(([a,za,b,zb,w],si)=>{ const len=Math.hypot(b-a,zb-za), n=Math.max(2,Math.round(len/0.74)), yaw=Math.atan2(b-a,zb-za), nx=Math.cos(yaw), nz=-Math.sin(yaw);
+    for(let i=0;i<=n;i++){ const u=i/n, lat=lerp(a,b,u), z=lerp(za,zb,u); put(P.log,trailX(z)+lat,Y-0.01*(si%3),z,w+H(si,i)*0.14,0.12,0.72,yaw+(H(si,i+50)-0.5)*0.05,plank(H(si,i+99)));
+      if(i%4===0) for(const sd of [-1,1]){ const pl=lat+sd*nx*(w/2-0.08), pz=z+sd*nz*(w/2-0.08); post(pl,pz); } } });
+  { const [l0,z0,l1,z1]=POND_PLAZA; for(let z=z0+0.6;z<z1;z+=1.2){ const half=z<VILLAGE_Z?0:1; for(const [a,b] of [[l0,-2.2],[2.2,l1]]) put(P.log,trailX(z)+(a+b)/2,Y-0.015,z,b-a+H(7,z)*0.2,0.12,1.22,(H(8,z)-0.5)*0.012,plank(H(9,z+a))); }   /* the square: long boards either side of the main walk */
+    for(let z=z0;z<=z1+0.1;z+=4){ post(l0+0.1,z); post(l1-0.1,z); } for(let l=l0;l<=l1;l+=4.5){ post(l,z0+0.1); post(l,z1-0.1); }
+    [[l0+0.4,z0+0.4],[l1-0.4,z0+0.4],[l0+0.4,z1-0.4],[l1-0.4,z1-0.4]].forEach(([l,z],i)=>{ const x=trailX(z)+l; put(P.trunkF,x,Y,z,0.05,1.7,0.05,0,PLANKS[2]); put(P.glow,x,Y+1.8,z,3,3,3,0,pk(GLOWS,H(11,i))); }); }   /* a lamp at each corner */
+  POND_DISCS.forEach(([l,z,r,bench],i)=>{ const x=trailX(z)+l; put(P.trunkF,x,Y-0.14,z,r*1.32,0.17,r*1.32,H(12,i)*3,PLANKS[i%2?0:3]); for(let q=0.4;q<6.2;q+=1.25) put(P.trunkF,x+Math.cos(q)*r*0.8,Y-1.55,z+Math.sin(q)*r*0.8,0.08,1.5,0.08,0,PLANKS[2]);
+    if(bench){ put(P.log,x,Y+0.45,z-0.5,1.6,0.16,0.42,0.3,PLANKS[3]); put(P.trunkF,x-0.5,Y,z-0.42,0.06,0.42,0.06,0,PLANKS[2]); put(P.trunkF,x+0.5,Y,z-0.6,0.06,0.42,0.06,0,PLANKS[2]); }
+    else { put(P.trunkF,x+r*0.5,Y,z-r*0.3,0.05,1.6,0.05,0,PLANKS[2]); put(P.glow,x+r*0.5,Y+1.7,z-r*0.3,3,3,3,0,pk(GLOWS,H(13,i))); } });
+  VILLAGE.forEach(([dz,lat,sz],i)=>{ const z=VILLAGE_Z+dz, x=trailX(z)+lat, r=2.25*sz; put(P.trunkF,x,Y-0.16,z,r*1.3,0.17,r*1.3,H(14,i)*3,PLANKS[i%4]); for(let q=0.3;q<6.2;q+=1.05) put(P.trunkF,x+Math.cos(q)*r*0.82,Y-1.55,z+Math.sin(q)*r*0.82,0.08,1.5,0.08,0,PLANKS[2]); }); }   /* and a round deck under every house */
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
   POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
@@ -1503,6 +1528,7 @@ function rebuildForest(s0){
       else if(key) drawGate(BIO[key].gate,r,z0,GA[gi],GB[gi]); }
     /* The rest site, furnished from REST_KIT: a ring of big trees with gaps where the trail comes in and the two paths go out,
        and the same boulders, logs, mushrooms, ferns and flowers, in the same places, as the rest scene the girls will sit down in. */
+    if(pondOn()&&POND_A>=z0&&POND_A<z0+3) drawPondDecks();
     if(chasmOn()&&CHASM_Z>=z0&&CHASM_Z<z0+3){ const H=(i,j)=>hash(i,j,311), tone=h=>GREYS[Math.floor(h*GREYS.length)%GREYS.length];
       /* the bridge: a span of old rock, thin in the middle and thick where it springs from each wall, with flat slabs worn smooth along the top */
       for(let i=0;i<=10;i++){ const u=i/10*2-1, z=lerp(CHASM_A-0.9,CHASM_B+0.9,i/10), x=trailX(z), ty=trailY(z), D=0.9+5.2*Math.pow(Math.abs(u),2.6);
@@ -2269,6 +2295,8 @@ function finishBrain(b,pose,walking,dt){
   /* nor through the fence along the sky garden's boardwalk */
   if(landY===groundY&&skyOpen&&b.pos.y>SKY_B+1&&b.pos.y<SKY_B+36){ const fx=trailX(b.pos.y)-1.36+0.34; if(b.pos.x<fx) b.pos.x=fx;
     [b.cur].concat(b.queue).forEach(st=>{ if(st&&st.k==='walk'&&st.to[0]<fx+0.08) st.to[0]=fx+0.08; }); }   /* and anywhere she means to walk to that lies beyond it is brought back to this side, so she never stands marching at the rail */
+  /* on the pond, keep to the planking */
+  if(landY===groundY&&pondOn()&&pondR(b.pos.x,b.pos.y)<0.95){ b.pos.x=pondKeepX(b.pos.x,b.pos.y); [b.cur].concat(b.queue).forEach(st=>{ if(st&&st.k==='walk') st.to[0]=pondKeepX(st.to[0],st.to[1]); }); }
   /* and on the bridge of rock over the chasm, keep to the middle */
   if(landY===groundY&&chasmOn()&&b.pos.y>CHASM_A-1&&b.pos.y<CHASM_B+1){ const cx=trailX(b.pos.y); b.pos.x=clamp(b.pos.x,cx-0.7,cx+0.7); }
   /* never stand on top of your sister */
@@ -4952,6 +4980,13 @@ function updateChasm(){ const on=!!state.started&&mode==='trail'&&chasmOn()&&Mat
   if(!fork.chasm&&fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>CHASM_A-10&&party.s<CHASM_A-2&&quiet()&&!EVT.cur){ fork.chasm=true; holdEvents(24);
     narrate('Then the mountain simply stopped: a crack right across it, too deep to see the bottom of. But one bridge of rock had been left, exactly where the trail wanted to go.');
     playScript([[1,'June... the ground is BROKEN.'],[0,'It\'s a chasm. And look, the rock goes right across. Middle of the bridge, and hold my hand.'],[1,'I\'m not looking down. ...I looked down.'],[0,'Eyes on the far side, Pip. Nearly there.']]); speakIn=20; } }
+/* the water of the upside-down pond: one flat sheet lying in the bowl, with the sky and its clouds in it, drifting */
+const pondWater=(()=>{ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'), gr=g.createLinearGradient(0,0,0,256); gr.addColorStop(0,'#86b9ea'); gr.addColorStop(0.5,'#a7cdf1'); gr.addColorStop(1,'#86b9ea'); g.fillStyle=gr; g.fillRect(0,0,256,256);
+  let sd=5; const R=()=>(sd=(sd*16807)%2147483647)/2147483647; for(let i=0;i<22;i++){ const x=R()*256, y=R()*256, r=14+R()*30; for(const ox of [-256,0,256]) for(const oy of [-256,0,256]){ const q=g.createRadialGradient(x+ox,y+oy,0,x+ox,y+oy,r); q.addColorStop(0,'rgba(255,255,255,0.55)'); q.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=q; g.fillRect(x+ox-r,y+oy-r,r*2,r*2); } }
+  const tex=new THREE.CanvasTexture(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(5,2.4);
+  const m=new THREE.Mesh(new THREE.CircleGeometry(1,72),new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0.9,depthWrite:false})); m.rotation.x=-Math.PI/2; m.scale.set(POND_HX*0.9,POND_HZ*0.9,1); m.visible=false; m.renderOrder=1; scene.add(m); return m; })();
+function updatePondWater(){ const on=!!state.started&&mode==='trail'&&pondOn()&&Math.abs(party.s-POND_ZC)<170; pondWater.visible=on; if(!on) return;
+  pondWater.position.set(trailX(POND_ZC),trailY0(POND_A)-0.22,POND_ZC); pondWater.material.map.offset.set(time*0.004,time*0.0015); }
 function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
   icePond.position.set(trailX(ICE_Z)+ICE_LAT,trailY(ICE_Z)-0.4,ICE_Z);
   if(!fork.ice&&fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>ICE_Z-7&&party.s<ICE_Z+3&&quiet()&&!EVT.cur){ fork.ice=true; holdEvents(16);
@@ -5128,7 +5163,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
