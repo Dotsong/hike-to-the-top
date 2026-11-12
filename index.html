@@ -4303,7 +4303,7 @@ function nextLine(key,src){ const d=decks[key]||(decks[key]=[]); if(!d.length){ 
 /* one bubble at a time: every line waits its turn and stays up long enough to read */
 const lineTime=tx=>1.6+tx.length*0.06;
 function showLine(w,tx){ bubbles.forEach((bb,i)=>{ if(i!==w){ bb.t=0; bb.el.classList.remove('show'); } });
-  const bb=bubbles[w]; bb.el.querySelector('.txt').textContent=tx; bb.t=lineTime(tx)*(frogKing.on||MEETS.some(D=>D.on)?1.7:1); bb.el.classList.add('show');   /* (in a meeting each line stays up a good deal longer) */ curLine={w,t:bb.t}; }
+  const bb=bubbles[w]; bb.el.querySelector('.txt').textContent=tx; bb.t=lineTime(tx)*(frogKing.on||MEETS.some(D=>D.on)?1.7:1); bb.el.classList.add('show');   /* (in a meeting each line stays up a good deal longer) */ curLine={w,t:bb.t,t0:performance.now()}; }
 function say(i,text){ script.push([i,text]); }
 function speak(line,i){ if(i===undefined) i=Math.random()<0.5?0:1;
   if(Array.isArray(line)) script.push([i,line[0]],[1-i,line[1]]); else script.push([i,line]); }
@@ -4401,8 +4401,16 @@ function updateSpeech(dt){
   else if(script.length){ const [w,tx]=script.shift(); if(bubbles[w]&&bubbles[w].root.visible) showLine(w,tx); }
   else if(state.started&&party.rest<=0&&fork.stage!==1&&!EVT.cur){ speakIn-=dt; if(speakIn<=0){ chatter(); speakIn=8+Math.random()*8; } }
   const xs=[];
-  if(mode==='trail'&&(frogKing.on||MEETS.some(D=>D.on))){   /* in a meeting the camera cuts about, so the bubbles do not follow heads: each speaker's words come up in the same place every time */
-    bubbles.forEach((bb,i)=>{ const x=innerWidth*[0.3,0.5,0.7][i], y=innerHeight*0.47; xs[i]=x; bb.el.style.transform=`translate3d(${clamp(x,Math.min(250,innerWidth*0.42),innerWidth-Math.min(250,innerWidth*0.42)).toFixed(1)}px,${y.toFixed(1)}px,0)`; bb.el.style.visibility=state.started?'visible':'hidden'; });
+  if(mode==='trail'&&(frogKing.on||MEETS.some(D=>D.on))){
+    /* In a meeting the camera cuts about, so a bubble does not chase a head round the screen. When a line begins (and again at each cut) its
+       place is worked out once and it stays there: just over the speaker, if the speaker is in the picture; and if she is not (Pip, calling
+       out from behind the camera) down in the bottom corner on her side, so that it plainly comes from off screen. */
+    const edge=Math.min(250,innerWidth*0.42), key=(curLine?curLine.w+':'+curLine.t0:'')+mcam.id, fresh=key!==meetBub.key; meetBub.key=key;
+    bubbles.forEach((bb,i)=>{ const A=meetBub.at[i]||(meetBub.at[i]={x:innerWidth/2,y:innerHeight/2});
+      if(fresh||mcam.id==='behind'||mcam.id==='through'){ bb.head.getWorldPosition(hp); hp.project(camera); const beh=hp.z>1, on=!beh&&Math.abs(hp.x)<0.9&&hp.y>-0.75&&hp.y<0.62;
+        const tx=on?(hp.x*0.5+0.5)*innerWidth:((beh?-hp.x:hp.x)<0?0:innerWidth), ty=on?(-hp.y*0.5+0.5)*innerHeight-6:innerHeight*0.9;
+        if(fresh){ A.x=tx; A.y=ty; } else { A.x+=(tx-A.x)*0.06; A.y+=(ty-A.y)*0.06; } }   /* (while the camera itself is travelling, it drifts along gently) */
+      xs[i]=A.x; bb.el.style.transform=`translate3d(${clamp(A.x,edge,innerWidth-edge).toFixed(1)}px,${A.y.toFixed(1)}px,0)`; bb.el.style.visibility=state.started?'visible':'hidden'; });
     bubbles.forEach((bb,i)=>bb.el.classList.toggle('right',xs[i]>innerWidth/2)); return; }
   bubbles.forEach((bb,i)=>{ bb.head.getWorldPosition(hp); hp.project(camera);
     const x=(hp.x*0.5+0.5)*innerWidth, y=(-hp.y*0.5+0.5)*innerHeight; xs[i]=x;
@@ -4412,6 +4420,7 @@ function updateSpeech(dt){
   bubbles.forEach((bb,i)=>bb.el.classList.toggle('right',xs[i]>innerWidth/2));
 }
 /* things that happen along the way wait for whoever is talking instead of cutting them off */
+const meetBub={key:'',at:[]};
 function announce(line){ const s=Math.random()<0.5?0:1; if(script.length>2) script.length=2;
   if(Array.isArray(line)) script.push([s,line[0]],[1-s,line[1]]); else script.push([s,line]); speakIn=9; }
 function hushBubbles(){ bubbles.forEach(bb=>{bb.t=0;bb.el.classList.remove('show');}); curLine=null; lineGap=0; script=[]; speakIn=4; }
