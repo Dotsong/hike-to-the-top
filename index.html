@@ -4018,13 +4018,13 @@ function enterFalls(){
   const tok=++restToken; $('fade').classList.add('on'); $('riverDock').hidden=true; riverAsk=0;
   setTimeout(()=>{ if(tok!==restToken||!state.started) return;
     fallsS=buildFalls(); Object.assign(fallsS,{t:0,pt:0,phase:'corridor',cam:new THREE.Vector3(0,1.6,FALLS_Z0-3),look:new THREE.Vector3(0,1.2,FALLS_Z0+4),done:false,open:0,wide:0,who:-1,di:0,last:null});
-    fallsS.reveal(0); scene.remove(june.g,pip.g); fallsS.scene.add(june.g,pip.g); endEvent(); setTorches(0); Music.river(0.25);
+    fallsS.reveal(0); scene.remove(june.g,pip.g); fallsS.scene.add(june.g,pip.g); endEvent(); setTorches(0); Music.river(0);   /* (not a sound of water until they are through the bushes) */
     mode='falls'; landY=()=>0; zoom=1; userPhi=0;
     BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(FALLS_CX(FALLS_Z0+1)+(i?0.3:-0.25),FALLS_Z0+1-i*0.8); b.face=b.faceT=0; });
     bubbles[2].head=fallsS.dev[0].head; bubbles[2].root=fallsS.dev[0].g; $('bubFriend').querySelector('.who').textContent='A man in a lab coat';
     hushBubbles(); hushNarrator(); narrate('Across the river the forest closed in tighter than it ever had, and the path wound through it like a thread through a needle.'); speakIn=9999;
-    playScript([[1,'It\'s so squeezy in here.'],[0,'Stay right behind me. I can hear water. A LOT of water.']]);
-    showCaption({t:'Across the river',b:'A line of stepping stones, a path nobody else knows, and the sound of falling water.'});
+    playScript([[1,'It\'s so squeezy in here.'],[0,'Stay right behind me, Pip. And mind the roots.']]);
+    showCaption({t:'Across the river',b:'A line of stepping stones, and a path nobody else knows.'});
     $('fade').classList.remove('on'); },950);
 }
 function updateFalls(dt,rawDt){
@@ -4033,7 +4033,7 @@ function updateFalls(dt,rawDt){
   F.update(time,curLine&&curLine.w===2?F.who:-1);
   let jp='idle', pq='idle', jw=false, pw=false;
   if(F.phase==='corridor'){ const zt=J.pos.y+1.2; jw=moveToward(J,FALLS_CX(zt)-0.22,zt,1.15,dt)>0.05; moveToward(Pp,FALLS_CX(J.pos.y-0.85)+0.26,J.pos.y-0.85,1.25,dt); pw=jw;
-    if(J.pos.y>FALLS_WALL-1.25){ F.phase='wall'; F.pt=0; Music.river(0.6); playScript([[1,'A wall. Made of bushes.'],[0,'There\'s light coming through it. Help me push, Pip.'],[1,'One... two... THREE!']]); narrate('And then it stopped, at a wall of leaves with daylight behind it.'); } }
+    if(J.pos.y>FALLS_WALL-1.25){ F.phase='wall'; F.pt=0; playScript([[1,'A wall. Made of bushes.'],[0,'There\'s light coming through it. Help me push, Pip.'],[1,'One... two... THREE!']]); narrate('And then it stopped, at a wall of leaves with daylight behind it.'); } }
   else if(F.phase==='wall'){ jw=moveToward(J,-0.4,FALLS_WALL-0.95,1,dt)>0.05; pw=moveToward(Pp,0.42,FALLS_WALL-0.95,1,dt)>0.05; J.faceT=Pp.faceT=0; jp='look'; pq='point'; if(F.pt>2.5&&quiet()&&!jw&&!pw){ F.phase='push'; F.pt=0; Music.amb('rustle'); } }
   else if(F.phase==='push'){ J.faceT=Pp.faceT=0; jp=pq='scoop'; F.open=smooth(0.3,2.6,F.pt); if(Math.floor(F.pt*2)!==Math.floor((F.pt-dt)*2)&&F.pt<2.6) Music.amb('rustle');   /* each takes a side, and leans */
     if(F.pt>2.9){ F.phase='through'; F.pt=0; } }
