@@ -5205,6 +5205,18 @@ function updateMarsh(dt){ const M=marsh, Y=trailY0(MARSH_A), wy=Y-0.22, near=!!s
   M.bugs.visible=on; if(on){ const p=M.bugs.geometry.attributes.position; M.sw.forEach((w,i)=>{ const L2=marshLamps.length?marshLamps[(i*3)%marshLamps.length]:null; if(i%2===0&&L2&&Math.abs(L2.z-party.s)<30){ w.cx=L2.x; w.cy=L2.y+0.1; w.cz=L2.z; } else { const z=party.s+((w.dz+40)%34)-6; w.cx=trailX(z)+w.lat+Math.sin(time*0.2+w.ph)*0.8; w.cy=Y+w.h+0.3*Math.sin(time*0.33+w.ph); w.cz=z; } });
     M.bd.forEach((b,i)=>{ const w=M.sw[b.s], a=b.a+time*b.w, q=b.b+time*b.u; p.setXYZ(i,w.cx+Math.cos(a)*b.r*(0.6+0.4*Math.sin(q)),w.cy+Math.sin(q*1.3)*b.r*0.55,w.cz+Math.sin(a)*b.r*(0.6+0.4*Math.cos(q*0.7))); }); p.needsUpdate=true;
     M.snd-=dt; if(M.snd<=0){ M.snd=0.9+Math.random()*2.2; Music.amb(Math.random()<0.6?'croak':'peeper'); } M.bz-=dt; if(M.bz<=0){ M.bz=2+Math.random()*3; Music.amb(Math.random()<0.5?'midge':'buzz'); } } }
+/* Once everything has been found and the river can be crossed, the bend in it says so: a soft golden glow on the water where the
+   stepping stones are, slow sparks rising out of it, and a warm light on the bank. It is there from the moment the hike begins. */
+const riverGold=(()=>{ const g=new THREE.Group(); g.visible=false; scene.add(g);
+  const mk=(sx,sy,o)=>{ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xffd66a,transparent:true,opacity:o,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); sp.scale.set(sx,sy,1); g.add(sp); return sp; };
+  const halo=mk(13,6.5,0.5), core=mk(5,3.2,0.6), beam=mk(3.2,13,0.22); halo.position.y=0.9; core.position.y=0.6; beam.position.y=5.6;
+  const N=46, pp=new Float32Array(N*3), pg=new THREE.BufferGeometry(); pg.setAttribute('position',new THREE.BufferAttribute(pp,3)); const pts=new THREE.Points(pg,new THREE.PointsMaterial({color:0xffe9a0,size:0.11,map:spriteTex,transparent:true,opacity:0.95,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); pts.frustumCulled=false; g.add(pts);
+  const d=[]; for(let i=0;i<N;i++) d.push({a:rnd()*6.283,r:0.3+rnd()*3.2,sp:0.25+rnd()*0.4,ph:rnd()*7,w:(rnd()-0.5)*0.8});
+  const light=new THREE.PointLight(0xffcf6a,0,16,1.5); light.position.y=1.4; g.add(light); return {g,halo,core,beam,pts,d,light}; })();
+function updateRiverGold(){ const G=riverGold, on=mode==='trail'&&(saved.secret||forceRiver)&&party.s<100; G.g.visible=on; if(!on) return;
+  const z=RIVER_Z-6.5, x=x0(z)+riverBank(z)+2.6; G.g.position.set(x,riverY(z),z); const k=0.85+0.15*Math.sin(time*1.1)+0.06*Math.sin(time*2.7);
+  G.halo.material.opacity=0.46*k; G.core.material.opacity=0.6*k; G.beam.material.opacity=0.2*k; G.light.intensity=1.5*k;
+  const p=G.pts.geometry.attributes.position; G.d.forEach((q,i)=>{ const u=((time*q.sp+q.ph)%7)/7, a=q.a+time*q.w; p.setXYZ(i,Math.cos(a)*q.r*(1-0.5*u),0.1+u*6.5,Math.sin(a)*q.r*(1-0.5*u)); }); p.needsUpdate=true; }
 function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
   icePond.position.set(trailX(ICE_Z)+ICE_LAT,trailY(ICE_Z)-0.4,ICE_Z);
   if(!fork.ice&&fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>ICE_Z-7&&party.s<ICE_Z+3&&quiet()&&!EVT.cur){ fork.ice=true; holdEvents(16);
@@ -5401,7 +5413,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateMarsh(dt); updateMarshVeil(); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateRiverGold(); updateMarsh(dt); updateMarshVeil(); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
