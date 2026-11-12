@@ -4025,7 +4025,9 @@ const deer=new THREE.Group(), hedgehog=new THREE.Group(), acorns=[], pileMesh=ne
     for(let k=0;k<70;k++){ const a=hash(k,3,61)*6.283, d=Math.sqrt(hash(k,4,62))*1.15, m=new THREE.Mesh(leafGeo,LM[k%5]), s1=1.6+hash(k,5,63)*1.4; m.position.set(Math.cos(a)*d,0.5*(1-(d/1.15)*(d/1.15))+0.04,Math.sin(a)*d);
       m.scale.set(s1,1,s1*1.5); m.rotation.set((hash(k,6,64)-0.5)*1.5,hash(k,7,65)*6.283,(hash(k,8,66)-0.5)*1.5); m.castShadow=true; pileMesh.add(m); } }
   [deer,hedgehog,pileMesh].forEach(g=>{ g.visible=false; scene.add(g); }); }
-Object.assign(NARR_EVENT,{fox:'A fox stepped out onto the trail, looked the sisters up and down, and decided they were none of its business.',acorns:'An oak let go of three acorns: one, two, three.',leafpile:'Pip found a heap of leaves that plainly needed jumping in.',geese:'High overhead, a long V of geese went honking south.',
+/* a family of deer, for the winter forest: a stag, a doe and two fawns (the young deer above, copied at four sizes) */
+const herd=[1.55,1.35,0.95,0.85].map((sc,i)=>{ const g=deer.clone(true); g.scale.setScalar(sc); g.visible=false; scene.add(g); return {g,sc,gap:i*0.62+(i>1?0.25:0),lane:i*0.9+(i%2)*0.5}; });
+Object.assign(NARR_EVENT,{herd:'A family of deer came bounding out of the pines, crossed the trail in three leaps apiece, and were gone into the snow.',fox:'A fox stepped out onto the trail, looked the sisters up and down, and decided they were none of its business.',acorns:'An oak let go of three acorns: one, two, three.',leafpile:'Pip found a heap of leaves that plainly needed jumping in.',geese:'High overhead, a long V of geese went honking south.',
   hedgehog:'A hedgehog crossed the trail with a leaf stuck to its back, in no hurry at all.',deer:'Between the white trunks stood a young deer, as still as the trees.',
   quake:'A breath of wind ran through the grove, and ten thousand leaves clapped at once.',eyes:'Pip had the feeling that the grove was watching her. She was not entirely wrong.'});
 const BIRD_LINES=[[['Birds!','They\'re racing us to the top!'],['Did you see that?','They flew right over our heads!'],'Hello, birds!',['Where are they going?','Up the mountain, same as us.']],   /* along the trail, from behind */
@@ -4045,11 +4047,12 @@ const EVENT_LINES={
   hedgehog:[[[1,'A hedgehog! It\'s wearing a leaf!'],[0,'It\'s getting ready for a long winter nap.']],[[0,'Shh. Look who\'s crossing.'],[1,'After you, Mister Prickles.']]],
   deer:[[[0,'Pip. Don\'t move. A deer.'],[1,'I\'m not moving. I\'m only whispering.'],[0,'...There it goes.']],[[1,'June, look! It has spots!'],[0,'It\'s a young one. Its mother won\'t be far.']]],
   quake:[[[1,'The whole grove is shivering!'],[0,'That\'s why they\'re called quaking aspens.']],[[0,'Listen. It sounds like rain.'],[1,'It\'s the leaves! They\'re clapping!']]],
+  herd:[[[0,'Pip. Look. Don\'t move.'],[1,'One, two, three... FOUR deer!'],[0,'A whole family.']],[[1,'They\'re jumping right over the trail!'],[0,'Look at the little ones keeping up.'],[1,'Bye, deer family!']],[[1,'DEER!'],[0,'Shh... oh. Too late. There they go.'],[1,'They left footprints. Lots.']]],
   fox:[[[1,'A FOX!'],[0,'Shh. Look at that tail.'],[1,'It\'s wearing black socks.']],[[0,'Pip. Fox. Right there.'],[1,'It looked straight at me!'],[0,'Foxes are curious. Like someone I know.']],[[1,'Is it a dog?'],[0,'A fox. See the white tip on its tail?'],[1,'Bye, fox!']]],
   eyes:[[[1,'June. The trees have EYES.'],[0,'Those are where their old branches used to be.'],[1,'They\'re all looking at you.']],[[1,'That tree winked at me.'],[0,'Wink back. It\'s only polite.']]]};
 const EVENT_MENU={home:['birds','butterfly','rabbit','woodpecker'],deep:['birds','squirrel','owl','woodpecker','butterfly'],
   aspen:['birds','butterfly','rabbit','swirl','deer','quake','eyes','deer','quake','fox','fox'],autumn:['birds','squirrel','swirl','acorns','leafpile','geese','hedgehog','acorns','leafpile','geese','hedgehog','fox','fox'],
-  winter:['birds','rabbit','woodpecker','owl'],grass:['birds','butterfly','rabbit'],marsh:['birds','butterfly','owl'],alpine:['birds','butterfly'],mtn:['birds'],
+  winter:['birds','rabbit','woodpecker','owl','herd','herd'],grass:['birds','butterfly','rabbit'],marsh:['birds','butterfly','owl'],alpine:['birds','butterfly'],mtn:['birds'],
   glow:['owl','butterfly'],giant:['butterfly','birds'],pond:['butterfly','birds'],crystal:[],sky:['butterfly','birds']};
 /* Small happenings, of the same family as the birds overhead and the woodpecker: something is heard or glimpsed, the narrator mentions it, and
    the girls have a word about it. Each belongs only to the places where it could really happen. 'snd' is the sound it makes (rep: how many
@@ -4085,7 +4088,7 @@ const pebbleMesh=new THREE.Mesh(rockGeo,L('#8b8f8a')); pebbleMesh.scale.set(0.13
 const EVT={cur:null,inT:18,last:'',lastPat:-1};
 const eventPlace=()=>bioKeyAt(party.s)||(deep(party.s)>0.5?'deep':'home');
 function tell(lines){ if(script.length>2) script.length=2; script.push(...lines); speakIn=10; }   /* like announce, for lines with set speakers */
-function endEvent(){ fox.visible=false; gaggle.visible=false; flock.visible=false; squirrel.visible=false; rabbit.visible=false; flutter.visible=false; deer.visible=hedgehog.visible=pileMesh.visible=false; acorns.forEach(a=>a.visible=false);
+function endEvent(){ herd.forEach(d=>d.g.visible=false); fox.visible=false; gaggle.visible=false; flock.visible=false; squirrel.visible=false; rabbit.visible=false; flutter.visible=false; deer.visible=hedgehog.visible=pileMesh.visible=false; acorns.forEach(a=>a.visible=false);
   if(EVT.cur&&EVT.cur.kind==='swirl'&&gust.t<0) gustMesh.count=0; EVT.cur=null; EVT.inT=26+Math.random()*26; }
 function startEvent(kind){
   const e=EVT.cur={kind,t:0,said:false,cue:false,s0:party.s,place:eventPlace()}; EVT.last=kind;
@@ -4106,6 +4109,7 @@ function startEvent(kind){
     pipB.queue.length=0; pipB.queue.push({k:'walk',to:pt(e.z-0.5,e.d-0.2),speed:1.9},{k:'pose',pose:'hop',dur:1.7,face:hd,pile:true},{k:'pose',pose:'spin',dur:1.3});
     juneB.queue.length=0; juneB.queue.push({k:'pose',pose:'idle',dur:1.5},{k:'pose',pose:'look',dur:4.5,face:hd+0.9}); }
   else if(kind==='geese'){ e.honks=0; }
+  else if(kind==='herd'){ Music.amb('snap'); e.z=party.s+9.5; e.sg=Math.random()<0.5?-1:1; e.snd=0; }
   else if(kind==='fox'){ Music.amb('rustle'); e.z=party.s+10.5; e.sg=Math.random()<0.5?-1:1; e.d=-8.5*e.sg; e.phase=0; e.wait=0; }
   else if(kind==='hedgehog'){ Music.amb('rustle'); e.z=party.s+6.2; e.sg=Math.random()<0.5?-1:1; e.d=-5.5*e.sg; }
   else if(kind==='deer'){ e.z=party.s+8.5; e.d=-5.8; e.phase=0; e.run=0; deer.scale.setScalar(1.25); }
@@ -4175,6 +4179,11 @@ function updateEvents(dt){
     if(!e.said&&t>0.6){ e.said=true; tell(nextLine('ev-leafpile',EVENT_LINES.leafpile)); }
     if(!e.burst&&pipB.cur&&pipB.cur.pile&&pipB.t>0.35){ e.burst=true; e.bt=t; leafBurst(x,y+0.2,e.z,50); Music.amb('crunch'); Music.amb('rustle'); }
     if(t>12||e.burst&&t>e.bt+5) endEvent(); }
+  else if(e.kind==='herd'){ /* out of the trees on one side, over the trail in a few great bounds, one after another, and away into the trees on the other */
+    let left=0; herd.forEach((d,i)=>{ const tt=t-0.4-d.gap, lat=e.sg*(-15+tt*7.2), z=e.z+d.lane+tt*0.5, on=tt>0&&Math.abs(lat)<19; d.g.visible=on; if(!on){ if(tt<=0) left++; return; } left++;
+      const x=trailX(z)+lat, hop=Math.abs(Math.sin(tt*4.6+i)); d.g.position.set(x,groundY(x,z)+hop*0.85*d.sc,z); d.g.rotation.set(-0.3*Math.cos(tt*4.6+i),heading(z)+e.sg*1.45,0);
+      if(e.snd<=i&&tt>0.05){ e.snd=i+1; Music.amb('hooves'); } });
+    if(!e.said&&t>1.5){ e.said=true; tell(nextLine('ev-herd',EVENT_LINES.herd)); } if(!left||t>12) endEvent(); }
   else if(e.kind==='fox'){ /* trots out onto the trail ahead, stops to look the girls over, yips once, and trots off the other side */
     const run=dt*2.7;
     if(e.phase===0){ e.d+=e.sg*run; if(Math.abs(e.d)<0.4){ e.phase=party.s>e.z-3.5?2:1; Music.amb('yip'); if(!e.said){ e.said=true; tell(nextLine('ev-fox',EVENT_LINES.fox)); } } }
