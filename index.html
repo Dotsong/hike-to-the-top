@@ -5209,14 +5209,14 @@ function updateMarsh(dt){ const M=marsh, Y=trailY0(MARSH_A), wy=Y-0.22, near=!!s
 /* Once everything has been found and the river can be crossed, the bend in it says so: a soft golden glow on the water where the
    stepping stones are, slow sparks rising out of it, and a warm light on the bank. It is there from the moment the hike begins. */
 const riverGold=(()=>{ const g=new THREE.Group(); g.visible=false; scene.add(g);
-  const mk=(sx,sy,o)=>{ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xffd66a,transparent:true,opacity:o,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); sp.scale.set(sx,sy,1); g.add(sp); return sp; };
-  const halo=mk(13,6.5,0.5), core=mk(5,3.2,0.6), beam=mk(3.2,13,0.22); halo.position.y=0.9; core.position.y=0.6; beam.position.y=5.6;
-  const N=46, pp=new Float32Array(N*3), pg=new THREE.BufferGeometry(); pg.setAttribute('position',new THREE.BufferAttribute(pp,3)); const pts=new THREE.Points(pg,new THREE.PointsMaterial({color:0xffe9a0,size:0.11,map:spriteTex,transparent:true,opacity:0.95,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); pts.frustumCulled=false; g.add(pts);
+  const mk=(sx,sy,o,add)=>{ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:add?0xffd66a:0xffbe2e,transparent:true,opacity:o,depthWrite:false,fog:false,blending:add?THREE.AdditiveBlending:THREE.NormalBlending}));   /* (gold laid over the pale water, as well as light added to it: light alone hardly shows on something so bright) */ sp.scale.set(sx,sy,1); g.add(sp); return sp; };
+  const halo=mk(15,7.5,0.8), core=mk(6,3.6,0.9,1), beam=mk(3.6,15,0.4); halo.position.y=0.9; core.position.y=0.6; beam.position.y=5.6;
+  const N=46, pp=new Float32Array(N*3), pg=new THREE.BufferGeometry(); pg.setAttribute('position',new THREE.BufferAttribute(pp,3)); const pts=new THREE.Points(pg,new THREE.PointsMaterial({color:0xffd24a,size:0.2,map:spriteTex,transparent:true,opacity:0.95,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); pts.frustumCulled=false; g.add(pts);
   const d=[]; for(let i=0;i<N;i++) d.push({a:rnd()*6.283,r:0.3+rnd()*3.2,sp:0.25+rnd()*0.4,ph:rnd()*7,w:(rnd()-0.5)*0.8});
   const light=new THREE.PointLight(0xffcf6a,0,16,1.5); light.position.y=1.4; g.add(light); return {g,halo,core,beam,pts,d,light}; })();
 function updateRiverGold(){ const G=riverGold, on=mode==='trail'&&(saved.secret||forceRiver)&&party.s<100; G.g.visible=on; if(!on) return;
-  const z=RIVER_Z-6.5, x=x0(z)+riverBank(z)+2.6; G.g.position.set(x,riverY(z),z); const k=0.85+0.15*Math.sin(time*1.1)+0.06*Math.sin(time*2.7);
-  G.halo.material.opacity=0.46*k; G.core.material.opacity=0.6*k; G.beam.material.opacity=0.2*k; G.light.intensity=1.5*k;
+  const z=RIVER_Z+1.5, x=x0(z)+riverBank(z)+3.4;   /* at the bend itself, where the river comes closest to the trail and turns away */ G.g.position.set(x,riverY(z),z); const k=0.85+0.15*Math.sin(time*1.1)+0.06*Math.sin(time*2.7);
+  G.halo.material.opacity=0.78*k; G.core.material.opacity=0.85*k; G.beam.material.opacity=0.36*k; G.light.intensity=1.5*k;
   const p=G.pts.geometry.attributes.position; G.d.forEach((q,i)=>{ const u=((time*q.sp+q.ph)%7)/7, a=q.a+time*q.w; p.setXYZ(i,Math.cos(a)*q.r*(1-0.5*u),0.1+u*6.5,Math.sin(a)*q.r*(1-0.5*u)); }); p.needsUpdate=true; }
 function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
   icePond.position.set(trailX(ICE_Z)+ICE_LAT,trailY(ICE_Z)-0.4,ICE_Z);
