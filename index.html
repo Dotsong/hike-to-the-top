@@ -1321,6 +1321,36 @@ function mtnWonders(r,z0){ const zc=z0+1.5, cx=trailX(zc), ty=trailY(zc), n=(k,j
 const BERRY=[C('#c8283c'),C('#d8404a'),C('#3a3f9c'),C('#4c4fb4')];
 function berries(x,y,z,rad,r,id){ const blue=hash(r,id,31)<0.4?2:0; for(let k=0;k<14;k++){ const a=hash(r,id,40+k)*6.283, e=0.15+hash(r,id,60+k)*1.2, c=Math.cos(e)*rad*1.0, sz=0.9+hash(r,id,80+k)*0.6;
     put(P.petal,x+Math.cos(a)*c,y+Math.sin(e)*rad*0.7,z+Math.sin(a)*c,sz,sz,sz,0,BERRY[blue+(k&1)]); } }
+/* Rocks and fallen logs come in several kinds, so that no two stretches of trail look furnished from the same box.
+   A rock may be: the plain mossy boulder; a boulder with smaller stones settled round it; a low flat ledge with a slab lying on it; a tall
+   stone standing a little crooked; a boulder split in two; or a bare round one with grass grown up at its foot. (It returns how tall it is.) */
+function rockVar(x,y,z,sz,r,id,big){ const h=k=>hash(r,id,40+k), v=h(0), ry=hash(r,id,5)*6, col=k=>ROCKS[Math.floor(h(k)*3)%3], c0=ROCKS[Math.floor(hash(r,id,6)*3)];
+  if(v<0.24){ put(P.rock,x,y+sz*0.25,z,sz*1.2,sz*0.75,sz,ry,c0); put(P.bush,x,y+sz*0.72,z,sz*0.85,sz*0.3,sz*0.7,0,MOSS); return sz; }
+  if(v<0.42){ put(P.rock,x,y+sz*0.25,z,sz*1.05,sz*0.8,sz*0.95,ry,c0); put(P.bush,x,y+sz*0.78,z,sz*0.7,sz*0.26,sz*0.62,0,MOSS);
+    for(let k=0;k<3;k++){ const a=h(1+k)*6.283, q=sz*(0.28+h(4+k)*0.26), d=sz*0.95+q*0.5, rx=x+Math.cos(a)*d, rz=z+Math.sin(a)*d; put(P.rock,rx,floorY(rx,rz)+q*0.3,rz,q*1.2,q*0.8,q,h(7+k)*6,col(10+k)); } return sz*1.05; }
+  if(v<0.58){ put(P.rock,x,y+sz*0.1,z,sz*1.55,sz*0.36,sz*1.15,ry,c0); put(P.rock,x+Math.cos(ry)*sz*0.25,y+sz*0.48,z-Math.sin(ry)*sz*0.25,sz*1.05,sz*0.24,sz*0.8,ry+0.5,col(1),0.08,0.16);
+    if(h(2)<0.6) put(P.bush,x-Math.cos(ry)*sz*0.6,y+sz*0.42,z+Math.sin(ry)*sz*0.6,sz*0.5,sz*0.1,sz*0.4,ry,MOSS); return sz*0.75; }
+  if(v<0.72){ const lean=(h(1)-0.5)*0.36; put(P.rock,x,y+sz*0.75,z,sz*0.62,sz*1.5,sz*0.55,ry,c0,(h(2)-0.5)*0.2,lean); put(P.rock,x+sz*0.55,y+sz*0.12,z+sz*0.2,sz*0.4,sz*0.3,sz*0.36,h(3)*6,col(4));
+    put(P.bush,x,y+sz*0.1,z,sz*0.85,sz*0.16,sz*0.8,0,MOSS); return sz*2.1; }
+  if(v<0.86){ const ax=Math.cos(ry), az=-Math.sin(ry); for(const sd of [-1,1]) put(P.rock,x+ax*sd*sz*0.5,y+sz*0.3,z+az*sd*sz*0.5,sz*0.62,sz*0.85,sz*0.95,ry,sd>0?c0:col(1),0,sd*-0.22);   /* the halves lean apart */
+    if(h(2)<0.7) put(P.bush,x,y+sz*0.12,z,sz*0.22,sz*0.3,sz*0.7,ry,MOSS); return sz*1.1; }
+  put(P.rock,x,y+sz*0.3,z,sz*1.1,sz*0.9,sz*1.05,ry,c0,h(1)*0.5);
+  for(let k=0;k<5;k++){ const a=h(2+k)*6.283, d=sz*(0.95+h(8+k)*0.25), gx=x+Math.cos(a)*d, gz=z+Math.sin(a)*d; put(P.coneF,gx,floorY(gx,gz)-0.03,gz,0.11,0.3+h(14+k)*0.35,0.11,0,GREENS[Math.floor(h(20+k)*3)]); } return sz*1.2; }
+/* A fallen log may be: plain, perhaps with moss; one with the stubs of its branches still on it; a snapped tree, the stump standing at one end;
+   two lying crossed; an old one rotted into two pieces under a blanket of moss; or one with shelves of pale fungus down its side. */
+function logVar(x,y,z,len,th,yaw,r,id){ const h=k=>hash(r,id,50+k), v=h(0), bark=BARKS[Math.floor(hash(r,id,7)*3)], ax=Math.cos(yaw), az=-Math.sin(yaw), moss=hash(r,id,8)<0.6;
+  if(v<0.22){ put(P.log,x,y+th*0.42,z,len,th,th,yaw,bark); if(moss) put(P.bush,x,y+th*0.86,z,len*0.3,th*0.22,th*0.5,yaw,MOSS); return; }
+  if(v<0.4){ put(P.log,x,y+th*0.42,z,len,th,th,yaw,bark);
+    for(let k=0;k<3;k++){ const u=(h(1+k)-0.5)*len*0.7, sl=0.3+h(4+k)*0.45; put(P.log,x+ax*u,y+th*0.75+sl*0.3,z+az*u,sl,th*0.24,th*0.24,yaw+(h(7+k)-0.5)*1.6,bark,0,(k%2?1:-1)*(0.9+h(10+k)*0.5)); } return; }
+  if(v<0.56){ const sx=x-ax*len*0.5, sz=z-az*len*0.5; put(P.trunkF,sx,floorY(sx,sz)-0.05,sz,th*0.56,th*(1+h(1)*0.9),th*0.56,yaw,bark);   /* the stump it broke from */
+    put(P.log,x+ax*len*0.12,y+th*0.42,z+az*len*0.12,len*0.76,th,th,yaw+(h(2)-0.5)*0.3,bark,0,0.05); if(moss) put(P.bush,sx,floorY(sx,sz)+th*(1+h(1)*0.9),sz,th*0.5,th*0.14,th*0.5,0,MOSS); return; }
+  if(v<0.7){ put(P.log,x,y+th*0.42,z,len,th,th,yaw,bark); const y2=yaw+0.9+h(1)*0.7, t2=th*0.7; put(P.log,x+ax*len*0.1,y+th*0.78+t2*0.3,z+az*len*0.1,len*0.7,t2,t2,y2,BARKS[Math.floor(h(2)*3)],0,0.1); return; }
+  if(v<0.86){ const g=0.22+h(1)*0.2, l1=len*(0.3+h(2)*0.2), l2=len-l1-g;
+    put(P.log,x-ax*(len/2-l1/2),y+th*0.4,z-az*(len/2-l1/2),l1,th,th,yaw+0.12,bark); put(P.log,x+ax*(len/2-l2/2),y+th*0.36,z+az*(len/2-l2/2),l2,th*0.92,th*0.92,yaw-0.1,bark);
+    put(P.bush,x+ax*(len/2-l2/2),y+th*0.78,z+az*(len/2-l2/2),l2*0.42,th*0.2,th*0.55,yaw,MOSS); put(P.bush,x-ax*(len/2-l1/2),y+th*0.8,z-az*(len/2-l1/2),l1*0.36,th*0.16,th*0.5,yaw,MOSS);
+    for(let k=0;k<4;k++){ const gx=x+(h(3+k)-0.5)*len*0.8*ax+az*th*0.7*(k%2?1:-1), gz=z+(h(3+k)-0.5)*len*0.8*az-ax*th*0.7*(k%2?1:-1); put(P.coneF,gx,floorY(gx,gz)-0.03,gz,0.1,0.28+h(8+k)*0.3,0.1,0,GREENS[Math.floor(h(12+k)*3)]); } return; }
+  put(P.log,x,y+th*0.42,z,len,th,th,yaw,bark); if(moss) put(P.bush,x,y+th*0.86,z,len*0.24,th*0.2,th*0.45,yaw,MOSS);
+  for(let k=0;k<5;k++){ const u=(h(1+k)-0.5)*len*0.8, sd=k%2?1:-1, q=0.13+h(6+k)*0.1; put(P.bush,x+ax*u+az*sd*th*0.52,y+th*(0.3+h(11+k)*0.35),z+az*u-ax*sd*th*0.52,q,q*0.28,q,yaw,CREAM); } }
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
   POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
@@ -1368,15 +1398,13 @@ function rebuildForest(s0){
       for(let j=0;j<2;j++){ const id=q+30+j; if(sign||side<0&&inGate&&!j||hash(r,id,1)>(j?0.1+0.28*dp:0.12+0.14*dp)) continue;   /* no loose rocks beside the thicket tunnel */
         const big=j===1, d=side*(big?5+hash(r,id,2)*(side<0?13:9):2.9+hash(r,id,2)*5.5), z=z0+hash(r,id,3)*3, x=edge(z)+d; if(!clear(x,z)) continue;
         const sz=big?1+hash(r,id,4)*0.9:0.4+hash(r,id,4)*0.65, y=floorY(x,z);
-        put(P.rock,x,y+sz*0.25,z,sz*1.2,sz*0.75,sz,hash(r,id,5)*6,ROCKS[Math.floor(hash(r,id,6)*3)]);
-        put(P.bush,x,y+sz*0.72,z,sz*0.85,sz*0.3,sz*0.7,0,MOSS);
-        if(!big&&sz>0.6) spots.rock.push({x,y:y+sz+0.5,z}); if(Math.abs(x-trailX(z))<2.2+sz) solids.push({x,z,r:sz*1.1}); }
+        const top=rockVar(x,y,z,sz,r,id,big);
+        if(!big&&sz>0.6) spots.rock.push({x,y:y+top+0.5,z}); if(Math.abs(x-trailX(z))<2.2+sz) solids.push({x,z,r:sz*1.2}); }
       /* fallen logs, some with moss, lying any which way on the forest floor */
       if(!sign&&hash(r,q+34,1)<0.07+0.2*dp){ const id=q+34, d=side*(3.6+hash(r,id,2)*(side<0?12:7)), z=z0+hash(r,id,3)*3, x=edge(z)+d;
         const len=2+hash(r,id,4)*2.8;
         if(clear(x,z)&&Math.abs(d)>2.4+len/2&&!inGate){ const th=0.5+hash(r,id,5)*0.45, yaw=hash(r,id,6)*3.14, y=floorY(x,z);   /* however a log is turned, it never reaches the path */
-          put(P.log,x,y+th*0.42,z,len,th,th,yaw,BARKS[Math.floor(hash(r,id,7)*3)]);
-          if(hash(r,id,8)<0.6) put(P.bush,x,y+th*0.86,z,len*0.3,th*0.22,th*0.5,yaw,MOSS); } }
+          logVar(x,y,z,len,th,yaw,r,id); } }
       /* a little family of mushrooms (they like the damp deep forest best) */
       if(!sign&&hash(r,q+40,1)<0.09+0.16*dp){ const id=q+40, d=side*(2.4+hash(r,id,2)*1.3), z=z0+hash(r,id,3)*3, x=edge(z)+d, col=CAPS[Math.floor(hash(r,id,4)*3)];
         if(clear(x,z)){ for(let k=0;k<3;k++){ const mx=x+(hash(r,id,5+k)-0.5)*0.6, mz=z+(hash(r,id,9+k)-0.5)*0.6, ms=0.75+hash(r,id,13+k)*0.75, my=floorY(mx,mz);
