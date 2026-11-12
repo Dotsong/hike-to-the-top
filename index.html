@@ -611,7 +611,7 @@ function optionsAt(i){ return i===0?['autumn','aspen']:i===1?(choice>0?['winter'
 const legKey=i=>picks[i]?optionsAt(i)[picks[i]>0?0:1]:null;
 /* The upside-down pond lies in a bowl. The whole place is one hollow in the mountainside with a single sheet of still water in it; the
    trail crosses it dead level on a boardwalk just above the surface, and climbs out again at the far side. */
-const POND_A=GB[2]+1, POND_B=MTN-15, POND_UP=MTN-1, POND_ZC=(POND_A+POND_B)/2, POND_HZ=(POND_B-POND_A)/2+3.2, POND_HX=58;
+const POND_A=GA[2]-6, POND_B=MTN-12, POND_UP=MTN+3, POND_ZC=(POND_A+POND_B)/2, POND_HZ=(POND_B-POND_A)/2+4.8, POND_HX=104;   /* (it begins before the willow curtain, which stands in the water, and runs as far as the foot of the mountain; and it is as wide as the ground that is drawn) */
 const pondOn=()=>!!picks[2]&&legKey(2)==='pond';
 /* The sky garden is not there at all until the girls are well inside the mist: until then the mountain trail simply runs on into a bank of
    cloud, with nothing beyond it. (The game's frame loop flips this as they walk in, when the mist is too thick to see the change.) */
@@ -1029,8 +1029,7 @@ const BIO={
       one(T.y,T.y+th+cr*0.8); one(2*M-T.y-th,2*M-(T.y+th+cr*0.8)); },
     props(R){ const tilt=z=>-Math.atan(trailY(z+0.5)-trailY(z-0.5));
       if(R.side<0){   /* the boardwalk: wide planks on the causeway, a post at each edge, and every so often a spur running out over the water to a little landing */
-        for(let k=0;k<4;k++){ const z=R.z0+k*0.75, x=trailX(z); put(P.log,x,trailY(z)+0.05,z,4.3+R.n(90+k)*0.2,0.13,1.24,(R.n(94+k)-0.5)*0.05,pk(PLANKS,R.n(98+k)),tilt(z)); }
-        for(const sd of [-1,1]){ const z=R.z0+0.4, x=trailX(z)+sd*2.12; put(P.trunkF,x,trailY(z)-1.5,z,0.09,1.8,0.09,0,PLANKS[2]); }
+
         }
       for(let j=0;j<3;j++){ if(R.n(30+j*50)>0.6) continue; const p=R.at(3.2+R.n(31+j*50)*(8+j*16),32+j*50); if(p.y<-800||pondR(p.x,p.z)>0.86||pondDeckAt(p.x,p.z)) continue; const wy=trailY0(POND_A)-0.2; put(P.bush,p.x,wy+0.02,p.z,0.6,0.02,0.6,0,GREENS[4]); put(P.petal,p.x,wy+0.1,p.z,1.4,1,1.4,0,pk(BLOOM,R.n(33+j*50))); }       /* lilies floating on the mirror */
       if(R.n(40)<0.4){ const p=R.at(3+R.n(41)*10,42); put(P.glow,p.x,trailY(p.z)+6+R.n(43)*5,p.z,3,1.2,1.4,R.n(44)*6,pk(GLOWS,R.n(45))); } },                                                   /* a fish, swimming through the air */
@@ -1390,32 +1389,39 @@ const ALP_STONE=[C('#9c9a94'),C('#8e8d88'),C('#a8a59d')];   /* (a painted rock i
 const CUSHION=[C('#4f7d3c'),C('#5d8a45'),C('#466f38')];
 const GROUND_LICHEN=[C('#a98450'),C('#a09d62'),C('#96a288'),C('#b3aa88')];
 const LICHEN=[C('#d9902e'),C('#c8c655'),C('#b7c7a8'),C('#e6dca4'),C('#c77a2a')], MOSSES=[C('#6f9a45'),C('#86a84e'),C('#5c8640')];
-/* The boardwalks of the pond. Beside the main walk there is a whole small town of planking standing in the water: a wide square where the
-   village is, with every house on a round deck of its own and back streets behind them; before the village a loop out over the water with
-   a place to sit, and a long pier to an island with a lamp on it; after it, a jetty. (All measured across from the trail, and along it.) */
-const POND_PLAZA=[-9.5,VILLAGE_Z-13,8.8,VILLAGE_Z+11];
-const POND_SEGS=[[-13.8,VILLAGE_Z-11,-13.8,VILLAGE_Z+14,1.7],[-9.5,VILLAGE_Z-10.5,-13.8,VILLAGE_Z-10.5,1.6],[-9.5,VILLAGE_Z-1.5,-13.8,VILLAGE_Z-1.5,1.6],[-9.5,VILLAGE_Z+8,-13.8,VILLAGE_Z+8,1.6],
-  [16.9,VILLAGE_Z-8,16.9,VILLAGE_Z+11,1.7],[8.8,VILLAGE_Z-8,16.9,VILLAGE_Z-8,1.6],[8.8,VILLAGE_Z+5.5,16.9,VILLAGE_Z+5.5,1.6],
-  [2.1,POND_A+5,9,POND_A+5,1.6],[9,POND_A+5,9,POND_A+14,1.6],[2.1,POND_A+14,9,POND_A+14,1.6],
-  [-2.1,POND_A+10,-26,POND_A+10,1.6],[-14,POND_A+10,-14,POND_A+4.5,1.5],[2.1,VILLAGE_Z+15,10,VILLAGE_Z+15,1.6]];
-const POND_DISCS=[[11.6,POND_A+9.5,2.7,1],[-29,POND_A+10,3.4,0],[-14,POND_A+3,1.9,0],[12,VILLAGE_Z+15,2.3,1]];   /* (the last number: a bench, or else a lamp) */
-function pondDeckAt(x,z){ const lat=x-trailX(z); if(Math.abs(lat)<2.7) return true; if(lat>POND_PLAZA[0]-1&&lat<POND_PLAZA[2]+1&&z>POND_PLAZA[1]-1&&z<POND_PLAZA[3]+1) return true;
-  for(const [a,za,b,zb,w] of POND_SEGS){ const dl=b-a, dz=zb-za, u=clamp(((lat-a)*dl+(z-za)*dz)/(dl*dl+dz*dz),0,1); if(Math.hypot(lat-a-dl*u,z-za-dz*u)<w/2+0.9) return true; }
-  for(const [l,zz,r] of POND_DISCS) if(Math.hypot(lat-l,z-zz)<r+0.9) return true; return false; }
-/* where on the planking a girl may stand: the main walk, or anywhere in the village square */
-function pondKeepX(x,z){ const cx=trailX(z), lat=x-cx; return z>POND_PLAZA[1]+0.4&&z<POND_PLAZA[3]-0.4?cx+clamp(lat,POND_PLAZA[0]+0.6,POND_PLAZA[2]-0.6):cx+clamp(lat,-1.75,1.75); }
-function drawPondDecks(){ const Y=trailY0(POND_A)+0.05, H=(i,j)=>hash(i,j,417), plank=h=>PLANKS[Math.floor(h*4)%4];
-  const post=(lat,z)=>{ put(P.trunkF,trailX(z)+lat,Y-1.55,z,0.08,1.6,0.08,0,PLANKS[2]); };
-  POND_SEGS.forEach(([a,za,b,zb,w],si)=>{ const len=Math.hypot(b-a,zb-za), n=Math.max(2,Math.round(len/0.74)), yaw=Math.atan2(b-a,zb-za), nx=Math.cos(yaw), nz=-Math.sin(yaw);
-    for(let i=0;i<=n;i++){ const u=i/n, lat=lerp(a,b,u), z=lerp(za,zb,u); put(P.log,trailX(z)+lat,Y-0.01*(si%3),z,w+H(si,i)*0.14,0.12,0.72,yaw+(H(si,i+50)-0.5)*0.05,plank(H(si,i+99)));
-      if(i%4===0) for(const sd of [-1,1]){ const pl=lat+sd*nx*(w/2-0.08), pz=z+sd*nz*(w/2-0.08); post(pl,pz); } } });
-  { const [l0,z0,l1,z1]=POND_PLAZA; for(let z=z0+0.6;z<z1;z+=1.2){ const half=z<VILLAGE_Z?0:1; for(const [a,b] of [[l0,-2.2],[2.2,l1]]) put(P.log,trailX(z)+(a+b)/2,Y-0.015,z,b-a+H(7,z)*0.2,0.12,1.22,(H(8,z)-0.5)*0.012,plank(H(9,z+a))); }   /* the square: long boards either side of the main walk */
-    for(let z=z0;z<=z1+0.1;z+=4){ post(l0+0.1,z); post(l1-0.1,z); } for(let l=l0;l<=l1;l+=4.5){ post(l,z0+0.1); post(l,z1-0.1); }
-    [[l0+0.4,z0+0.4],[l1-0.4,z0+0.4],[l0+0.4,z1-0.4],[l1-0.4,z1-0.4]].forEach(([l,z],i)=>{ const x=trailX(z)+l; put(P.trunkF,x,Y,z,0.05,1.7,0.05,0,PLANKS[2]); put(P.glow,x,Y+1.8,z,3,3,3,0,pk(GLOWS,H(11,i))); }); }   /* a lamp at each corner */
-  POND_DISCS.forEach(([l,z,r,bench],i)=>{ const x=trailX(z)+l; put(P.trunkF,x,Y-0.14,z,r*1.32,0.17,r*1.32,H(12,i)*3,PLANKS[i%2?0:3]); for(let q=0.4;q<6.2;q+=1.25) put(P.trunkF,x+Math.cos(q)*r*0.8,Y-1.55,z+Math.sin(q)*r*0.8,0.08,1.5,0.08,0,PLANKS[2]);
-    if(bench){ put(P.log,x,Y+0.45,z-0.5,1.6,0.16,0.42,0.3,PLANKS[3]); put(P.trunkF,x-0.5,Y,z-0.42,0.06,0.42,0.06,0,PLANKS[2]); put(P.trunkF,x+0.5,Y,z-0.6,0.06,0.42,0.06,0,PLANKS[2]); }
-    else { put(P.trunkF,x+r*0.5,Y,z-r*0.3,0.05,1.6,0.05,0,PLANKS[2]); put(P.glow,x+r*0.5,Y+1.7,z-r*0.3,3,3,3,0,pk(GLOWS,H(13,i))); } });
-  VILLAGE.forEach(([dz,lat,sz],i)=>{ const z=VILLAGE_Z+dz, x=trailX(z)+lat, r=2.25*sz; put(P.trunkF,x,Y-0.16,z,r*1.3,0.17,r*1.3,H(14,i)*3,PLANKS[i%4]); for(let q=0.3;q<6.2;q+=1.05) put(P.trunkF,x+Math.cos(q)*r*0.82,Y-1.55,z+Math.sin(q)*r*0.82,0.08,1.5,0.08,0,PLANKS[2]); }); }   /* and a round deck under every house */
+/* The boardwalks of the pond. One narrow walk carries the trail from the shore where the girls first meet the water to the far side of the
+   bowl. The village is not one deck but many: every house on a round deck of its own at the end of a plank of its own (the furthest ones
+   reached from a neighbour's), and a little deck for each of the villagers who comes down to the walk. And three long piers leave the
+   walk and go straight out over the water until they are lost in the distance, a lamp every so often to show where. (Everything is
+   measured across from the trail, and along it.) */
+const POND_WALK=1.3;   /* half the width of the main walk */
+let pondPlan=null;
+function pondLayout(){ if(pondPlan) return pondPlan; const segs=[], discs=[], lamps=[], near=[];
+  VILLAGE.forEach(([dz,lat,sz])=>{ const z=VILLAGE_Z+dz, r=1.8*sz, sd=Math.sign(lat); discs.push([lat,z,r,2]); if(Math.abs(lat)<12.5){ near.push([lat,z,r]); segs.push([sd*POND_WALK,z,lat-sd*(r-0.4),z,1.0]); } });
+  VILLAGE.forEach(([dz,lat,sz])=>{ if(Math.abs(lat)<12.5) return; const z=VILLAGE_Z+dz, r=1.8*sz; let best=null, bd=1e9; for(const n of near){ if(n[0]*lat<0) continue; const d=Math.hypot(n[0]-lat,n[1]-z); if(d<bd){ bd=d; best=n; } }
+    if(best){ const ux=(lat-best[0])/bd, uz=(z-best[1])/bd; segs.push([best[0]+ux*(best[2]-0.4),best[1]+uz*(best[2]-0.4),lat-ux*(r-0.4),z-uz*(r-0.4),0.95]); } });
+  VILLAGERS.forEach(([dz,lat])=>{ const z=VILLAGE_Z+dz, sd=Math.sign(lat); discs.push([lat,z,1.35,3]); if(Math.abs(lat)>POND_WALK+1.2) segs.push([sd*POND_WALK,z,lat-sd*1.0,z,0.9]); });
+  [[-1,POND_A+12,-97,POND_ZC-6],[1,POND_A+28,97,POND_ZC+4],[-1,VILLAGE_Z+20,-93,POND_ZC+10]].forEach(([sd,z0,l1,z1],i)=>{ segs.push([sd*POND_WALK,z0,l1,z1,1.15]);
+    const at=u=>[lerp(sd*POND_WALK,l1,u),lerp(z0,z1,u)]; { const [l,z]=at(0.3+0.06*i); discs.push([l,z,2.2,1]); } { const [l,z]=at(1); discs.push([l,z,2.7,0]); }
+    for(let u=0.12;u<0.98;u+=0.145) lamps.push(at(u).concat(sd)); });
+  return pondPlan={segs,discs,lamps}; }
+function pondDeckAt(x,z){ const lat=x-trailX(z), L=pondLayout(); if(Math.abs(lat)<POND_WALK+1.3) return true;
+  for(const [a,za,b,zb,w] of L.segs){ const dl=b-a, dz=zb-za, u=clamp(((lat-a)*dl+(z-za)*dz)/(dl*dl+dz*dz),0,1); if(Math.hypot(lat-a-dl*u,z-za-dz*u)<w/2+1.0) return true; }
+  for(const [l,zz,r] of L.discs) if(Math.hypot(lat-l,z-zz)<r+0.9) return true; return false; }
+/* where on the planking a girl may stand: the main walk */
+function pondKeepX(x,z){ const cx=trailX(z); return cx+clamp(x-cx,-POND_WALK+0.38,POND_WALK-0.38); }
+function drawPondDecks(){ const Y=trailY0(POND_A)+0.05, H=(i,j)=>hash(i,j,417), plank=h=>PLANKS[Math.floor(h*4)%4], L=pondLayout();
+  const post=(lat,z,y)=>{ put(P.trunkF,trailX(z)+lat,(y||Y)-1.75,z,0.07,1.8,0.07,0,PLANKS[2]); };
+  /* the main walk, from dry ground at the shore to dry ground at the far side (and on up the slope out of the bowl) */
+  for(let z=POND_A-2.2,i=0;z<POND_UP+1.5;z+=0.74,i++){ const y=trailY(z)+0.05; put(P.log,trailX(z)+(H(1,i)-0.5)*0.06,y,z,POND_WALK*2+H(2,i)*0.16,0.13,0.8,(H(3,i)-0.5)*0.05,plank(H(4,i)),-Math.atan(trailY(z+0.5)-trailY(z-0.5)));
+    if(i%4===0) for(const sd of [-1,1]) post(sd*(POND_WALK-0.08),z,y); }
+  L.segs.forEach(([a,za,b,zb,w],si)=>{ const len=Math.hypot(b-a,zb-za), n=Math.max(2,Math.round(len/0.74)), yaw=Math.atan2(b-a,zb-za), nx=Math.cos(yaw), nz=-Math.sin(yaw);
+    for(let i=0;i<=n;i++){ const u=i/n, lat=lerp(a,b,u), z=lerp(za,zb,u); put(P.log,trailX(z)+lat,Y-0.012-0.004*(si%3),z,w+H(si+20,i)*0.12,0.12,0.78,yaw+(H(si+20,i+50)-0.5)*0.05,plank(H(si+20,i+99)));
+      if(i%5===0) for(const sd of [-1,1]) post(lat+sd*nx*(w/2-0.07),z+sd*nz*(w/2-0.07)); } });
+  L.discs.forEach(([l,z,r,kind],i)=>{ const x=trailX(z)+l; put(P.trunkF,x,Y-0.15-0.004*(i%3),z,r*1.32,0.17,r*1.32,H(12,i)*3,PLANKS[i%4]); for(let q=0.4+i;q<6.2+i;q+=r>2?1.05:1.6) put(P.trunkF,x+Math.cos(q)*r*0.8,Y-1.75,z+Math.sin(q)*r*0.8,0.07,1.7,0.07,0,PLANKS[2]);
+    if(kind===1){ put(P.log,x,Y+0.45,z-0.5,1.6,0.16,0.42,0.3,PLANKS[3]); put(P.trunkF,x-0.5,Y,z-0.42,0.06,0.42,0.06,0,PLANKS[2]); put(P.trunkF,x+0.5,Y,z-0.6,0.06,0.42,0.06,0,PLANKS[2]); }   /* a bench */
+    else if(kind===0){ put(P.trunkF,x,Y,z,0.06,2.3,0.06,0,PLANKS[2]); put(P.glow,x,Y+2.45,z,4.5,4.5,4.5,0,pk(GLOWS,H(13,i))); } });                                                       /* the lamp at the end of a pier */
+  L.lamps.forEach(([l,z,sd],i)=>{ const x=trailX(z)+l; put(P.trunkF,x,Y-0.4,z+0.62,0.045,1.9,0.045,0,PLANKS[2]); put(P.glow,x,Y+1.6,z+0.62,2.6,2.6,2.6,0,pk(GLOWS,H(15,i))); }); }
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
   POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
@@ -4983,8 +4989,8 @@ function updateChasm(){ const on=!!state.started&&mode==='trail'&&chasmOn()&&Mat
 /* the water of the upside-down pond: one flat sheet lying in the bowl, with the sky and its clouds in it, drifting */
 const pondWater=(()=>{ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'), gr=g.createLinearGradient(0,0,0,256); gr.addColorStop(0,'#86b9ea'); gr.addColorStop(0.5,'#a7cdf1'); gr.addColorStop(1,'#86b9ea'); g.fillStyle=gr; g.fillRect(0,0,256,256);
   let sd=5; const R=()=>(sd=(sd*16807)%2147483647)/2147483647; for(let i=0;i<22;i++){ const x=R()*256, y=R()*256, r=14+R()*30; for(const ox of [-256,0,256]) for(const oy of [-256,0,256]){ const q=g.createRadialGradient(x+ox,y+oy,0,x+ox,y+oy,r); q.addColorStop(0,'rgba(255,255,255,0.55)'); q.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=q; g.fillRect(x+ox-r,y+oy-r,r*2,r*2); } }
-  const tex=new THREE.CanvasTexture(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(5,2.4);
-  const m=new THREE.Mesh(new THREE.CircleGeometry(1,72),new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0.9,depthWrite:false})); m.rotation.x=-Math.PI/2; m.scale.set(POND_HX*0.9,POND_HZ*0.9,1); m.visible=false; m.renderOrder=1; scene.add(m); return m; })();
+  const tex=new THREE.CanvasTexture(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(9,3.4);
+  const m=new THREE.Mesh(new THREE.CircleGeometry(1,72),new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0.9,depthWrite:false})); m.rotation.x=-Math.PI/2; m.scale.set(POND_HX*0.97,POND_HZ*0.9,1); m.visible=false; m.renderOrder=1; scene.add(m); return m; })();
 function updatePondWater(){ const on=!!state.started&&mode==='trail'&&pondOn()&&Math.abs(party.s-POND_ZC)<170; pondWater.visible=on; if(!on) return;
   pondWater.position.set(trailX(POND_ZC),trailY0(POND_A)-0.22,POND_ZC); pondWater.material.map.offset.set(time*0.004,time*0.0015); }
 function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
