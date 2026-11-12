@@ -883,7 +883,7 @@ const ASPENS=['#e6c84a','#d9d05a','#c4d66a','#f0d860'].map(C), ASPEN_BARK=C('#f1
 const AUTUMNS=['#d9532f','#e07a2f','#e8a53a','#c9402f','#e8c24a'].map(C);                /* the autumn woods */
 const PINES=['#3f7a52','#356b4a','#4a8558'].map(C), BARKS=['#8a5a3c','#7a5238','#9a7350','#b8ab9a'].map(C);
 const BUSHES=['#5f9a52','#6fa65a','#4f8a4b','#86b866'].map(C), BUSH_ASPEN=['#a8c45e','#8fbf5f','#c9c95a'].map(C), BUSH_AUTUMN=['#c96a3c','#b8873a','#a8502f'].map(C);
-const ROCKS=['#9a9a94','#8b8f8a','#a6a39a'].map(C), MOSS=C('#7fae4e');
+const ROCKS=['#9a9a94','#8b8f8a','#a6a39a'].map(C), MOSS=C('#7fae4e'), MOSS_C=MOSS;
 const STEM=C('#fff6e6'), CAPS=['#d9534a','#d9534a','#e8a060'].map(C);
 const PETALS=['#fff3a3','#ff9eb5','#c6a8ff','#ffffff','#ffb38a'].map(C), FALLEN=['#e0a13a','#d9783c','#e8c24a','#c9603c','#b98a4a'].map(C);
 const FALL_ASPEN=['#f0d860','#e6c84a','#f4e58a','#d9c04a'].map(C), FALL_AUTUMN=['#d9532f','#e07a2f','#c9402f','#e8a53a','#a8402a'].map(C);
@@ -966,19 +966,17 @@ const BIO={
     gate:{kind:'tunnel',cols:['#c9b27a','#9cb86a','#b8a060'],label:'Through the reeds',say:'into those tall reeds',sub:'Reeds taller than June, whispering to each other.',narr:'They chose the reeds, because something in there had just gone plop.',enter:[[1,'The reeds are tickling me!'],[0,'Keep to the path.']]}},
   alpine:{floor:[0.47,0.48,0.45],dirt:[0.57,0.55,0.5],flat:0.35,keep:0.5,mote:'#ffffff',air:'none',
     tree(T){ if(T.n(21)<0.45){ const sc=0.5+T.h*0.5; put(T.cp,T.x,T.y,T.z,0.7*sc,1.3*sc,0.7*sc,T.ry,PINES[1]); put(T.cp,T.x+0.2,T.y+0.7*sc,T.z,0.45*sc,1*sc,0.45*sc,T.ry,PINES[0]); }      /* a knee-high pine, bent by the wind */
-      else { const sz=0.9+T.h*1.6; put(P.arock,T.x,T.y+sz*0.3,T.z,sz*1.4,sz*0.7,sz,T.ry,ALP_STONE[Math.floor(T.n(22)*3)]); const snow=T.n(23)<0.4; if(snow) put(P.bush,T.x,T.y+sz*0.68,T.z,sz*0.9,sz*0.12,sz*0.7,0,SNOW);
-        const cs=Math.cos(T.ry), sn=Math.sin(T.ry);
-        for(let k=0;k<4;k++){ if(T.n(106+k)>0.7) continue; const a=T.n(110+k)*6.283, d=0.86+T.n(114+k)*0.2, mx=T.x+(Math.cos(a)*1.4*cs+Math.sin(a)*sn)*sz*d, mz=T.z+(-Math.cos(a)*1.4*sn+Math.sin(a)*cs)*sz*d, q=sz*(0.22+T.n(118+k)*0.25);   /* and moss in the shelter of its foot */
-          put(P.bush,mx,floorY(mx,mz)+q*0.12,mz,q,q*0.36,q*0.85,T.n(122+k)*6,pk(MOSSES,T.n(126+k))); } } },   /* a slab of rock, some with old snow */
+      else { const sz=0.9+T.h*1.6; if(T.n(24)<0.2) put(P.arock,T.x,T.y+sz*0.3,T.z,sz*1.4,sz*0.7,sz,T.ry,ALP_STONE[Math.floor(T.n(22)*3)]); else put(P.rock,T.x,T.y+sz*0.3,T.z,sz*1.4,sz*0.7,sz,T.ry,pk(GREYS,T.n(22)));   /* about one rock in five has lichen on it */ const snow=T.n(23)<0.4; if(snow) put(P.bush,T.x,T.y+sz*0.68,T.z,sz*0.9,sz*0.12,sz*0.7,0,SNOW);
+ } },   /* a slab of rock, some with old snow */
     props(R){ if(R.n(30)<0.14){ const p=R.at(1.9,31); for(let k=0;k<4;k++) put(P.rock,p.x,p.y+0.14+k*0.24,p.z,0.34-k*0.06,0.15,0.3-k*0.05,R.n(32+k)*6,pk(GREYS,R.n(36+k))); }                 /* a cairn marking the way */
       if(R.n(40)<0.55){ const p=R.at(1.7+R.n(41)*5,42), col=pk(PETALS,R.n(43)); put(P.bush,p.x,p.y+0.05,p.z,0.5,0.14,0.45,0,GREENS[3]); for(let k=0;k<6;k++) put(P.petal,p.x+(R.n(44+k)-0.5)*0.7,p.y+0.2,p.z+(R.n(50+k)-0.5)*0.7,0.8,0.8,0.8,0,col); }   /* a cushion of tiny flowers */
       for(let j=0;j<8;j++){ const far=Math.pow(R.n(300+j),1.25), d=4.5+far*135, p=R.at(d,310+j); if(p.y<-800||R.n(320+j)>0.9) continue;   /* and rocks, rocks, rocks: strewn over the whole mountainside, bigger the further off they lie, right out to where the ground meets the sky */
-        const sz=(0.45+R.n(330+j)*R.n(340+j)*2.4)*(1+d*0.022), kind=R.n(350+j), ry=R.n(360+j)*6, col=ALP_STONE[Math.floor(R.n(370+j)*3)];
-        if(kind<0.5) put(P.arock,p.x,p.y+sz*0.25,p.z,sz*1.35,sz*0.7,sz,ry,col,(R.n(380+j)-0.5)*0.3);
-        else if(kind<0.8){ put(P.arock,p.x,p.y+sz*0.4,p.z,sz,sz*0.95,sz*0.9,ry,col,R.n(380+j)*0.6,R.n(390+j)*0.6); put(P.arock,p.x+sz*0.9,p.y+sz*0.15,p.z+sz*0.4,sz*0.45,sz*0.35,sz*0.4,ry+1,ALP_STONE[j%3]); }
-        else put(P.arock,p.x,p.y+sz*0.8,p.z,sz*0.6,sz*1.6,sz*0.55,ry,col,(R.n(380+j)-0.5)*0.3,(R.n(390+j)-0.5)*0.4);
+        const sz=(0.45+R.n(330+j)*R.n(340+j)*2.4)*(1+d*0.022), kind=R.n(350+j), ry=R.n(360+j)*6, lich=R.n(400+j)<0.2, RP=lich?P.arock:P.rock, col=lich?ALP_STONE[Math.floor(R.n(370+j)*3)]:pk(GREYS,R.n(370+j));
+        if(kind<0.5) put(RP,p.x,p.y+sz*0.25,p.z,sz*1.35,sz*0.7,sz,ry,col,(R.n(380+j)-0.5)*0.3);
+        else if(kind<0.8){ put(RP,p.x,p.y+sz*0.4,p.z,sz,sz*0.95,sz*0.9,ry,col,R.n(380+j)*0.6,R.n(390+j)*0.6); put(RP,p.x+sz*0.9,p.y+sz*0.15,p.z+sz*0.4,sz*0.45,sz*0.35,sz*0.4,ry+1,col); }
+        else put(RP,p.x,p.y+sz*0.8,p.z,sz*0.6,sz*1.6,sz*0.55,ry,col,(R.n(380+j)-0.5)*0.3,(R.n(390+j)-0.5)*0.4);
         if(d<14&&Math.abs(p.x-trailX(p.z))<2.4+sz) solids.push({x:p.x,z:p.z,r:sz*1.1}); }
-      for(let j=0;j<3;j++){ if(R.n(60+j)>0.75) continue; const p=R.at(1.5+R.n(63+j)*9,66+j), moss=R.n(69+j)<0.5, n=moss?3:5;   /* the bare ground between the rocks is not bare: mats of moss in the hollows, and crusts of lichen on the stony patches */
+      for(let j=0;j<3;j++){ if(R.n(60+j)>0.75) continue; const p=R.at(1.5+R.n(63+j)*9,66+j), moss=false, n=5; if(p.y<-800||R.n(69+j)<0.5) continue;   /* the bare ground between the rocks is not bare: mats of moss in the hollows, and crusts of lichen on the stony patches */
         for(let k=0;k<n;k++){ const x=p.x+(R.n(72+j*8+k)-0.5)*(moss?0.9:1.5), z=p.z+(R.n(100+j*8+k)-0.5)*(moss?0.9:1.5), q=moss?0.3+R.n(130+j*8+k)*0.35:0.14+R.n(130+j*8+k)*0.22;
           put(P.bush,x,floorY(x,z)+(moss?q*0.1:0.012),z,q,moss?q*0.3:0.03,q*(0.7+R.n(160+j*8+k)*0.5),R.n(190+j*8+k)*6,moss?pk(MOSSES,R.n(220+j*8+k)):pk(GROUND_LICHEN,R.n(220+j*8+k))); } } },
     lines:[['The wind is pushing me!','Lean into it, like this.'],['Hellooo!','...It answered! The mountain answered!'],'I can see the whole valley.',['Is that our house?','That tiny dot? I think it is.']],
@@ -1347,19 +1345,20 @@ function mtnWonders(r,z0){ const zc=z0+1.5, cx=trailX(zc), ty=trailY(zc), n=(k,j
 const BERRY=[C('#c8283c'),C('#d8404a'),C('#3a3f9c'),C('#4c4fb4')];
 function berries(x,y,z,rad,r,id){ const blue=hash(r,id,31)<0.4?2:0; for(let k=0;k<14;k++){ const a=hash(r,id,40+k)*6.283, e=0.15+hash(r,id,60+k)*1.2, c=Math.cos(e)*rad*1.0, sz=0.9+hash(r,id,80+k)*0.6;
     put(P.petal,x+Math.cos(a)*c,y+Math.sin(e)*rad*0.7,z+Math.sin(a)*c,sz,sz,sz,0,BERRY[blue+(k&1)]); } }
+const mossPut=(...a)=>{ if(a[8]) put(...a); };   /* (no moss on the rocks above the trees) */
 /* Rocks and fallen logs come in several kinds, so that no two stretches of trail look furnished from the same box.
    A rock may be: the plain mossy boulder; a boulder with smaller stones settled round it; a low flat ledge with a slab lying on it; a tall
    stone standing a little crooked; a boulder split in two; or a bare round one with grass grown up at its foot. (It returns how tall it is.) */
-function rockVar(x,y,z,sz,r,id,big){ const h=k=>hash(r,id,40+k), v=h(0), ry=hash(r,id,5)*6, alp=bioKeyAt(z)==='alpine'&&newK(z)>0.5, PR={rock:alp?P.arock:P.rock}, RC=alp?ALP_STONE:ROCKS, col=k=>RC[Math.floor(h(k)*3)%3], c0=RC[Math.floor(hash(r,id,6)*3)];
-  if(v<0.24){ put(PR.rock,x,y+sz*0.25,z,sz*1.2,sz*0.75,sz,ry,c0); put(P.bush,x,y+sz*0.72,z,sz*0.85,sz*0.3,sz*0.7,0,MOSS); return sz; }
-  if(v<0.42){ put(PR.rock,x,y+sz*0.25,z,sz*1.05,sz*0.8,sz*0.95,ry,c0); put(P.bush,x,y+sz*0.78,z,sz*0.7,sz*0.26,sz*0.62,0,MOSS);
+function rockVar(x,y,z,sz,r,id,big){ const h=k=>hash(r,id,40+k), v=h(0), ry=hash(r,id,5)*6, alp=bioKeyAt(z)==='alpine'&&newK(z)>0.5, lich=alp&&h(30)<0.2, PR={rock:lich?P.arock:P.rock}, RC=lich?ALP_STONE:ROCKS, MOSS=alp?null:MOSS_C, col=k=>RC[Math.floor(h(k)*3)%3], c0=RC[Math.floor(hash(r,id,6)*3)];
+  if(v<0.24){ put(PR.rock,x,y+sz*0.25,z,sz*1.2,sz*0.75,sz,ry,c0); mossPut(P.bush,x,y+sz*0.72,z,sz*0.85,sz*0.3,sz*0.7,0,MOSS); return sz; }
+  if(v<0.42){ put(PR.rock,x,y+sz*0.25,z,sz*1.05,sz*0.8,sz*0.95,ry,c0); mossPut(P.bush,x,y+sz*0.78,z,sz*0.7,sz*0.26,sz*0.62,0,MOSS);
     for(let k=0;k<3;k++){ const a=h(1+k)*6.283, q=sz*(0.28+h(4+k)*0.26), d=sz*0.95+q*0.5, rx=x+Math.cos(a)*d, rz=z+Math.sin(a)*d; put(PR.rock,rx,floorY(rx,rz)+q*0.3,rz,q*1.2,q*0.8,q,h(7+k)*6,col(10+k)); } return sz*1.05; }
   if(v<0.58){ put(PR.rock,x,y+sz*0.1,z,sz*1.55,sz*0.36,sz*1.15,ry,c0); put(PR.rock,x+Math.cos(ry)*sz*0.25,y+sz*0.48,z-Math.sin(ry)*sz*0.25,sz*1.05,sz*0.24,sz*0.8,ry+0.5,col(1),0.08,0.16);
-    if(h(2)<0.6) put(P.bush,x-Math.cos(ry)*sz*0.6,y+sz*0.42,z+Math.sin(ry)*sz*0.6,sz*0.5,sz*0.1,sz*0.4,ry,MOSS); return sz*0.75; }
+    if(h(2)<0.6) mossPut(P.bush,x-Math.cos(ry)*sz*0.6,y+sz*0.42,z+Math.sin(ry)*sz*0.6,sz*0.5,sz*0.1,sz*0.4,ry,MOSS); return sz*0.75; }
   if(v<0.72){ const lean=(h(1)-0.5)*0.36; put(PR.rock,x,y+sz*0.75,z,sz*0.62,sz*1.5,sz*0.55,ry,c0,(h(2)-0.5)*0.2,lean); put(PR.rock,x+sz*0.55,y+sz*0.12,z+sz*0.2,sz*0.4,sz*0.3,sz*0.36,h(3)*6,col(4));
-    put(P.bush,x,y+sz*0.1,z,sz*0.85,sz*0.16,sz*0.8,0,MOSS); return sz*2.1; }
+    mossPut(P.bush,x,y+sz*0.1,z,sz*0.85,sz*0.16,sz*0.8,0,MOSS); return sz*2.1; }
   if(v<0.86){ const ax=Math.cos(ry), az=-Math.sin(ry); for(const sd of [-1,1]) put(PR.rock,x+ax*sd*sz*0.5,y+sz*0.3,z+az*sd*sz*0.5,sz*0.62,sz*0.85,sz*0.95,ry,sd>0?c0:col(1),0,sd*-0.22);   /* the halves lean apart */
-    if(h(2)<0.7) put(P.bush,x,y+sz*0.12,z,sz*0.22,sz*0.3,sz*0.7,ry,MOSS); return sz*1.1; }
+    if(h(2)<0.7) mossPut(P.bush,x,y+sz*0.12,z,sz*0.22,sz*0.3,sz*0.7,ry,MOSS); return sz*1.1; }
   put(PR.rock,x,y+sz*0.3,z,sz*1.1,sz*0.9,sz*1.05,ry,c0,h(1)*0.5);
   for(let k=0;k<5;k++){ const a=h(2+k)*6.283, d=sz*(0.95+h(8+k)*0.25), gx=x+Math.cos(a)*d, gz=z+Math.sin(a)*d; put(P.coneF,gx,floorY(gx,gz)-0.03,gz,0.11,0.3+h(14+k)*0.35,0.11,0,GREENS[Math.floor(h(20+k)*3)]); } return sz*1.2; }
 /* A fallen log may be: plain, perhaps with moss; one with the stubs of its branches still on it; a snapped tree, the stump standing at one end;
@@ -4416,7 +4415,7 @@ const AMB2={
   winter:{bed:0.15,wind:1.6,every:[1.8,3.2],k:['windlow','windlow','creak','creak','feebee','drip','thump','tap','windhigh']},
   grass:{bed:1,wind:1.2,every:[1,2.1],k:['rustle','rustle','rustle','cricket','cricket','bee','warble','trill','windlow']},
   marsh:{bed:0.25,wind:0.5,water:0.3,every:[1.1,2.3],k:['croak','croak','peeper','peeper','splash','plonk','quack','midge','drip','reeds','reeds','tap']},
-  alpine:{bed:0,wind:3,every:[1.7,3.1],k:['windhigh','windhigh','windlow','windlow','thunk','feebee','whistle','hawk']},
+  alpine:{bed:0,wind:4.2,every:[1.1,2.2],k:['windhigh','windhigh','windlow','windlow','whoosh','whoosh','windhigh','thunk','feebee','whistle','hawk']},
   glow:{bed:0.3,wind:0.4,every:[1.2,2.5],k:['cricket','cricket','cricket','peeper','twinkle','twinkle','hootfar','flutter','drip','rustle']},
   giant:{bed:0.6,wind:0.6,every:[1.1,2.3],k:['cricket','cricket','bee','bee','buzz','buzz','plonk','rustle','creak','warble']},
   pond:{bed:0.2,wind:0.3,water:0.22,every:[1.3,2.5],k:['plonk','plonk','drip','splash','peeper','twinkle','warble','dove','croak','reeds']},
@@ -4865,6 +4864,17 @@ const driftRocks=[]; { let sd=23; const R=()=>(sd=(sd*16807)%2147483647)/2147483
     driftRocks.push({g,z:lerp(MTN+40,SKY_A-12,(i+R()*0.8)/12),lat:over?0:(i%2?1:-1)*(12+R()*34),h:over?13+R()*6:8+R()*14,ax:over?26+R()*14:5+R()*9,az:4+R()*7,w:(over?0.05:0.08+R()*0.07)*(R()<0.5?-1:1),ph:R()*6.283,spin:(R()-0.5)*0.12}); } }
 function updateDriftRocks(){ const on=!!state.started&&mode==='trail'&&wondersOn&&!skyOpen; driftRocks.forEach(d=>{ d.g.visible=on; if(!on) return; const a=time*d.w+d.ph, z=d.z+Math.sin(a*1.0+1)*d.az;
     d.g.position.set(trailX(z)+d.lat+Math.sin(a)*d.ax,trailY(z)+d.h+1.4*Math.sin(time*0.21+d.ph),z); d.g.rotation.set(0.07*Math.sin(time*0.3+d.ph),time*d.spin+d.ph,0.07*Math.sin(time*0.23+d.ph*2)); }); }
+/* The wind in the alpine garden, made visible: long pale streaks and flecks of grit and old snow racing across the open ground, thicker
+   and faster when it gusts, thinner in the lulls. */
+const WIND_N=150, windFx=(()=>{ const lp=new Float32Array(WIND_N*6), pp=new Float32Array(WIND_N*3), d=[]; for(let i=0;i<WIND_N;i++) d.push({x:rnd()*44,y:0.15+Math.pow(rnd(),1.6)*7,z:rnd()*44,sp:0.7+rnd()*0.6,len:0.8+rnd()*2.2,ph:rnd()*6});
+  const lg=new THREE.BufferGeometry(); lg.setAttribute('position',new THREE.BufferAttribute(lp,3)); const pg=new THREE.BufferGeometry(); pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
+  const lines=new THREE.LineSegments(lg,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false})), pts=new THREE.Points(pg,new THREE.PointsMaterial({color:0xf4f6f8,size:0.07,transparent:true,opacity:0,depthWrite:false}));
+  [lines,pts].forEach(m=>{ m.frustumCulled=false; m.visible=false; scene.add(m); }); return {lines,pts,d,k:0,gust:0}; })();
+function updateWindFx(dt){ const W=windFx, on=!!state.started&&mode==='trail'&&bioKeyAt(party.s)==='alpine'&&gateK(party.s)<0.5; W.k=damp(W.k,on?1:0,1.2,dt); const vis=W.k>0.02; W.lines.visible=W.pts.visible=vis; if(!vis) return;
+  const g=clamp(0.55+0.4*Math.sin(time*0.47)+0.25*Math.sin(time*1.31+1)+0.12*Math.sin(time*3.3),0.15,1.3); W.gust=g; const sp=15*g+4, cx=trailX(party.s)-22, cz=party.s-18, lp=W.lines.geometry.attributes.position, pp=W.pts.geometry.attributes.position;
+  W.d.forEach((p,i)=>{ p.x=(p.x+sp*p.sp*dt)%44; p.z=((p.z+sp*p.sp*0.22*dt)%44+44)%44; const x=cx+p.x, z=cz+p.z, y=groundY(x,z)+p.y+0.25*Math.sin(time*2.1+p.ph), len=p.len*(0.5+g);
+    lp.setXYZ(i*2,x,y,z); lp.setXYZ(i*2+1,x-len,y-0.03,z-len*0.22); pp.setXYZ(i,x+1.7,y*0.4+groundY(x,z)*0.6+0.05,z+((i*7)%5)-2); });
+  lp.needsUpdate=pp.needsUpdate=true; W.lines.material.opacity=W.k*(0.12+0.22*g); W.pts.material.opacity=W.k*(0.35+0.4*g); }
 function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
   icePond.position.set(trailX(ICE_Z)+ICE_LAT,trailY(ICE_Z)-0.4,ICE_Z);
   if(!fork.ice&&fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>ICE_Z-7&&party.s<ICE_Z+3&&quiet()&&!EVT.cur){ fork.ice=true; holdEvents(16);
@@ -5041,7 +5051,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
