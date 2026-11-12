@@ -4303,7 +4303,7 @@ function nextLine(key,src){ const d=decks[key]||(decks[key]=[]); if(!d.length){ 
 /* one bubble at a time: every line waits its turn and stays up long enough to read */
 const lineTime=tx=>1.6+tx.length*0.06;
 function showLine(w,tx){ bubbles.forEach((bb,i)=>{ if(i!==w){ bb.t=0; bb.el.classList.remove('show'); } });
-  const bb=bubbles[w]; bb.el.querySelector('.txt').textContent=tx; bb.t=lineTime(tx)*(frogKing.on||MEETS.some(D=>D.on)?1.7:1); bb.el.classList.add('show');   /* (in a meeting each line stays up a good deal longer) */ curLine={w,t:bb.t,t0:performance.now()}; }
+  const bb=bubbles[w]; bb.el.querySelector('.txt').textContent=tx; bb.t=lineTime(tx)*(frogKing.on||MEETS.some(D=>D.on)?1.7:1); bb.el.classList.add('show');   /* (in a meeting each line stays up a good deal longer) */ curLine={w,t:bb.t,T:bb.t,t0:performance.now()}; }
 function say(i,text){ script.push([i,text]); }
 function speak(line,i){ if(i===undefined) i=Math.random()<0.5?0:1;
   if(Array.isArray(line)) script.push([i,line[0]],[1-i,line[1]]); else script.push([i,line]); }
@@ -4407,7 +4407,7 @@ function updateSpeech(dt){
        out from behind the camera) down in the bottom corner on her side, so that it plainly comes from off screen. */
     const edge=Math.min(250,innerWidth*0.42), key=(curLine?curLine.w+':'+curLine.t0:'')+mcam.id, fresh=key!==meetBub.key; meetBub.key=key;
     bubbles.forEach((bb,i)=>{ const A=meetBub.at[i]||(meetBub.at[i]={x:innerWidth/2,y:innerHeight/2});
-      if(fresh||mcam.id==='behind'||mcam.id==='through'){ bb.head.getWorldPosition(hp); hp.project(camera); const beh=hp.z>1, on=!beh&&Math.abs(hp.x)<0.9&&hp.y>-0.75&&hp.y<0.62;
+      if(fresh||mcam.id==='behind'||mcam.id==='through'){ bb.head.getWorldPosition(hp); hp.project(camera); const pan=mcam.id==='pan'; if(pan) hp.x=-1; const beh=hp.z>1&&!pan, on=!pan&&!beh&&Math.abs(hp.x)<0.9&&hp.y>-0.75&&hp.y<0.62;   /* (during a pan the words keep to the bottom left, out of the way) */
         const tx=on?(hp.x*0.5+0.5)*innerWidth:((beh?-hp.x:hp.x)<0?0:innerWidth), ty=on?Math.max((-hp.y*0.5+0.5)*innerHeight-6,innerHeight*0.36):innerHeight*0.9;   /* (never so high that it sits on the narrator's line) */
         if(fresh){ A.x=tx; A.y=ty; } else { A.x+=(tx-A.x)*0.06; A.y+=(ty-A.y)*0.06; } }   /* (while the camera itself is travelling, it drifts along gently) */
       xs[i]=A.x; bb.el.style.transform=`translate3d(${clamp(A.x,edge,innerWidth-edge).toFixed(1)}px,${A.y.toFixed(1)}px,0)`; bb.el.style.visibility=state.started?'visible':'hidden'; });
@@ -5502,7 +5502,7 @@ meetDef({key:'winter',s:320,lat:-2.5,name:'The Snow Owl',headY:3.25,shot:{aSide:
   anim(D,t,talking,dt){ D.hd.rotation.y=0.45*Math.sin(t*0.4); D.hd.rotation.x=talking?0.07*Math.sin(t*6):0; D.hd.scale.y=(t%5.7)<0.13?0.9:1;
     const want=D.on===2&&D.li>=5&&D.li<=8?1:0; D.fk=damp(D.fk,want,1.6,dt); D.flake.visible=D.on===2&&D.li>=5&&D.fk>0.02&&D.fk<0.999||want===1&&D.on===2;   /* the borrowed snowflake drifts down to Pip's mitten, and back up again */
     if(D.flake.visible){ D.head.getWorldPosition(_mv); _mv.y-=0.9; const p=pip.g.position; D.flake.position.set(lerp(_mv.x,p.x,D.fk),lerp(_mv.y,p.y+0.85,D.fk)+Math.sin(Math.PI*D.fk)*0.25,lerp(_mv.z,p.z+0.25,D.fk)); D.flake.material.rotation=t*0.8; } }});
-meetDef({key:'grass',s:322,lat:2.7,name:'The Scarecrow',headY:2.75,
+meetDef({key:'grass',s:322,lat:2.7,name:'The Scarecrow',headY:2.75,panAt:3,
   narr:'In the wheat beside the trail stood a scarecrow with three crows sitting on him, perfectly at home.',
   endNarr:'When they looked back he was waving one straw hand, very carefully, so as not to disturb anybody.',
   say:[[1,'A scarecrow! Hello, scarecrow.'],[2,'Oh! Visitors. Hello. Don\'t mind the crows. They\'re friends.'],[0,'Aren\'t you supposed to scare them away?'],[2,'I am. I\'m terribly bad at it. They sit on me and tell me the news.'],[2,'Could you show me how to look scary? Just so that I know.'],
@@ -5551,15 +5551,18 @@ function updateMeets(dt){ for(const D of MEETS){ const here=!!state.started&&mod
    has the middle of the picture. After that it cuts: over the girls' shoulders when the stranger speaks, over the stranger's shoulder
    when one of the girls does. When Pip hands the Frog King his snack it is right down beside her hand. And when it is over (when His
    Majesty has jumped) it draws back to where it usually is. */
+const _mp0=new THREE.Vector3(), _mp1=new THREE.Vector3();
 const mcam={k:0,pos:new THREE.Vector3(),look:new THREE.Vector3(),id:'',spk:'ots-girls',who:0,p:new THREE.Vector3(),l:new THREE.Vector3()}, _ma=new THREE.Vector3(), _mm=new THREE.Vector3();
 function meetShot(){ let D=null, frog=false; if(frogKing.here&&(frogKing.on||party.s>FROGK_S-17)){ D=frogKing; frog=true; } else for(const M of MEETS) if(M.here&&(M.on||(!M.done&&party.s>M.s-17&&party.s<M.s))){ D=M; break; }
   if(!D) return null; D.head.getWorldPosition(_ma); const jp=june.g.position, pp=pip.g.position; _mm.set((jp.x+pp.x)/2,(jp.y+pp.y)/2,(jp.z+pp.z)/2);
   let dx=_ma.x-_mm.x, dz=_ma.z-_mm.z; const dl=Math.hypot(dx,dz)||1; dx/=dl; dz/=dl; const sx=dz, sz=-dx, low=frog&&D.on===2&&D.li>=2, hy=_mm.y+(low?0.8:1.2), w=curLine?curLine.w:-1, P=mcam.p, Lk=mcam.l;
-  let id='behind'; if(D.on===2){ if(D.li<=1&&D.t<4.2) id='through'; else { if(w===2) mcam.spk='ots-girls'; else if(w===0||w===1){ mcam.spk='ots-actor'; mcam.who=w; } id=mcam.spk; if(frog&&D.sn>=0&&D.sn<3) id='snack'; } }
+  let id='behind'; if(D.on===2){ if(D.li<=1&&D.t<4.2) id='through'; else { if(w===2) mcam.spk='ots-girls'; else if(w===0||w===1){ mcam.spk='ots-actor'; mcam.who=w; } id=mcam.spk; if(frog&&D.sn>=0&&D.sn<3) id='snack'; if(D.panAt===D.li&&w===2&&D.crows) id='pan'; } }
   let kT=1;
   if(id==='behind'){ const S0=frog?FROGK_S:D.s, cs=party.s-clamp(5.8*zoom,3.6,9), cx=trailX(cs)+0.6;   /* on the way up to them the camera settles in behind the girls on the trail, as it does in the deep woods: little by little, over the last dozen metres */
     const hh=heading(party.s), fx=Math.sin(hh), fz=Math.cos(hh), bk=3.3; P.set(_mm.x-fx*bk,_mm.y+1.85,_mm.z-fz*bk); Lk.set(_mm.x+fx*2.6,_mm.y+0.95,_mm.z+fz*2.6); kT=D.on?1:smooth(S0-16,S0-6,party.s); }   /* (close enough behind that a bend in the path never hides them) */
   else if(id==='through'){ P.set(_mm.x+dx*0.5,hy-0.12,_mm.z+dz*0.5); Lk.copy(_ma); }
+  else if(id==='pan'){ const u=smooth(0.12,0.9,1-curLine.t/curLine.T), c0=D.crows[0].c.getWorldPosition(_mp0), c1=D.crows[1].c.getWorldPosition(_mp1);   /* a slow pan, close in, along his arms: from the crow on his right to the crow on his left, neither of them going anywhere */
+    Lk.copy(c0).lerp(c1,u); Lk.y+=0.1; P.set(Lk.x-dx*0.95,Lk.y+0.06,Lk.z-dz*0.95); }
   else if(id==='ots-girls'){ const b=low?2.0:1.5, sd=low?1.45:1.35; P.set(_mm.x-dx*b+sx*sd,hy+(low?1.35:0.8),_mm.z-dz*b+sz*sd); Lk.copy(_ma); if(D.shot&&D.shot.gZoom){ P.lerp(_ma,D.shot.gZoom); Lk.y-=D.shot.gDown||0; } }   /* (for someone small or high up, the camera goes in closer) */   /* (higher and wider when they are crouching, to see past a backpack) */
   else if(id==='ots-actor'){ const g=(mcam.who?pip:june).g.position, Q=D.shot||{}, sd=Q.aSide===undefined?-0.75:Q.aSide, bk=Q.aBack||0.85; P.set(_ma.x+dx*bk+sx*sd,_ma.y+(Q.aUp||0.32),_ma.z+dz*bk+sz*sd); if(Q.aBoth) Lk.set(_mm.x,_mm.y+0.9,_mm.z); else Lk.set(g.x,g.y+(low?0.55:0.95),g.z); }   /* (or, where it suits, on both girls at once) */
   else { P.set(_ma.x-dx*0.75+sx*1.2,_ma.y+0.12,_ma.z-dz*0.75+sz*1.2); Lk.set(_ma.x-dx*0.62,_ma.y-0.2,_ma.z-dz*0.62); }   /* the snack: down at the planks, a hand's breadth from it */
