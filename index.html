@@ -5369,7 +5369,7 @@ function updateRiverGold(){ const G=riverGold, on=mode==='trail'&&(saved.secret|
    him. He thanks them for finding his kingdom, tells them to enjoy it and to take care, and then mentions that he is hungry. Pip parts
    with one of her snacks, not gladly; June tells her it was the right thing to do. Then, with a plop, His Majesty is gone. */
 const FROGK_S=330;
-const frogKing=(()=>{ const g=new THREE.Group(), body=new THREE.Group(), fg=L('#4f9a3c'), fb=L('#d4e09a'), fy=L('#f2d84a'), fe=new THREE.MeshBasicMaterial({color:0x14180c}), gold=new THREE.MeshBasicMaterial({color:0xffd24a}), dk=L('#3b2a22'); g.add(body);
+const frogKing=(()=>{ const g=new THREE.Group(), body=new THREE.Group(), fg=L('#4f9a3c'), fb=L('#d4e09a'), fy=L('#f2d84a'), fe=new THREE.MeshBasicMaterial({color:0x14180c}), gold=new THREE.MeshBasicMaterial({color:0xffd24a}), dk=new THREE.MeshBasicMaterial({color:0x2e1f18}); g.add(body);
   const throat=ball(fb,0.06,1.1,0.8,1,0,0.06,0.075);
   body.add(ball(fg,0.1,1.15,0.78,1.25,0,0.08,0),throat,ball(fb,0.085,1,0.6,1.05,0,0.05,0.02),ball(fg,0.038,1,1,1,-0.055,0.155,0.07),ball(fg,0.038,1,1,1,0.055,0.155,0.07),ball(fy,0.025,1,1,1,-0.06,0.165,0.092),ball(fy,0.025,1,1,1,0.06,0.165,0.092),ball(fe,0.013,1,1,1,-0.063,0.167,0.113),ball(fe,0.013,1,1,1,0.063,0.167,0.113),
     ball(fg,0.05,1.2,0.6,1.7,-0.115,0.04,-0.05),ball(fg,0.05,1.2,0.6,1.7,0.115,0.04,-0.05),ball(fg,0.028,1,0.6,1.7,-0.08,0.022,0.11),ball(fg,0.028,1,0.6,1.7,0.08,0.022,0.11));
@@ -5511,9 +5511,9 @@ function meetShot(){ let D=null, frog=false; if(frogKing.here&&(frogKing.on||par
   let id='behind'; if(D.on===2){ if(D.li<=1&&D.t<3.4) id='through'; else { if(w===2) mcam.spk='ots-girls'; else if(w===0||w===1){ mcam.spk='ots-actor'; mcam.who=w; } id=mcam.spk; if(frog&&(D.li===8&&w===1||D.sn>=0&&D.sn<1.7)) id='snack'; } }
   if(id==='behind'){ const far=clamp(dl-1.2,0,6)*0.12; P.set(_mm.x-dx*(2.2+far),hy+0.05,_mm.z-dz*(2.2+far)); Lk.copy(_ma); }
   else if(id==='through'){ P.set(_mm.x+dx*0.5,hy-0.12,_mm.z+dz*0.5); Lk.copy(_ma); }
-  else if(id==='ots-girls'){ P.set(_mm.x-dx*1.25+sx*0.85,hy+0.12,_mm.z-dz*1.25+sz*0.85); Lk.copy(_ma); }
+  else if(id==='ots-girls'){ const b=low?1.75:1.3, sd=low?1.05:0.9; P.set(_mm.x-dx*b+sx*sd,hy+(low?0.5:0.14),_mm.z-dz*b+sz*sd); Lk.copy(_ma); }   /* (higher and wider when they are crouching, to see past a backpack) */
   else if(id==='ots-actor'){ const g=(mcam.who?pip:june).g.position; P.set(_ma.x+dx*0.85-sx*0.75,_ma.y+0.32,_ma.z+dz*0.85-sz*0.75); Lk.set(g.x,g.y+(low?0.55:0.95),g.z); }
-  else { P.set(_ma.x-dx*0.5+sx*0.8,_ma.y+0.02,_ma.z-dz*0.5+sz*0.8); Lk.set(_ma.x-dx*0.42,_ma.y-0.22,_ma.z-dz*0.42); }   /* the snack: down at the planks, a hand's breadth from it */
+  else { P.set(_ma.x-dx*0.75+sx*1.2,_ma.y+0.12,_ma.z-dz*0.75+sz*1.2); Lk.set(_ma.x-dx*0.62,_ma.y-0.2,_ma.z-dz*0.62); }   /* the snack: down at the planks, a hand's breadth from it */
   return {id,cut:id!=='behind'&&id!=='through'}; }
 function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
   icePond.position.set(trailX(ICE_Z)+ICE_LAT,trailY(ICE_Z)-0.4,ICE_Z);
