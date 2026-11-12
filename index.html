@@ -1000,10 +1000,10 @@ const BIO={
     tree(T){ const th=3+T.h*4; put(T.tp,T.x,T.y,T.z,0.2,th,0.2,T.ry,GREYS[1]); if(T.n(22)<0.5) put(T.tp,T.x+0.3,T.y+th*0.55,T.z,0.07,1.4,0.07,0,GREYS[1]); },                              /* an old drowned trunk */
     props(R){ const wy=trailY0(MARSH_A)-0.22;
       /* reeds, reeds, reeds: in clumps right up to the boardwalk and in beds as far as can be seen, with cattails standing among them */
-      for(let c=0;c<7;c++){ const d=c<3?1.45+R.n(30+c)*2.6:4+Math.pow(R.n(30+c),1.3)*70, p=R.at(d,40+c); if(p.y<-800||marshR(p.x,p.z)>0.9) continue; const n=c<3?7:5+Math.floor(d*0.12), sp=0.5+d*0.02;
+      for(let c=0;c<7;c++){ const d=c<3?1.45+R.n(30+c)*2.6:4+Math.pow(R.n(30+c),1.3)*70, p=R.at(d,40+c), inB=marshR(p.x,p.z)<=0.9; if(p.y<-800||!inB&&!(p.z>MARSH_B-3&&p.z<SITES[2].rest+16)) continue;   /* (the reeds go on up the bank and all round the rest site) */ const n=c<3?7:5+Math.floor(d*0.12), sp=0.5+d*0.02;
         for(let k=0;k<n;k++){ const id=200+c*30+k, x=p.x+(R.n(id)-0.5)*sp*2, z=p.z+(R.n(id+300)-0.5)*sp*2; if(Math.abs(x-trailX(z))<1.35) continue; const hh=(1.5+R.n(id+600)*1.5)*(1+d*0.012), w=0.05+d*0.0014;
-          put(P.coneF,x,wy-0.15,z,w,hh,w,0,k%4?REEDS[Math.floor(R.n(id+900)*4)]:TAN,(R.n(id+1200)-0.5)*0.28,(R.n(id+1500)-0.5)*0.28);
-          if(k%4===0&&d<30) put(P.bush,x,wy+hh*0.8,z,0.055,0.19,0.055,0,BARKS[0]); } }
+          put(P.coneF,x,inB?wy-0.15:floorY(x,z)-0.1,z,w,hh,w,0,k%4?REEDS[Math.floor(R.n(id+900)*4)]:TAN,(R.n(id+1200)-0.5)*0.28,(R.n(id+1500)-0.5)*0.28);
+          if(k%4===0&&d<30) put(P.bush,x,(inB?wy:floorY(x,z))+hh*0.8,z,0.055,0.19,0.055,0,BARKS[0]); } }
       for(let j=0;j<2;j++){ if(R.n(70+j)>0.55) continue; const p=R.at(1.7+R.n(72+j)*12,74+j); if(p.y<-800||marshR(p.x,p.z)>0.86||Math.abs(p.x-trailX(p.z))<1.5) continue; put(P.bush,p.x,wy+0.02,p.z,0.5+R.n(76+j)*0.3,0.02,0.5+R.n(76+j)*0.3,0,GREENS[j?1:2]); } },   /* lily pads on the dark water */
     lines:[['Clonk, clonk, clonk.','The boardwalk is talking back.'],'Something went plop!',['Is that a log or a turtle?','A turtle. Logs don\'t blink.'],['It smells like a pond.','It IS a pond. A very long one.']],
     narr:['The boardwalk went clonk under their feet, and the frogs went quiet to listen.','Mist sat on the water like a blanket nobody had folded.'],
@@ -1485,7 +1485,7 @@ const REEDS=[C('#6f8f4a'),C('#86a05a'),C('#5d7c44'),C('#9aa862')];
    it; and every so often a post with a lantern on it, now on one side and now on the other. */
 const marshLamps=[];
 function drawMarshWalk(){ const H=(i,j)=>hash(i,j,523), W=2.1; marshLamps.length=0; let i=0, nextLamp=MARSH_A+4;
-  for(let z=MARSH_A-2.4;z<MARSH_UP+1.2;i++){ const sl=(trailX(z+0.2)-trailX(z-0.2))/0.4, hy=Math.hypot(1,sl), yaw=Math.atan(sl), x=trailX(z), y=trailY(z)+0.05;
+  for(let z=MARSH_A-2.4;z<SITES[2].rest-8.6;i++){   /* (right up to the island the rest site stands on) */ const sl=(trailX(z+0.2)-trailX(z-0.2))/0.4, hy=Math.hypot(1,sl), yaw=Math.atan(sl), x=trailX(z), y=trailY(z)+0.05;
     put(P.log,x+(H(1,i)-0.5)*0.07,y,z,W+H(2,i)*0.2,0.13,0.8,yaw+(H(3,i)-0.5)*0.09,PLANKS[Math.floor(H(4,i)*4)%4],-Math.atan(trailY(z+0.5)-trailY(z-0.5)));
     if(i%4===0) for(const sd of [-1,1]) put(P.trunkF,x+sd*(W/2-0.06)/hy,y-1.6,z-sd*(W/2-0.06)*sl/hy,0.07,1.65,0.07,0,PLANKS[2]);
     if(z>=nextLamp&&z<MARSH_B){ nextLamp=z+9+H(5,i)*8; const sd=H(6,i)<0.5?-1:1, lx=x+sd*(W/2+0.12)/hy, lz=z-sd*(W/2+0.12)*sl/hy;   /* a lantern post, leaning a little */
@@ -2392,7 +2392,7 @@ function finishBrain(b,pose,walking,dt){
   /* nor through the fence along the sky garden's boardwalk */
   if(landY===groundY&&skyOpen&&b.pos.y>SKY_B+1&&b.pos.y<SKY_B+36){ const fx=trailX(b.pos.y)-1.36+0.34; if(b.pos.x<fx) b.pos.x=fx;
     [b.cur].concat(b.queue).forEach(st=>{ if(st&&st.k==='walk'&&st.to[0]<fx+0.08) st.to[0]=fx+0.08; }); }   /* and anywhere she means to walk to that lies beyond it is brought back to this side, so she never stands marching at the rail */
-  if(landY===groundY&&marshOn()&&b.pos.y>MARSH_A-1&&b.pos.y<MARSH_UP){ const cx=trailX(b.pos.y); b.pos.x=clamp(b.pos.x,cx-0.78,cx+0.78);
+  if(landY===groundY&&marshOn()&&b.pos.y>MARSH_A-1&&b.pos.y<SITES[2].rest-9){ const cx=trailX(b.pos.y); b.pos.x=clamp(b.pos.x,cx-0.78,cx+0.78);
     [b.cur].concat(b.queue).forEach(st=>{ if(st&&st.k==='walk'){ const tx=trailX(st.to[1]); st.to[0]=clamp(st.to[0],tx-0.7,tx+0.7); } }); }   /* (and anywhere she means to walk to is brought back onto it, so she never stands marching at the edge)   /* in the marsh, keep to the boardwalk */
   /* on the pond, keep to the planking */
   if(landY===groundY&&pondOn()&&pondR(b.pos.x,b.pos.y)<0.95){ b.pos.x=pondKeepX(b.pos.x,b.pos.y); [b.cur].concat(b.queue).forEach(st=>{ if(st&&st.k==='walk') st.to[0]=pondKeepX(st.to[0],st.to[1]); }); }
@@ -5266,6 +5266,16 @@ function updateWillowLamps(){ const on=!!state.started&&mode==='trail'&&pondOn()
     l.position.set(trailX(z)+sd*(POND_WALK-0.28),trailY0(POND_A)+1.6,z); l.intensity=(1.7+0.12*Math.sin(time*7+i*2)+0.08*Math.sin(time*13.1+i))*gateK(party.s+ (i?0:0)); }); }
 /* and the far end of the marsh is hidden the same way, only more so: a wall of mist that the boardwalk disappears into, thinning as the girls come up to it */
 const marshVeil=[0,1,2,3,4,5].map(i=>{ const m=new THREE.Mesh(curtainGeo,new THREE.MeshBasicMaterial({color:0xffffff,map:curtainTex,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide})); m.visible=false; m.renderOrder=2; if(i%2) m.scale.x=-1; scene.add(m); return {m,dz:-36+i*7.5,dx:(i%2?1:-1)*(8+i*5),dy:i*1.1}; });
+/* the rest site at the end of the marsh shows from a long way off: its two lanterns burn as brightly from the trail as they do when the girls are sitting under them */
+const restLamps=[[-4.3,1.98,1.6],[3.6,2.0,-5.2]].map(([x,y,z],i)=>{ const g=new THREE.Group(); if(i){ const post=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.06,2.1,7),L('#7a5238')); post.position.y=-1; const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.16,10,8),new THREE.MeshBasicMaterial({color:0xfff3a3})); g.add(post,lamp); }
+  const gl=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xffc45a,transparent:true,opacity:0.6,depthWrite:false,fog:false,blending:THREE.AdditiveBlending})); gl.scale.set(3.4,3.4,1); const l=new THREE.PointLight(0xffb85a,2.6,17,1.3); g.add(gl,l); g.visible=false; scene.add(g); return {g,gl,l,x,y,z}; });
+function updateRestLamps(){ const on=!!state.started&&mode==='trail'&&marshOn()&&Math.abs(party.s-SITES[2].rest)<75, Z=SITES[2].rest, X=SX[2], hd=heading(Z), Y=trailY(Z);
+  restLamps.forEach((q,i)=>{ q.g.visible=on; if(!on) return; q.g.position.set(X+q.x*Math.cos(hd)+q.z*Math.sin(hd),Y+q.y,Z-q.x*Math.sin(hd)+q.z*Math.cos(hd)); q.l.intensity=2.6+0.16*Math.sin(time*7+i*2); q.gl.material.opacity=0.55+0.07*Math.sin(time*7+i*2); }); }
+/* Going into a gateway, the picture always dips out and comes back: to black (to white, in the mist), a breath, and the girls are a few steps inside. */
+const gateFade={i:-1,prev:0};
+function updateGateFade(){ const G=gateFade, s=party.s, p=G.prev; G.prev=s; if(mode!=='trail'||!state.started) return; if(G.i>=0&&s<GA[G.i]-3) G.i=-1;
+  for(let i=0;i<4;i++){ const a=GA[i]+1; if(G.i===i||!(p<a&&p>a-2&&s>=a)||!gateInfo(s).style) continue; G.i=i; const tok=++restToken, fd=$('fade'), white=i===3; fd.classList.toggle('white',white); fd.classList.add('on');
+    setTimeout(()=>{ if(tok!==restToken||!state.started||mode!=='trail'){ fd.classList.remove('on','white'); return; } party.s=Math.max(party.s,GA[i]+3.4); placeGirls(); groundRow=forestRow=null; fd.classList.remove('on'); setTimeout(()=>fd.classList.remove('white'),1000); },900); } }
 function updateMarshVeil(){ const on=!!state.started&&mode==='trail'&&marshOn()&&party.s>MARSH_A-14&&party.s<MARSH_B+2, k=on?1-smooth(MARSH_B-44,MARSH_B-8,party.s):0;
   marshVeil.forEach(v=>{ v.m.visible=k>0.01; if(k<=0.01) return; v.m.position.set(trailX(MARSH_B)+v.dx,trailY0(MARSH_A)+15+v.dy,MARSH_B+v.dz); v.m.material.opacity=0.8*k; v.m.material.color.copy(scene.fog.color).lerp(WHITE,0.03); }); }
 function updatePondWater(){ const on=!!state.started&&mode==='trail'&&pondOn()&&Math.abs(party.s-POND_ZC)<170; pondWater.visible=on; if(!on) return;
@@ -5724,7 +5734,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateRiverGold(); updateMarsh(dt); updateFrogKing(dt); updateMeets(dt); updateFactLife(dt); updateMarshVeil(); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateRiverGold(); updateMarsh(dt); updateRestLamps(); updateGateFade(); updateFrogKing(dt); updateMeets(dt); updateFactLife(dt); updateMarshVeil(); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
