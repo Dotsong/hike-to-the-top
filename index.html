@@ -573,10 +573,15 @@ let choice=0;   /* 0 = not chosen yet, -1 = the thicket path (aspen grove), 1 = 
 /* the middle of the trail: two lazy waves, the curve to the right at the river, and the tight bends that wind through the deep woods */
 const x0=s=>7*Math.sin(s*0.021)+3.5*Math.sin(s*0.047+1.3)-12*smooth(40,64,s)+3.2*Math.sin((s-64)*0.224)*smooth(62,72,s)*(1-smooth(88,97,s))
   +(s>GATE_B+8?wildK(s)*(2.4*Math.sin(s*0.17+0.7)+1.2*Math.sin(s*0.31+2.1)):0)
+  +(s>289&&s<384&&marshOn()?marshWind(s):0)   /* through the marsh the boardwalk winds this way and that between the reed beds */
   +(s>490?8.5*Math.sin((s-MTN-3)*0.2856)*smooth(MTN+3,MTN+10,s)*(1-smooth(MTN+47,MTN+58,s)):0);   /* the switchbacks up the hill: two and a half zigzags, straightening out for the boulder */   /* and, all the way up the mountain, the same kind of winding as in the deep woods */
 /* How wild the trail may be at s: 1 out in the middle of a place, 0 wherever it has to behave (rest sites, gateways, villages, the pond's
    boardwalk, the mist and the sky garden). The bends, the humps and hollows, the gullies and the little canyons all scale by this. */
-function wildK(s){ if(s<GATE_B+10||s>MTN-6) return 0; if(s>GB[2]&&picks[2]&&legKey(2)==='pond'&&s<MTN+6) return 0;
+/* The marsh, like the pond, lies in a bowl with one sheet of water in it; the trail crosses it dead level on a narrow boardwalk. */
+const MARSH_A=291, MARSH_B=367, MARSH_UP=383, MARSH_ZC=(MARSH_A+MARSH_B)/2, MARSH_HZ=(MARSH_B-MARSH_A)/2+4.5, MARSH_HX=104;
+function marshOn(){ return picks[1]>0&&choice<0; }
+function marshWind(s){ return (4.6*Math.sin((s-MARSH_A)*0.16)+1.9*Math.sin((s-MARSH_A)*0.35+1))*smooth(MARSH_A+2,MARSH_A+12,s)*(1-smooth(MARSH_B-12,MARSH_B-1,s)); }
+function wildK(s){ if(s<GATE_B+10||s>MTN-6) return 0; if(s>286&&s<400&&marshOn()) return 0; if(s>GB[2]&&picks[2]&&legKey(2)==='pond'&&s<MTN+6) return 0;
   let k=smooth(GATE_B+10,GATE_B+24,s)*(1-smooth(MTN-22,MTN-6,s))*smooth(15,26,Math.abs(s-VILLAGE_Z));
   for(let i=1;i<3;i++) k*=smooth(20,34,Math.abs(s-SITES[i].rest))*smooth(15,27,Math.abs(s-(GA[i]+GB[i])/2)); return k; }
 /* Every 44 m or so there is something in the trail's way: a gully to dip down through, a knoll to climb over, or a small canyon to walk
@@ -646,7 +651,9 @@ const trailY0=s=>0.05*Math.min(s,46)+0.8*Math.sin(s*0.03)*(1-smooth(36,50,s))+2.
   +0.03*Math.max(0,climbS(s)-106)+0.07*Math.max(0,climbS(s)-GATE_B)+smooth(GATE_B,GATE_B+25,s)*calm(s)*(2.2*Math.sin(s*0.045+0.6)+1.3*Math.sin(s*0.083+2))
   +0.05*Math.max(0,s-MTN)+(s>MTN?13*smooth(MTN+2,MTN+60,s):0)+0.2*Math.max(0,s-TOP_A)   /* steeper on the mountain trail, and steepest of all in the last cave */
   +(s>GATE_B+8?wildK(s)*(0.5*Math.sin(s*0.29+1)+0.35*Math.sin(s*0.47))+featY(s):0);   /* humps and hollows, gullies and knolls */
-const trailYb=s=>{ if(s<=POND_A||s>=POND_UP||!pondOn()) return trailY0(s); const Y=trailY0(POND_A); return s<POND_B?Y:lerp(Y,trailY0(POND_UP),smooth(POND_B,POND_UP,s)); };   /* level across the pond, then up out of the bowl */
+const trailYb=s=>{ if(s>MARSH_A&&s<MARSH_UP&&marshOn()){ const Y=trailY0(MARSH_A); return s<MARSH_B?Y:lerp(Y,trailY0(MARSH_UP),smooth(MARSH_B,MARSH_UP,s)); }
+  if(s<=POND_A||s>=POND_UP||!pondOn()) return trailY0(s); const Y=trailY0(POND_A); return s<POND_B?Y:lerp(Y,trailY0(POND_UP),smooth(POND_B,POND_UP,s)); };   /* level across the pond, then up out of the bowl */
+const marshR=(x,z)=>z<MARSH_ZC-MARSH_HZ*1.35||z>MARSH_ZC+MARSH_HZ*1.35||!marshOn()?9:Math.hypot((x-x0(MARSH_ZC)+18)/MARSH_HX,(z-MARSH_ZC)/MARSH_HZ);
 /* how far out from the middle of the bowl a spot is: under 0.84 it is open water, 0.84 to 1 is the shore, and beyond that the rim */
 const pondR=(x,z)=>z<POND_ZC-POND_HZ*1.35||z>POND_ZC+POND_HZ*1.35||!pondOn()?9:Math.hypot((x-trailX(POND_ZC))/POND_HX,(z-POND_ZC)/POND_HZ);
 /* the rock stair into the alpine garden is a real climb: the trail gains this much height through the gateway (evenly, so the girls walk up it
@@ -689,7 +696,7 @@ const CHASM_A=348, CHASM_B=355.5, CHASM_Z=(CHASM_A+CHASM_B)/2, CHASM_DEEP=13;
 const chasmOn=()=>!!picks[1]&&legKey(1)==='alpine';
 const chasmK=z=>z<=CHASM_A||z>=CHASM_B||!chasmOn()?0:smooth(CHASM_A,CHASM_A+1.5,z)*(1-smooth(CHASM_B-1.5,CHASM_B,z));
 /* (the ground the girls stand on keeps a strip at the height of the trail, where the bridge is; the ground that is drawn falls away under that too) */
-const drawnY=(x,z)=>{ const k=chasmK(z), pr=pondR(x,z); return groundY(x,z)-(k>0?CHASM_DEEP*k*(1-smooth(1.25,1.9,Math.abs(x-trailX(z)))):0)-(pr<0.9?1.5*(1-smooth(0.78,0.9,pr)):0); };   /* (and the bed of the pond lies well under what the girls walk on) */
+const drawnY=(x,z)=>{ const k=chasmK(z), pr=pondR(x,z); return groundY(x,z)-(k>0?CHASM_DEEP*k*(1-smooth(1.25,1.9,Math.abs(x-trailX(z)))):0)-(pr<0.9?1.5*(1-smooth(0.78,0.9,pr)):0)-(marshR(x,z)<0.9?1.3*(1-smooth(0.78,0.9,marshR(x,z))):0); };   /* (and the bed of the pond lies well under what the girls walk on) */
 function groundY(x,z){
   paths(z); const ty=trailY(z);
   if(x>pL&&x<pR) return ty+0.3*clamp(Math.min(x-pL,pR-x)-FLAT,0,2)+ridge(x,z);   /* the wedge between the two paths: a low, flat-topped mound */
@@ -699,7 +706,8 @@ function groundY(x,z){
   const bumps=(Math.sin(x*0.13+z*0.11)*Math.sin(z*0.07-x*0.05)*1.3+Math.sin(x*0.31-z*0.23)*0.35)*smooth(FLAT,10,a);
   let y=ty+(lerp(open,walls,g)+bumps)*landK(z);
   { const wk=wallK(z); if(wk>0) y+=wk*5.4*smooth(2.4,6.5,a)*(1-0.45*smooth(14,30,a))*(0.55+0.45*Math.min(1,landK(z))); }   /* the banks of a gully or a canyon */
-  { const pr=pondR(x,z); if(pr<1.3){ const Yp=trailY0(POND_A), lip=Math.max(y,Yp+0.75*smooth(2.2,5,a));   /* the pond's bowl: a rim all round (the hillside itself, where that is higher), and inside it everything at the level of the boardwalk */
+  { const mr=marshR(x,z); if(mr<1.3){ const Yp=lerp(ty,trailY0(MARSH_A),smooth(2.3,4.5,a)), lip=Math.max(y,Yp+0.75*smooth(2.2,5,a)); y=lerp(lip,y,smooth(1.0,1.3,mr)); y=lerp(Yp,y,smooth(0.84,0.98,mr)); } }   /* the marsh's bowl */
+  { const pr=pondR(x,z); if(pr<1.3){ const Yp=lerp(ty,trailY0(POND_A),smooth(2.3,4.5,a)), lip=Math.max(y,Yp+0.75*smooth(2.2,5,a));   /* the pond's bowl: a rim all round (the hillside itself, where that is higher), and inside it everything at the level of the boardwalk */
       y=lerp(lip,y,smooth(1.0,1.3,pr)); y=lerp(Yp,y,smooth(0.84,0.98,pr)); } }
   { const ik=iceK(x,z); if(ik>0) y=lerp(y,trailY(ICE_Z)-0.62,ik); }
   { const ck=chasmK(z); if(ck>0) y-=CHASM_DEEP*ck*smooth(1.25,1.9,a); }
@@ -715,7 +723,7 @@ function groundY(x,z){
 /* Things lying on the trail: a boulder on one half of the path, which the girls walk around, or a fallen log right across it, which they hop over. */
 const OB_FROM=68, OB_STEP=13;
 function obstacle(k){ if(k<0) return null; const s=OB_FROM+k*OB_STEP+hash(k,3,91)*6;
-  if(Math.abs(s-REST_C)<12||s>FORK-4&&s<GATE_B+8||Math.abs(s-SITES[1].rest)<12||Math.abs(s-SITES[2].rest)<12||s>TOP_A-10||chasmOn()&&Math.abs(s-CHASM_Z)<11||pondOn()&&s>POND_A-3&&s<POND_UP+2) return null;   /* (nothing lies about on the bridge of rock, or on the boardwalks of the pond) */
+  if(Math.abs(s-REST_C)<12||s>FORK-4&&s<GATE_B+8||Math.abs(s-SITES[1].rest)<12||Math.abs(s-SITES[2].rest)<12||s>TOP_A-10||chasmOn()&&Math.abs(s-CHASM_Z)<11||pondOn()&&s>POND_A-3&&s<POND_UP+2||marshOn()&&s>MARSH_A-3&&s<MARSH_UP+2) return null;   /* (nothing lies about on the bridge of rock, or on the boardwalks of the pond) */
   for(let i=1;i<3;i++) if(s>GA[i]-6&&s<GB[i]+8) return null;
   if(s>MTN-6||s>SITES[2].b&&Math.abs(s-VILLAGE_Z)<17) return null;   /* and nothing lies across the path along the ridge, or through a village */
   return {s,side:hash(k,5,92)<0.5?-1:1,log:hash(k,7,93)<0.45}; }
@@ -969,9 +977,13 @@ const BIO={
     gate:{kind:'tunnel',cols:['#3f7a4a','#35703f','#4a8552'],label:'Through the hedge',say:'through a gap in that hedge',sub:'A gap in a tall green hedge. Something golden is on the other side.',narr:'They chose the gap in the hedge, because there was sunshine leaking through it.',enter:[[0,'Squeeze through, Pip.'],[1,'It\'s all prickly!']]}},
   marsh:{floor:[0.36,0.5,0.34],dirt:[0.66,0.52,0.36],flat:0.12,keep:0.3,mote:'#e8f6c8',air:'midges',
     tree(T){ const th=3+T.h*4; put(T.tp,T.x,T.y,T.z,0.2,th,0.2,T.ry,GREYS[1]); if(T.n(22)<0.5) put(T.tp,T.x+0.3,T.y+th*0.55,T.z,0.07,1.4,0.07,0,GREYS[1]); },                              /* an old drowned trunk */
-    props(R){ for(let j=0;j<5;j++){ const p=R.at(1.7+R.n(30+j)*8,40+j), hh=1.5+R.n(50+j)*0.9; put(P.trunkF,p.x,p.y,p.z,0.045,hh,0.045,0,TAN); put(P.bush,p.x,p.y+hh,p.z,0.07,0.2,0.07,0,BARKS[0]); }   /* reeds and cattails */
-      if(R.n(70)<0.5){ const p=R.at(3.4+R.n(71)*9,72); put(P.bush,p.x,p.y+0.03,p.z,2.2+R.n(73),0.035,1.5+R.n(74),R.n(75)*3,WATERC); put(P.bush,p.x+0.5,p.y+0.07,p.z,0.4,0.02,0.4,0,GREENS[1]); }      /* a still pool with a lily pad */
-      if(R.side<0) for(let k=0;k<4;k++){ const z=R.z0+k*0.75, x=trailX(z); put(P.log,x,trailY(z)+0.04,z,2.8,0.14,1.25,(R.n(90+k)-0.5)*0.08,WOOD); } },                                              /* the boardwalk, plank by plank */
+    props(R){ const wy=trailY0(MARSH_A)-0.22;
+      /* reeds, reeds, reeds: in clumps right up to the boardwalk and in beds as far as can be seen, with cattails standing among them */
+      for(let c=0;c<7;c++){ const d=c<3?1.45+R.n(30+c)*2.6:4+Math.pow(R.n(30+c),1.3)*70, p=R.at(d,40+c); if(p.y<-800||marshR(p.x,p.z)>0.9) continue; const n=c<3?7:5+Math.floor(d*0.12), sp=0.5+d*0.02;
+        for(let k=0;k<n;k++){ const id=200+c*30+k, x=p.x+(R.n(id)-0.5)*sp*2, z=p.z+(R.n(id+300)-0.5)*sp*2; if(Math.abs(x-trailX(z))<1.35) continue; const hh=(1.5+R.n(id+600)*1.5)*(1+d*0.012), w=0.05+d*0.0014;
+          put(P.coneF,x,wy-0.15,z,w,hh,w,0,k%4?REEDS[Math.floor(R.n(id+900)*4)]:TAN,(R.n(id+1200)-0.5)*0.28,(R.n(id+1500)-0.5)*0.28);
+          if(k%4===0&&d<30) put(P.bush,x,wy+hh*0.8,z,0.055,0.19,0.055,0,BARKS[0]); } }
+      for(let j=0;j<2;j++){ if(R.n(70+j)>0.55) continue; const p=R.at(1.7+R.n(72+j)*12,74+j); if(p.y<-800||marshR(p.x,p.z)>0.86||Math.abs(p.x-trailX(p.z))<1.5) continue; put(P.bush,p.x,wy+0.02,p.z,0.5+R.n(76+j)*0.3,0.02,0.5+R.n(76+j)*0.3,0,GREENS[j?1:2]); } },   /* lily pads on the dark water */
     lines:[['Clonk, clonk, clonk.','The boardwalk is talking back.'],'Something went plop!',['Is that a log or a turtle?','A turtle. Logs don\'t blink.'],['It smells like a pond.','It IS a pond. A very long one.']],
     narr:['The boardwalk went clonk under their feet, and the frogs went quiet to listen.','Mist sat on the water like a blanket nobody had folded.'],
     reveal:{t:'The marsh',b:'A boardwalk over still water, with reeds on every side.',narr:'Beyond the reeds the trail turned into planks, and the ground turned into water.',lines:[[1,'The trail is made of wood now!'],[0,'It\'s a boardwalk. The ground is too wet to walk on.'],[1,'Frogs! I hear a hundred frogs!']]},
@@ -1257,7 +1269,7 @@ const spots={tree:[],gold:[],pine:[],rock:[],mush:[],flower:[],aspen:[],quake:[]
 /* One tree. What kind it is depends on where it stands: home woods, gully, aspen grove or autumn woods. */
 const densAt=z=>0.3+0.7*smooth(-0.5,0.4,Math.sin(z*0.083+1.3)+0.6*Math.sin(z*0.031));
 function plantTree(r,id,x,z,first,s0,fact,ring){
-  if(wet(x,z)||iceK(x,z)>0||pondR(x,z)<1.05&&pondDeckAt(x,z)||!ring&&restDist(x,z)<12.4||homeDist(x,z)<8.5||inVillage(x,z)) return;
+  if(wet(x,z)||iceK(x,z)>0||pondR(x,z)<1.05&&pondDeckAt(x,z)||marshR(x,z)<1.05&&Math.abs(x-trailX(z))<2.6||!ring&&restDist(x,z)<12.4||homeDist(x,z)<8.5||inVillage(x,z)) return;
   if(!ring&&z>GATE_B+20&&hash(r,id,17)>densAt(z)) return;   /* thick groves and open glades take turns along the trail */
   { const nk=hash(r,id,12)<newK(z)||mtnShut&&z>MTN?bioKeyAt(z):prevKeyAt(z), NB=BIO[nk];   /* (once the mist has closed behind them on the mountain trail, none of the last place's trees are left standing on it) */   /* further up the mountain, each place draws its own kind of tree (see BIO) */
     if(NB&&NB.tree){ if(!ring&&NB.keep!==undefined&&hash(r,id,16)>NB.keep) return;
@@ -1446,6 +1458,18 @@ function drawPondDecks(){ const Y=trailY0(POND_A)+0.05, H=(i,j)=>hash(i,j,417), 
   { const zs=[GA[2]+3.5,GA[2]+8.5]; for(let z=GB[2]+7,i=0;z<POND_B-2;z+=8.5+H(16,i)*3,i++) zs.push(z);
     zs.forEach((z,i)=>{ const sd=i%2?1:-1, x=trailX(z)+sd*(POND_WALK+0.02); put(P.trunkF,x,Y-0.5,z,0.05,2.2,0.05,0,PLANKS[2]); put(P.trunkF,x-sd*0.16,Y+1.66,z,0.03,0.05,0.2,0,PLANKS[2],0,sd*1.57); put(P.glow,x-sd*0.3,Y+1.52,z,i<2?3.4:2.8,i<2?3.8:3.2,i<2?3.4:2.8,0,i<2?LAMP_WARM:pk(GLOWS,H(17,i))); }); }   /* (the two under the willows burn yellow) */
   L.lamps.forEach(([l,z,sd],i)=>{ const x=trailX(z)+l; put(P.trunkF,x,Y-0.4,z+0.62,0.045,1.9,0.045,0,PLANKS[2]); put(P.glow,x,Y+1.6,z+0.62,2.6,2.6,2.6,0,pk(GLOWS,H(15,i))); }); }
+const REEDS=[C('#6f8f4a'),C('#86a05a'),C('#5d7c44'),C('#9aa862')];
+/* The marsh's boardwalk: narrow, old, and never straight for long. Laid plank by plank along the winding trail, each plank square across
+   it; and every so often a post with a lantern on it, now on one side and now on the other. */
+const marshLamps=[];
+function drawMarshWalk(){ const H=(i,j)=>hash(i,j,523), W=2.1; marshLamps.length=0; let i=0, nextLamp=MARSH_A+4;
+  for(let z=MARSH_A-2.4;z<MARSH_UP+1.2;i++){ const sl=(trailX(z+0.2)-trailX(z-0.2))/0.4, hy=Math.hypot(1,sl), yaw=Math.atan(sl), x=trailX(z), y=trailY(z)+0.05;
+    put(P.log,x+(H(1,i)-0.5)*0.07,y,z,W+H(2,i)*0.2,0.13,0.8,yaw+(H(3,i)-0.5)*0.09,PLANKS[Math.floor(H(4,i)*4)%4],-Math.atan(trailY(z+0.5)-trailY(z-0.5)));
+    if(i%4===0) for(const sd of [-1,1]) put(P.trunkF,x+sd*(W/2-0.06)/hy,y-1.6,z-sd*(W/2-0.06)*sl/hy,0.07,1.65,0.07,0,PLANKS[2]);
+    if(z>=nextLamp&&z<MARSH_B){ nextLamp=z+9+H(5,i)*8; const sd=H(6,i)<0.5?-1:1, lx=x+sd*(W/2+0.12)/hy, lz=z-sd*(W/2+0.12)*sl/hy;   /* a lantern post, leaning a little */
+      put(P.trunkF,lx,y-1.2,lz,0.06,3.25,0.06,0,PLANKS[2],(H(7,i)-0.5)*0.12,(H(8,i)-0.5)*0.12); put(P.box,lx-sd*0.22/hy,y+1.98,lz,0.5,0.05,0.05,yaw,PLANKS[2]); put(P.box,lx-sd*0.42/hy,y+1.7,lz,0.2,0.3,0.2,yaw,BARKS[0]);
+      put(P.glow,lx-sd*0.42/hy,y+1.7,lz,2.3,2.9,2.3,0,LAMP_WARM); marshLamps.push({x:lx-sd*0.42/hy,y:y+1.7,z:lz}); }
+    z+=0.74/hy; } }
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
   POOLS.forEach(p=>p.n=0); for(const k in spots) spots[k].length=0;
@@ -1559,6 +1583,7 @@ function rebuildForest(s0){
     /* The rest site, furnished from REST_KIT: a ring of big trees with gaps where the trail comes in and the two paths go out,
        and the same boulders, logs, mushrooms, ferns and flowers, in the same places, as the rest scene the girls will sit down in. */
     if(pondOn()&&POND_A>=z0&&POND_A<z0+3) drawPondDecks();
+    if(marshOn()&&MARSH_A>=z0&&MARSH_A<z0+3) drawMarshWalk();
     if(chasmOn()&&CHASM_Z>=z0&&CHASM_Z<z0+3){ const H=(i,j)=>hash(i,j,311), tone=h=>GREYS[Math.floor(h*GREYS.length)%GREYS.length];
       /* the bridge: a span of old rock, thin in the middle and thick where it springs from each wall, with flat slabs worn smooth along the top */
       for(let i=0;i<=10;i++){ const u=i/10*2-1, z=lerp(CHASM_A-0.9,CHASM_B+0.9,i/10), x=trailX(z), ty=trailY(z), D=0.9+5.2*Math.pow(Math.abs(u),2.6);
@@ -2325,6 +2350,7 @@ function finishBrain(b,pose,walking,dt){
   /* nor through the fence along the sky garden's boardwalk */
   if(landY===groundY&&skyOpen&&b.pos.y>SKY_B+1&&b.pos.y<SKY_B+36){ const fx=trailX(b.pos.y)-1.36+0.34; if(b.pos.x<fx) b.pos.x=fx;
     [b.cur].concat(b.queue).forEach(st=>{ if(st&&st.k==='walk'&&st.to[0]<fx+0.08) st.to[0]=fx+0.08; }); }   /* and anywhere she means to walk to that lies beyond it is brought back to this side, so she never stands marching at the rail */
+  if(landY===groundY&&marshOn()&&b.pos.y>MARSH_A&&b.pos.y<MARSH_B){ const cx=trailX(b.pos.y); b.pos.x=clamp(b.pos.x,cx-0.78,cx+0.78); }   /* in the marsh, keep to the boardwalk */
   /* on the pond, keep to the planking */
   if(landY===groundY&&pondOn()&&pondR(b.pos.x,b.pos.y)<0.95){ b.pos.x=pondKeepX(b.pos.x,b.pos.y); [b.cur].concat(b.queue).forEach(st=>{ if(st&&st.k==='walk') st.to[0]=pondKeepX(st.to[0],st.to[1]); }); }
   /* and on the bridge of rock over the chasm, keep to the middle */
@@ -2372,7 +2398,7 @@ const Music=(()=>{
     giant:{bell:0.4,wood:1,harp:0.55},                /* bouncy and wooden */
     pond:{bell:0.3,harp:1,glass:0.7},             /* watery harp */
     crystal:{bell:0.5,glass:1,drone:0.5},            /* all chimes */
-    mtn:{bell:0.2,glass:0.4,choir:0.3,drone:0.8,flute:0.2,myst:1,ether:1},   /* ethereal and mysterious */
+    mtn:{bell:0.25,glass:0.45,choir:0.32,drone:0.9,flute:0.25,myst:1,ether:1},   /* ethereal and mysterious */
     sky:{bell:0.35,harp:1,choir:0.55,strings:0.35,men:1,cello:1,sky:1},               /* harps and a full choir */
     cave:{bell:0.15,glass:0.3,drone:0.8,myst:1}};
   const LAYERS=['bell','harp','choir','flute','glass','wood','strings','drone','men','cello','viola','ether','myst','sky'], mix={}, tgt={}; LAYERS.forEach(l=>{ mix[l]=tgt[l]=l==='bell'?1:0; });
@@ -2488,15 +2514,11 @@ const Music=(()=>{
     const vib=ctx.createOscillator(), vg=ctx.createGain(); vib.frequency.value=4.1; vg.gain.value=7; vib.connect(vg); vib.start(t); vib.stop(end);
     vs.forEach((m,i)=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=mtof(m); o.detune.value=i%2?7:-7; vg.connect(o.detune); o.connect(src); o.start(t+i*0.15); o.stop(end); });
     F.forEach((fq,j)=>{ const bp=ctx.createBiquadFilter(), bg=ctx.createGain(); bp.type='bandpass'; bp.frequency.value=fq; bp.Q.value=4.5; bg.gain.value=G[j]*2.6; src.connect(bp); bp.connect(bg); bg.connect(g); }); }
-  /* the ether: a wide, glassy synth. Each note of the chord is a pair of saws a few cents apart behind a filter that opens and closes very
-     slowly, drifting from ear to ear; over it a fifth and an octave ring on in pure tones; and a slow shimmer runs up and down the chord far above */
-  function ether(c,t,dur,amp){ const end=t+dur+4.5, out=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=5; lp.frequency.setValueAtTime(500,t); lp.frequency.linearRampToValueAtTime(2300,t+dur*0.55); lp.frequency.linearRampToValueAtTime(600,end);
-    env(out,t,3.2,0.021*amp,Math.max(0.1,dur-3),4.2); lp.connect(out); let dst=out; if(ctx.createStereoPanner){ const pn=ctx.createStereoPanner(), lfo=ctx.createOscillator(), lg=ctx.createGain(); lfo.frequency.value=0.07; lg.gain.value=0.7; lfo.connect(lg); lg.connect(pn.pan); lfo.start(t); lfo.stop(end); out.connect(pn); dst=pn; }
-    dst.connect(master); dst.connect(reverb);
-    c.notes.slice(0,3).forEach((m,i)=>{ for(const det of [-9,8]){ const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=mtof(m+12); o.detune.value=det+i*2; o.connect(lp); o.start(t+i*0.4); o.stop(end); } });
-    [[c.bass+31,0.5],[c.bass+36,0.35]].forEach(([m,a],i)=>{ const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.value=mtof(m); env(g,t+1+i,2.5,0.016*amp*a,Math.max(0.1,dur-4),4); o.connect(g); g.connect(master); g.connect(reverb); o.start(t); o.stop(end); });
-    const up=c.notes.map(n=>n+24).concat(c.notes.map(n=>n+36)).filter(m=>m<=98); for(let i=0;i<10;i++){ const m=up[(i*3)%up.length], at=t+0.6+i*dur/10.5, o=ctx.createOscillator(), g=ctx.createGain(); o.type='triangle'; o.frequency.value=mtof(m);
-      g.gain.setValueAtTime(0.0001,at); g.gain.linearRampToValueAtTime(0.0075*amp,at+0.25); g.gain.exponentialRampToValueAtTime(0.0001,at+2.6); panned(g).connect(reverb); o.connect(g); o.start(at); o.stop(at+2.7); } }
+  /* the ether: barely there. Pure tones only, two to a note and a hair apart so that they beat slowly against each other, swelling in over
+     several seconds and out again, an octave above the chord, with a breath of the fifth over it. No edge, no sweep; it sits under everything else. */
+  function ether(c,t,dur,amp){ const end=t+dur+5, out=ctx.createGain(), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1500; lp.Q.value=0.5; env(out,t,4.5,0.0075*amp,Math.max(0.1,dur-5),5); out.connect(lp); lp.connect(master); lp.connect(reverb);
+    c.notes.slice(0,3).forEach((m,i)=>{ for(const det of [-4,4]){ const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.value=mtof(m+12); o.detune.value=det; g.gain.value=i?0.7:1; o.connect(g); g.connect(out); o.start(t); o.stop(end); } });
+    { const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.value=mtof(c.bass+31); g.gain.value=0.3; o.connect(g); g.connect(out); o.start(t); o.stop(end); } }
   /* a soft drum far below, for when the choir is at its fullest */
   function drum(t,v){ const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.setValueAtTime(72,t); o.frequency.exponentialRampToValueAtTime(44,t+0.5);
     g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+1.5); o.connect(g); g.connect(master); g.connect(reverb); o.start(t); o.stop(t+1.6); }
@@ -4537,7 +4559,7 @@ const AMB={home:['warble','warble','feebee','trill','cricket','cricket','bee','r
 const AMB2={
   winter:{bed:0.15,wind:1.6,every:[1.8,3.2],k:['windlow','windlow','creak','creak','feebee','drip','thump','tap','windhigh']},
   grass:{bed:1,wind:1.2,every:[1,2.1],k:['rustle','rustle','rustle','cricket','cricket','bee','warble','trill','windlow']},
-  marsh:{bed:0.25,wind:0.5,water:0.3,every:[1.1,2.3],k:['croak','croak','peeper','peeper','splash','plonk','quack','midge','drip','reeds','reeds','tap']},
+  marsh:{bed:0.3,wind:0.5,water:0.3,every:[0.6,1.5],k:['croak','croak','croak','peeper','peeper','peeper','midge','midge','buzz','buzz','splash','plonk','quack','drip','reeds','reeds']},
   alpine:{bed:0,wind:4.2,every:[1.1,2.2],k:['windhigh','windhigh','windlow','windlow','whoosh','whoosh','windhigh','thunk','feebee','whistle','hawk']},
   glow:{bed:0.3,wind:0.4,every:[1.2,2.5],k:['cricket','cricket','cricket','peeper','twinkle','twinkle','hootfar','flutter','drip','rustle']},
   giant:{bed:0.6,wind:0.6,every:[1.1,2.3],k:['cricket','cricket','bee','bee','buzz','buzz','plonk','rustle','creak','warble']},
@@ -4850,7 +4872,7 @@ const MOTE_HOME=C('#fff2b8'), MOTE_ASPEN=C('#ffe07a'), MOTE_AUTUMN=C('#f59a3c');
 Object.assign(SKIES,{
   winter: {top:C('#8fa9c4'),mid:C('#e6edf3'),bot:C('#d5dee8'),hemi:C('#f2f6ff'),sun:C('#fff6ea'),air:0.016, glow:0.86,shine:0.7},    /* a pale, snow-laden sky */
   grass:  {top:C('#2f86e6'),mid:C('#f1e6c0'),bot:C('#e6cf86'),hemi:C('#fff8e0'),sun:C('#fff4d6'),air:0.006, glow:0.6,shine:0.8},      /* wide open and bright */
-  marsh:  {top:C('#8fb4b0'),mid:C('#dfe6cf'),bot:C('#a9bb95'),hemi:C('#eef2dc'),sun:C('#fff2d0'),air:0.02,  glow:0.72,shine:0.6},    /* soft, grey-green and misty */
+  marsh:  {top:C('#4f6866'),mid:C('#93a590'),bot:C('#66775e'),hemi:C('#b8c6aa'),sun:C('#e6d9b4'),air:0.036, glow:0.5,shine:0.3},    /* soft, grey-green and misty */
   alpine: {top:C('#1a58c0'),mid:C('#cfe0f0'),bot:C('#a9b6c2'),hemi:C('#f4f8ff'),sun:C('#ffffff'),air:0.0055,glow:0.7,shine:0.86},      /* thin, clear mountain air */
   mtn:    {top:C('#2a66c8'),mid:C('#d6e4ee'),bot:C('#b0b8bc'),hemi:C('#f6f8ff'),sun:C('#fffaf0'),air:0.007, glow:0.7,shine:0.86},
   glow:   {top:C('#02040c'),mid:C('#050915'),bot:C('#040711'),hemi:C('#5f7fd0'),sun:C('#9fb6ff'),air:0.02,  glow:0.17,shine:0.1},     /* deep night: almost all the light comes from the things that glow */
@@ -5059,7 +5081,7 @@ function updatePondFish(dt){ const F=pondFish, wy=trailY0(POND_A)-0.2, on=!!stat
     const y=j.from.y+4*j.h*u*(1-u), vy=4*j.h*(1-2*u), hx=j.to.x-j.from.x, hz=j.to.z-j.from.z, hl=Math.hypot(hx,hz);
     j.g.visible=true; j.g.position.set(lerp(j.from.x,j.to.x,u),y,lerp(j.from.z,j.to.z,u)); j.g.rotation.set(-Math.atan2(vy,hl/j.dur*1),Math.atan2(hx,hz),0,'YXZ'); j.tail.rotation.y=0.6*Math.sin(j.t*26);
     if(!j.out&&u>0.5&&y<wy+0.05){ j.out=true; pondSplash(j.g.position.x,wy,j.g.position.z); } });
-  F.spl.forEach(S=>{ if(S.t<0) return; S.t+=dt; const u=S.t/1.1; if(u>=1||!on){ S.t=-1; S.ring.visible=false; S.drops.forEach(o=>o.d.visible=false); return; }
+  F.spl.forEach(S=>{ if(S.t<0) return; S.t+=dt; const u=S.t/1.1; if(u>=1||mode!=='trail'){ S.t=-1; S.ring.visible=false; S.drops.forEach(o=>o.d.visible=false); return; }
     S.ring.visible=true; S.ring.position.set(S.x,S.y+0.02,S.z); S.ring.scale.setScalar(0.25+1.5*u); S.ring.material.opacity=0.8*(1-u);
     S.drops.forEach(o=>{ o.vy-=7.5*dt; const p=o.d.position; p.x+=o.vx*dt; p.y+=o.vy*dt; p.z+=o.vz*dt; o.d.visible=p.y>S.y-0.05; }); }); }
 /* The boulder in the mist is taller than June. The girls stop in front of it, look it over, and then go up it the way they will go up the
@@ -5084,6 +5106,44 @@ function updateHoist(dt){ const H=hoist, J=juneB, Pp=pipB, bx=trailX(BOULDER_S),
   if(jo) june.g.position.set(jo[0],jo[1],jo[2]); if(po) pip.g.position.set(po[0],po[1],po[2]);
   if(t>10){ H.on=0; H.done=true; J.pos.set(bx-0.3,BOULDER_S+1.9); Pp.pos.set(bx+0.4,BOULDER_S+1.6); J.cur=Pp.cur=null; J.queue.length=Pp.queue.length=0; party.s=BOULDER_S+2.6; party.rest=0.01; hushBubbles();
     playScript([[1,'We did it! We\'re rock climbers!'],[0,'Best team on the mountain. Come on.']]); speakIn=12; narrate('One sister is not tall enough for a boulder like that. Two sisters are.'); } }
+/* The marsh itself: dark water with duckweed on it; mist lying low over everything; the three nearest lanterns really lighting the planks;
+   frogs sitting on the edge of the boardwalk and on the lily pads, who jump in with a plop when the girls come too near; and clouds of
+   little flying things, thickest round the lanterns. */
+const marsh=(()=>{ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'); g.fillStyle='#2f3b30'; g.fillRect(0,0,256,256); let sd=9; const R=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  for(let i=0;i<60;i++){ const x=R()*256, y=R()*256, r=6+R()*22; for(const ox of [-256,0,256]) for(const oy of [-256,0,256]){ const q=g.createRadialGradient(x+ox,y+oy,0,x+ox,y+oy,r); q.addColorStop(0,i%3?'rgba(96,122,62,0.55)':'rgba(20,28,26,0.6)'); q.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=q; g.fillRect(x+ox-r,y+oy-r,r*2,r*2); } }
+  for(let i=0;i<500;i++){ g.fillStyle=i%2?'rgba(140,168,84,0.7)':'rgba(110,140,70,0.7)'; g.fillRect(R()*256,R()*256,1.6,1.6); }
+  const tex=new THREE.CanvasTexture(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(14,6);
+  const water=new THREE.Mesh(new THREE.CircleGeometry(1,72),new THREE.MeshLambertMaterial({map:tex,transparent:true,opacity:0.94,depthWrite:false})); water.rotation.x=-Math.PI/2; water.scale.set(MARSH_HX*0.97,MARSH_HZ*0.9,1); water.visible=false; water.renderOrder=1; scene.add(water);
+  const mist=[]; for(let i=0;i<34;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:spriteTex,color:0xdfe8d8,transparent:true,opacity:0,depthWrite:false})); sp.visible=false; sp.renderOrder=2; scene.add(sp); mist.push({sp,z:rnd()*70,lat:(rnd()-0.5)*56,w:8+rnd()*10,h:1.6+rnd()*1.6,ph:rnd()*6,v:0.15+rnd()*0.3}); }
+  const lights=[0,1,2].map(()=>{ const l=new THREE.PointLight(0xffb85a,0,10,1.7); l.visible=false; scene.add(l); return l; });
+  const frogs=[], fg=L('#5c9a3c'), fb=L('#c9d88a'), fe=new THREE.MeshBasicMaterial({color:0x14180c}), fy=L('#e8d24a');
+  for(let i=0;i<9;i++){ const g2=new THREE.Group(), throat=ball(fb,0.05,1,0.8,1,0,0.05,0.07); g2.add(ball(fg,0.09,1.1,0.72,1.25,0,0.07,0),throat,ball(fg,0.035,1,1,1,-0.05,0.14,0.07),ball(fg,0.035,1,1,1,0.05,0.14,0.07),ball(fy,0.022,1,1,1,-0.055,0.15,0.09),ball(fy,0.022,1,1,1,0.055,0.15,0.09),ball(fe,0.012,1,1,1,-0.058,0.152,0.108),ball(fe,0.012,1,1,1,0.058,0.152,0.108),
+      ball(fg,0.045,1.2,0.6,1.7,-0.1,0.035,-0.05),ball(fg,0.045,1.2,0.6,1.7,0.1,0.035,-0.05),ball(fg,0.025,1,0.6,1.6,-0.07,0.02,0.1),ball(fg,0.025,1,0.6,1.6,0.07,0.02,0.1));
+    g2.scale.setScalar(1.25+rnd()*0.5); g2.visible=false; scene.add(g2); frogs.push({g:g2,throat,st:0,t:0,wait:rnd()*3,x:0,y:0,z:0,ry:0,vx:0,vz:0,ph:rnd()*6,pad:i%3===0}); }
+  const BN=260, bp=new Float32Array(BN*3), bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.BufferAttribute(bp,3));
+  const bugs=new THREE.Points(bg,new THREE.PointsMaterial({color:0xe8efc0,size:0.045,transparent:true,opacity:0.85,depthWrite:false})); bugs.frustumCulled=false; bugs.visible=false; scene.add(bugs);
+  const sw=[]; for(let i=0;i<10;i++) sw.push({dz:-6+i*3.4+rnd()*2,lat:(i%2?1:-1)*(1.2+rnd()*5),h:0.9+rnd()*1.4,ph:rnd()*6});
+  const bd=[]; for(let i=0;i<BN;i++) bd.push({s:i%10,a:rnd()*6.283,b:rnd()*6.283,r:0.25+rnd()*0.95,w:1.5+rnd()*3,u:0.8+rnd()*2.4});
+  return {water,mist,lights,frogs,bugs,sw,bd,snd:1,bz:2}; })();
+function updateMarsh(dt){ const M=marsh, Y=trailY0(MARSH_A), wy=Y-0.22, near=!!state.started&&mode==='trail'&&marshOn()&&Math.abs(party.s-MARSH_ZC)<170, on=near&&party.s>MARSH_A-8&&party.s<MARSH_B+6;
+  M.water.visible=near; if(near) M.water.position.set(x0(MARSH_ZC)-18,wy,MARSH_ZC);
+  const mk=on?smooth(MARSH_A-8,MARSH_A+4,party.s)*(1-smooth(MARSH_B-4,MARSH_B+6,party.s)):0;
+  M.mist.forEach(m=>{ m.sp.visible=mk>0.01; if(mk<=0.01) return; const z=party.s-22+((m.z+time*m.v)%70+70)%70, x=trailX(z)+m.lat+Math.sin(time*0.1+m.ph)*2; m.sp.position.set(x,Y+0.35+0.2*Math.sin(time*0.2+m.ph),z); m.sp.scale.set(m.w,m.h,1);
+    m.sp.material.opacity=0.34*mk*smooth(2.5,8,m.sp.position.distanceTo(camera.position))*(0.75+0.25*Math.sin(time*0.27+m.ph)); m.sp.material.color.copy(scene.fog.color).lerp(WHITE,0.35); });
+  { const L3=on?marshLamps.slice().sort((a,b)=>Math.abs(a.z-party.s-2)-Math.abs(b.z-party.s-2)).slice(0,3):[]; M.lights.forEach((l,i)=>{ const p=L3[i]; l.visible=!!p; if(!p) return; l.position.set(p.x,p.y,p.z); l.intensity=1.5+0.12*Math.sin(time*7+i*2)+0.07*Math.sin(time*13+i); }); }
+  /* frogs */
+  M.frogs.forEach((f,i)=>{ if(!on){ f.g.visible=false; f.st=0; return; }
+    if(f.st===0){ f.g.visible=false; f.wait-=dt; if(f.wait>0) return; const z=clamp(party.s+5+Math.random()*13,MARSH_A+2,MARSH_B-2), sl=(trailX(z+0.2)-trailX(z-0.2))/0.4, hy=Math.hypot(1,sl), sd=Math.random()<0.5?-1:1, lat=f.pad?1.9+Math.random()*2.6:0.82;
+      f.x=trailX(z)+sd*lat*(f.pad?1:1/hy); f.z=z-(f.pad?0:sd*lat*sl/hy); f.y=f.pad?wy+0.03:Y+0.12; f.ry=Math.atan2(sd,(Math.random()-0.5)*2); f.sd=sd; f.st=1; f.t=0; f.g.visible=true; f.g.position.set(f.x,f.y,f.z); f.g.rotation.set(0,f.ry,0); return; }
+    f.t+=dt;
+    if(f.st===1){ f.throat.scale.setScalar(1+0.55*Math.max(0,Math.sin(time*5+f.ph))*(Math.sin(time*0.7+f.ph)>0.2?1:0)); const d=Math.min(Math.hypot(f.x-juneB.pos.x,f.z-juneB.pos.y),Math.hypot(f.x-pipB.pos.x,f.z-pipB.pos.y));
+      if(d<2.1||f.z<party.s-5){ if(d<2.1){ f.st=2; f.t=0; const a=Math.atan2(f.sd,(Math.random()-0.5)*1.2); f.vx=Math.sin(a)*2.1; f.vz=Math.cos(a)*2.1; f.ry=a; f.y0=f.y; } else { f.st=0; f.wait=Math.random()*2; } } }
+    else { const T=0.62, u=f.t/T; f.x+=f.vx*dt; f.z+=f.vz*dt; const y=lerp(f.y0,wy-0.15,u)+Math.sin(Math.PI*Math.min(1,u))*0.55; f.g.position.set(f.x,y,f.z); f.g.rotation.set(-0.9+1.8*u,f.ry,0,'YXZ');   /* a leap, and plop */
+      if(u>=1){ pondSplash(f.x,wy,f.z); f.st=0; f.wait=1.5+Math.random()*5; f.g.visible=false; } } });
+  /* little flying things */
+  M.bugs.visible=on; if(on){ const p=M.bugs.geometry.attributes.position; M.sw.forEach((w,i)=>{ const L2=marshLamps.length?marshLamps[(i*3)%marshLamps.length]:null; if(i%2===0&&L2&&Math.abs(L2.z-party.s)<30){ w.cx=L2.x; w.cy=L2.y+0.1; w.cz=L2.z; } else { const z=party.s+((w.dz+40)%34)-6; w.cx=trailX(z)+w.lat+Math.sin(time*0.2+w.ph)*0.8; w.cy=Y+w.h+0.3*Math.sin(time*0.33+w.ph); w.cz=z; } });
+    M.bd.forEach((b,i)=>{ const w=M.sw[b.s], a=b.a+time*b.w, q=b.b+time*b.u; p.setXYZ(i,w.cx+Math.cos(a)*b.r*(0.6+0.4*Math.sin(q)),w.cy+Math.sin(q*1.3)*b.r*0.55,w.cz+Math.sin(a)*b.r*(0.6+0.4*Math.cos(q*0.7))); }); p.needsUpdate=true;
+    M.snd-=dt; if(M.snd<=0){ M.snd=0.9+Math.random()*2.2; Music.amb(Math.random()<0.6?'croak':'peeper'); } M.bz-=dt; if(M.bz<=0){ M.bz=2+Math.random()*3; Music.amb(Math.random()<0.5?'midge':'buzz'); } } }
 function updateIcePond(){ const on=!!state.started&&mode==='trail'&&iceOn()&&Math.abs(party.s-ICE_Z)<130; icePond.visible=on; if(!on) return;
   icePond.position.set(trailX(ICE_Z)+ICE_LAT,trailY(ICE_Z)-0.4,ICE_Z);
   if(!fork.ice&&fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>ICE_Z-7&&party.s<ICE_Z+3&&quiet()&&!EVT.cur){ fork.ice=true; holdEvents(16);
@@ -5280,7 +5340,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateMarsh(dt); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
