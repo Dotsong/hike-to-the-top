@@ -174,6 +174,8 @@ body.is-paused .dad-note{opacity:0}
 .pause:hover{background:#ffd9c0;border-color:var(--paper);transform:scale(1.06)}
 .pause:active{transform:scale(.94)}
 .pause svg{width:26px;height:26px;display:block}
+.book-btn{top:calc(86px + env(safe-area-inset-top, 0px));background:#bfe3c0} .book-btn:hover{background:#d6f0d2} .book-btn svg{width:36px;height:36px}
+.book-n{position:absolute;right:-6px;bottom:-6px;min-width:1.5rem;padding:.15rem .3rem;border-radius:99px;background:var(--paper);color:#2a1a33;font:700 .72rem/1.1 var(--ui);box-shadow:0 2px 6px rgba(10,8,30,.35)}
 .pause .i-play{display:none} .pause.on .i-play{display:block} .pause.on .i-pause{display:none}
 .pause.on{animation:breathe 2.4s ease-in-out infinite}
 @keyframes breathe{50%{box-shadow:0 8px 24px rgba(10,8,30,.45),0 0 0 10px rgba(255,201,168,.18), inset 0 -5px 0 rgba(90,40,40,.12)}}
@@ -430,8 +432,7 @@ body.is-paused .dad-note{opacity:0}
 <div class="controls hud-off" id="controls">
   <button id="stopBtn" type="button" hidden>Stop here for today</button>
   <button id="paceBtn" type="button" aria-label="Pace: normal speed. Tap to go faster.">Pace ×1</button>
-  <button id="zoneBtn" type="button">Testing</button>
-  <button id="bookBtn" type="button">Fact book</button>
+  <button id="zoneBtn" type="button" hidden>Testing</button>
   <button id="setBtn" type="button">Settings</button>
 </div>
 
@@ -526,6 +527,10 @@ body.is-paused .dad-note{opacity:0}
 <button class="pause" id="pauseBtn" type="button" aria-label="Pause the hike" aria-pressed="false" hidden>
   <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4" width="4.6" height="16" rx="2" fill="currentColor"/><rect x="13.9" y="4" width="4.6" height="16" rx="2" fill="currentColor"/></svg>
   <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4.8v14.4a1.2 1.2 0 0 0 1.8 1l11-7.2a1.2 1.2 0 0 0 0-2l-11-7.2A1.2 1.2 0 0 0 8 4.8z" fill="currentColor"/></svg>
+</button>
+<button class="pause book-btn" id="bookBtn" type="button" aria-label="Open the fact book" hidden>
+  <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 9.5C13 7 8.5 6.6 4.5 7.6v16c4-1 8.500-.6 11.500 1.900 3-2.500 7.500-2.900 11.500-1.900v-16c-4-1-8.500-.6-11.500 1.900z" fill="#fffaf0" stroke="#2a1a33" stroke-width="1.8" stroke-linejoin="round"/><path d="M16 9.500v16" stroke="#2a1a33" stroke-width="1.800" stroke-linecap="round"/><g stroke="#8b7aa8" stroke-width="1.300" stroke-linecap="round" fill="none"><path d="M7.500 12c2-.4 4-.2 5.500.700M7.500 15.500c2-.4 4-.2 5.500.700M7.500 19c2-.4 4-.2 5.500.700"/><path d="M19 12.700c1.500-.9 3.500-1.100 5.500-.7M19 16.200c1.500-.9 3.500-1.100 5.500-.7"/></g><path d="M21.500 4.500v8l1.900-1.500 1.900 1.500v-8z" fill="#e2574c" stroke="#2a1a33" stroke-width="1.200" stroke-linejoin="round"/></svg>
+  <span class="book-n" id="bookN">0</span>
 </button>
 <div class="paused-banner" id="pausedBanner" role="status"><b>Paused</b><span id="pausedTip">Tap a little book to learn something!</span></div>
 
@@ -2978,7 +2983,7 @@ function startHike(quiet){
   if(state.started) return;
   resetHike();   /* the leaves are shut, so nobody sees the walk go back to the trailhead */
   recall();      /* what the girls know from earlier hikes */
-  state.started=true; idle=0; $('pauseBtn').hidden=false; Music.start(); Music.unlock(); keepAwake();
+  state.started=true; idle=0; $('pauseBtn').hidden=$('bookBtn').hidden=false; Music.start(); Music.unlock(); keepAwake();
   const intro=$('intro'); intro.classList.add('gone'); setTimeout(()=>{ if(state.started) intro.hidden=true; },1000);
   openDoors();
   ['alt','controls'].forEach(id=>$(id).classList.remove('hud-off'));
@@ -2997,7 +3002,7 @@ const MARK_KEY='trail-to-the-top-bookmark';
 function loadMark(){ try{ const j=JSON.parse(localStorage.getItem(MARK_KEY)||'null'); if(j&&[0,1,2].includes(j.site)&&Array.isArray(j.picks)&&j.picks.length===3&&j.picks.every(v=>v===0||v===1||v===-1)&&(j.site<1||j.picks[0])&&(j.site<2||j.picks[1])) return j; }catch(e){} return null; }
 function markName(b){ if(b.bench) return 'the stone bench below the mist'; if(b.site===0) return 'the first rest site'; if(b.site===1) return 'the rest site after the '+(b.picks[0]>0?'autumn woods':'aspen grove');
   const k=b.picks[0]>0?(b.picks[1]>0?'winter':'grass'):(b.picks[1]>0?'marsh':'alpine'); return 'the rest site after '+BIO[k].reveal.t.replace(/^The /,'the '); }
-function syncResume(){ $('wormInfo').hidden=!(saved.top||saved.secret);   /* once the top has been reached, the title card explains the worms */
+function syncResume(){ $('wormInfo').hidden=true;   /* once the top has been reached, the title card explains the worms */
   const b=loadMark(), el=$('resumeBtn'); el.hidden=!b; if(b) el.textContent='Carry on from '+markName(b); }
 function stopForToday(){ if(mode!=='rest'||!rest||rest.leaving||!state.started) return;
   const b={site:fork.site,picks:[picks[0],fork.site>0?picks[1]:0,0]}; let ok=true; try{ localStorage.setItem(MARK_KEY,JSON.stringify(b)); }catch(e){ ok=false; }
@@ -3012,7 +3017,7 @@ $('stopBtn').addEventListener('click',stopForToday); $('resumeBtn').addEventList
 function backToStart(){
   if(bookOpen) closeBook(); $('zoneScrim').hidden=true; $('endDock').hidden=true; autoPaused=false; setPaused(false);
   restToken++; $('fade').classList.remove('on'); hushNarrator();
-  state.started=false; hushBubbles(); capEl.classList.remove('show'); $('pauseBtn').hidden=true;
+  state.started=false; hushBubbles(); capEl.classList.remove('show'); $('pauseBtn').hidden=$('bookBtn').hidden=true;
   ['alt','controls'].forEach(id=>$(id).classList.add('hud-off'));
   party.vT=0; party.rest=0; hideFork(); BRAINS.forEach(b=>{ b.queue.length=0; b.cur=null; b.skip=0; });
   closeDoors();
@@ -5064,7 +5069,7 @@ const BOOK_ICON='<svg class="bi" viewBox="0 0 24 24" aria-hidden="true"><path d=
 let paused=false, autoPaused=false, bookOpen=false, bookKey=null;
 let found=[]; try{ found=JSON.parse(localStorage.getItem('trailtop-facts')||'[]').filter(k=>FACTS[k]); }catch(e){ found=[]; }
 function saveFound(){ try{ localStorage.setItem('trailtop-facts',JSON.stringify(found)); }catch(e){} }
-function updateBookBtn(){ $('bookBtn').textContent=`Fact book ${found.length}/${FACT_ORDER.length}`; }
+function updateBookBtn(){ $('bookN').textContent=found.length; $('bookBtn').setAttribute('aria-label',`Open the fact book. ${found.length} of ${FACT_ORDER.length} pages found.`); }
 function setPaused(p){
   paused=p; const b=$('pauseBtn'); b.classList.toggle('on',p); b.setAttribute('aria-label',p?'Resume the hike':'Pause the hike'); b.setAttribute('aria-pressed',String(p));
   $('pausedBanner').classList.toggle('show',p&&!bookOpen); document.body.classList.toggle('is-paused',p);
