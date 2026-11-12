@@ -1412,7 +1412,7 @@ const LICHEN=[C('#d9902e'),C('#c8c655'),C('#b7c7a8'),C('#e6dca4'),C('#c77a2a')],
    reached from a neighbour's), and a little deck for each of the villagers who comes down to the walk. And three long piers leave the
    walk and go straight out over the water until they are lost in the distance, a lamp every so often to show where. (Everything is
    measured across from the trail, and along it.) */
-const POND_WALK=1.3;   /* half the width of the main walk */
+const POND_WALK=1.3, LAMP_WARM=C('#ffc45a');   /* half the width of the main walk */
 let pondPlan=null;
 function pondLayout(){ if(pondPlan) return pondPlan; const segs=[], discs=[], lamps=[], near=[];
   VILLAGE.forEach(([dz,lat,sz])=>{ const z=VILLAGE_Z+dz, r=1.8*sz, sd=Math.sign(lat); discs.push([lat,z,r,2]); if(Math.abs(lat)<12.5){ near.push([lat,z,r]); segs.push([sd*POND_WALK,z,lat-sd*(r-0.4),z,1.0]); } });
@@ -1444,7 +1444,7 @@ function drawPondDecks(){ const Y=trailY0(POND_A)+0.05, H=(i,j)=>hash(i,j,417), 
     else if(kind===0){ put(P.trunkF,x,Y,z,0.06,2.3,0.06,0,PLANKS[2]); put(P.glow,x,Y+2.45,z,4.5,4.5,4.5,0,pk(GLOWS,H(13,i))); } });                                                       /* the lamp at the end of a pier */
   /* lamps along the main walk, now on one side and now on the other; and two under the willows, where it is dimmest */
   { const zs=[GA[2]+3.5,GA[2]+8.5]; for(let z=GB[2]+7,i=0;z<POND_B-2;z+=8.5+H(16,i)*3,i++) zs.push(z);
-    zs.forEach((z,i)=>{ const sd=i%2?1:-1, x=trailX(z)+sd*(POND_WALK+0.02); put(P.trunkF,x,Y-0.5,z,0.05,2.2,0.05,0,PLANKS[2]); put(P.trunkF,x-sd*0.16,Y+1.66,z,0.03,0.05,0.2,0,PLANKS[2],0,sd*1.57); put(P.glow,x-sd*0.3,Y+1.52,z,2.8,3.2,2.8,0,pk(GLOWS,H(17,i))); }); }
+    zs.forEach((z,i)=>{ const sd=i%2?1:-1, x=trailX(z)+sd*(POND_WALK+0.02); put(P.trunkF,x,Y-0.5,z,0.05,2.2,0.05,0,PLANKS[2]); put(P.trunkF,x-sd*0.16,Y+1.66,z,0.03,0.05,0.2,0,PLANKS[2],0,sd*1.57); put(P.glow,x-sd*0.3,Y+1.52,z,i<2?3.4:2.8,i<2?3.8:3.2,i<2?3.4:2.8,0,i<2?LAMP_WARM:pk(GLOWS,H(17,i))); }); }   /* (the two under the willows burn yellow) */
   L.lamps.forEach(([l,z,sd],i)=>{ const x=trailX(z)+l; put(P.trunkF,x,Y-0.4,z+0.62,0.045,1.9,0.045,0,PLANKS[2]); put(P.glow,x,Y+1.6,z+0.62,2.6,2.6,2.6,0,pk(GLOWS,H(15,i))); }); }
 function bushColor(x,z,h){ const bi=bioK(z)>0.5?biomeAt(x,z):0; return bi<0?BUSH_ASPEN[Math.floor(h*3)]:bi>0?BUSH_AUTUMN[Math.floor(h*3)]:BUSHES[Math.floor(h*4)]; }
 function rebuildForest(s0){
@@ -5030,6 +5030,10 @@ const pondWater=(()=>{ const c=document.createElement('canvas'); c.width=c.heigh
 const pondVeil=[0,1,2,3,4].map(i=>{ const m=new THREE.Mesh(curtainGeo,new THREE.MeshBasicMaterial({color:0xffffff,map:curtainTex,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide})); m.visible=false; m.renderOrder=2; if(i%2) m.scale.x=-1; scene.add(m); return {m,dz:-34+i*9,dx:(i%2?1:-1)*(8+i*5),dy:i*1.2}; });
 function updatePondVeil(){ const on=!!state.started&&mode==='trail'&&pondOn()&&party.s>POND_A-12&&party.s<POND_B+2, k=on?1-smooth(POND_B-52,POND_B-9,party.s):0;
   pondVeil.forEach(v=>{ v.m.visible=k>0.01; if(k<=0.01) return; v.m.position.set(trailX(POND_B)+v.dx,trailY0(POND_A)+15+v.dy,POND_B+v.dz); v.m.material.opacity=0.66*k; v.m.material.color.copy(scene.fog.color).lerp(WHITE,0.5); }); }
+/* the two lamps under the willows really light the place: warm pools on the planks, the trunks and the hanging strands */
+const willowLamps=[0,1].map(()=>{ const l=new THREE.PointLight(0xffb85a,0,11,1.6); l.visible=false; scene.add(l); return l; });
+function updateWillowLamps(){ const on=!!state.started&&mode==='trail'&&pondOn()&&Math.abs(party.s-GA[2]-6)<40; willowLamps.forEach((l,i)=>{ l.visible=on; if(!on) return; const z=GA[2]+(i?8.5:3.5), sd=i%2?1:-1;
+    l.position.set(trailX(z)+sd*(POND_WALK-0.28),trailY0(POND_A)+1.6,z); l.intensity=(1.7+0.12*Math.sin(time*7+i*2)+0.08*Math.sin(time*13.1+i))*gateK(party.s+ (i?0:0)); }); }
 function updatePondWater(){ const on=!!state.started&&mode==='trail'&&pondOn()&&Math.abs(party.s-POND_ZC)<170; pondWater.visible=on; if(!on) return;
   pondWater.position.set(trailX(POND_ZC),trailY0(POND_A)-0.22,POND_ZC); pondWater.material.map.offset.set(time*0.004,time*0.0015); }
 /* Fish in the upside-down pond. Under the surface, dark shapes idle about near the boardwalk. And every so often one of them comes up
@@ -5270,12 +5274,13 @@ function frame(now){
   hemi.color.copy(skyNow.hemi); sun.color.copy(skyNow.sun);
   hemi.intensity=glw*(1-0.55*thK-0.66*caveK)+0.16*bloom;
   sun.intensity=shn*(1-0.8*thK-0.85*caveK-0.5*mistK)+0.12*bloom;
+  { const wk=gNow.i===2&&pondOn()?gK:0; if(wk>0){ hemi.intensity*=1-0.5*wk; sun.intensity*=1-0.75*wk; scene.fog.color.multiplyScalar(1-0.45*wk); skyU.top.value.multiplyScalar(1-0.45*wk); skyU.mid.value.multiplyScalar(1-0.45*wk); skyU.bot.value.multiplyScalar(1-0.45*wk); gNow.in=0; } }   /* under the willows it is darker still, and lit by lamps: no flashlights there */
   cave.glow.intensity=1.2*(gNow.i===0?caveK:0); setTorches(Math.max(gNow.in,darkK)); hemi.intensity+=0.3*Math.max(gNow.in,darkK); scene.fog.density-=0.03*Math.max(thK,caveK);   /* and their light fills the place a little, and reaches further into the dark */   /* flashlights on inside every gateway (tunnels, caves, hollow tree, the mist), and all through the crystal hollow */
   { const nk=nightK*(1-caveK)*(1-thK); moon.visible=stars.visible=nk>0.02; moon.material.opacity=nk; stars.material.opacity=nk*0.9;
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updatePondVeil(); updatePondFish(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
