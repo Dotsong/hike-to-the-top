@@ -972,7 +972,7 @@ const BIO={
       if(R.n(40)<0.55){ const p=R.at(1.7+R.n(41)*5,42), col=pk(PETALS,R.n(43)); const w=0.42+R.n(45)*0.3, hgt=w*0.5;   /* a cushion plant: a tight dark-green dome hugging the ground out of the wind, with a smaller one grown into its side, starred all over with tiny flowers */
         put(P.bush,p.x,p.y-hgt*0.25,p.z,w,hgt,w*0.92,R.n(46)*6,CUSHION[0]); put(P.bush,p.x+w*0.62,p.y-hgt*0.3,p.z+w*0.25,w*0.6,hgt*0.72,w*0.56,0,CUSHION[1]); put(P.bush,p.x-w*0.3,p.y-hgt*0.32,p.z-w*0.55,w*0.5,hgt*0.62,w*0.5,0,CUSHION[2]);
         for(let k=0;k<16;k++){ const a=R.n(240+k)*6.283, u=Math.sqrt(R.n(260+k))*0.92, fx=p.x+Math.cos(a)*u*w, fz=p.z+Math.sin(a)*u*w*0.92, fy=p.y-hgt*0.25+hgt*Math.sqrt(1-u*u)+0.012;
-          put(P.petal,fx,fy,fz,0.5,0.22,0.5,0,col); if(k%3===0) put(P.petal,fx,fy+0.012,fz,0.2,0.2,0.2,0,POLLEN); } }
+          put(P.petal,fx,fy,fz,0.72,0.3,0.72,0,col); if(k%3===0) put(P.petal,fx,fy+0.016,fz,0.28,0.26,0.28,0,POLLEN); } }
       for(let j=0;j<8;j++){ const far=Math.pow(R.n(300+j),1.25), d=4.5+far*135, p=R.at(d,310+j); if(p.y<-800||R.n(320+j)>0.9) continue;   /* and rocks, rocks, rocks: strewn over the whole mountainside, bigger the further off they lie, right out to where the ground meets the sky */
         const sz=(0.45+R.n(330+j)*R.n(340+j)*2.4)*(1+d*0.022), kind=R.n(350+j), ry=R.n(360+j)*6, lich=R.n(400+j)<0.2, RP=lich?P.arock:P.rock, col=lich?ALP_STONE[Math.floor(R.n(370+j)*3)]:pk(GREYS,R.n(370+j));
         if(kind<0.5) put(RP,p.x,p.y+sz*0.25,p.z,sz*1.35,sz*0.7,sz,ry,col,(R.n(380+j)-0.5)*0.3);
