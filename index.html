@@ -2337,7 +2337,7 @@ const Music=(()=>{
     const pd=ctx.createGain(); pd.gain.value=0.45; pf.connect(pd); pd.connect(master);
     const ps=ctx.createGain(); ps.gain.value=0.95; pf.connect(ps); ps.connect(reverb);
     const lfo=ctx.createOscillator(), lg=ctx.createGain(); lfo.frequency.value=0.05; lg.gain.value=450; lfo.connect(lg); lg.connect(pf.frequency); lfo.start();
-    bellBus=ctx.createGain(); bellBus.gain.value=0.55; bellBus.connect(master);
+    bellBus=ctx.createGain(); bellBus.gain.value=0.55; { const sh=ctx.createBiquadFilter(); sh.type='highshelf'; sh.frequency.value=2600; sh.gain.value=-7; bellBus.connect(sh); sh.connect(master); }   /* (the top of the chimes is rolled off before it reaches the ear) */
     const dl=ctx.createDelay(2), fb=ctx.createGain(), df=ctx.createBiquadFilter();
     dl.delayTime.value=BEAT*1.5; fb.gain.value=0.38; df.type='lowpass'; df.frequency.value=2600;
     bellBus.connect(dl); dl.connect(df); df.connect(fb); fb.connect(dl); df.connect(master); df.connect(reverb);
@@ -2369,11 +2369,13 @@ const Music=(()=>{
   function bass(m,t,dur){const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=mtof(m);
     g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.11,t+1.6);g.gain.setValueAtTime(0.11,t+dur-0.5);g.gain.linearRampToValueAtTime(0.0001,t+dur+2.5);
     o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+2.7);}
-  function bell(m,t,v){const f=mtof(m),g=ctx.createGain();
-    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v,t+0.008);g.gain.exponentialRampToValueAtTime(0.0001,t+3.4);
+  /* the higher a chime, the more gently it is struck: quieter, a softer start, and without the bright upper partials that make a high bell pierce */
+  const tame=m=>clamp(1-(m-69)*0.045,0.3,1);
+  function bell(m,t,v){const f=mtof(m),g=ctx.createGain(),k=tame(m); v*=k;
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v,t+0.008+0.02*(1-k));g.gain.exponentialRampToValueAtTime(0.0001,t+3.4);
     let out=g; if(ctx.createStereoPanner){const p=ctx.createStereoPanner();p.pan.value=(Math.random()*2-1)*0.6;g.connect(p);out=p;}
     out.connect(bellBus);
-    [[1,1],[2,0.22],[3,0.07],[4.2,0.035]].forEach(([r,a])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type='sine';o.frequency.value=f*r;og.gain.value=a;o.connect(og);og.connect(g);o.start(t);o.stop(t+3.5);});}
+    [[1,1],[2,0.22*k],[3,0.07*k*k],[4.2,0.035*k*k]].forEach(([r,a])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type='sine';o.frequency.value=f*r;og.gain.value=a;o.connect(og);og.connect(g);o.start(t);o.stop(t+3.5);});}
   let meter=null, lastBar=-1;
   const env=(g,t,a,v,hold,r)=>{ g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(v,t+a); g.gain.setValueAtTime(v,t+a+hold); g.gain.linearRampToValueAtTime(0.0001,t+a+hold+r); };
   const panned=g=>{ if(!ctx.createStereoPanner) return g; const p=ctx.createStereoPanner(); p.pan.value=(Math.random()*2-1)*0.6; g.connect(p); return p; };
@@ -2382,8 +2384,8 @@ const Music=(()=>{
     g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.006); g.gain.exponentialRampToValueAtTime(0.0001,t+2.2); g.connect(lp); lp.connect(harpBus);
     [[1,'triangle',1],[2,'sine',0.32]].forEach(([r,ty,a])=>{ const o=ctx.createOscillator(), og=ctx.createGain(); o.type=ty; o.frequency.value=f*r; og.gain.value=a; o.connect(og); og.connect(g); o.start(t); o.stop(t+2.3); }); }
   /* a glass chime: an octave up, slightly out of true, and a long time dying away */
-  function glass(m,t,v){ const f=mtof(m+12), g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(v,t+0.015); g.gain.exponentialRampToValueAtTime(0.0001,t+5.5); panned(g).connect(bellBus);
-    [[1,1],[2.76,0.18],[5.4,0.06]].forEach(([r,a])=>{ const o=ctx.createOscillator(), og=ctx.createGain(); o.type='sine'; o.frequency.value=f*r; og.gain.value=a; o.connect(og); og.connect(g); o.start(t); o.stop(t+5.6); }); }
+  function glass(m,t,v){ const f=mtof(m+12), g=ctx.createGain(), k=tame(m+12); v*=k; g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(v,t+0.015+0.03*(1-k)); g.gain.exponentialRampToValueAtTime(0.0001,t+5.5); panned(g).connect(bellBus);
+    [[1,1],[2.76,0.18*k],[5.4,0.06*k*k]].forEach(([r,a])=>{ const o=ctx.createOscillator(), og=ctx.createGain(); o.type='sine'; o.frequency.value=f*r; og.gain.value=a; o.connect(og); og.connect(g); o.start(t); o.stop(t+5.6); }); }
   /* a wooden bar, struck: a knock and a short round note */
   function wood(m,t,v){ const f=mtof(m), g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.004); g.gain.exponentialRampToValueAtTime(0.0001,t+0.42); panned(g).connect(harpBus);
     const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f; o.connect(g); o.start(t); o.stop(t+0.45);
@@ -2455,7 +2457,7 @@ const Music=(()=>{
       if(!cur.pcs.includes(SCALE[melIdx]%12)) melIdx=melIdx+1<SCALE.length?melIdx+1:melIdx-1;
       const m=SCALE[melIdx], at=t+(Math.random()<0.25?BEAT*0.5:0), v=0.05+Math.random()*0.05; let x=Math.random()*(mix.bell+mix.glass+mix.flute+mix.wood+0.001);
       if((x-=mix.bell)<0) bell(m,at,v*(1-0.3*Math.min(1,mix.glass+mix.flute+mix.wood+mix.harp)));   /* the bells step back a little wherever there is other company */
-      else if((x-=mix.glass)<0) glass(m,at,v*1.5);
+      else if((x-=mix.glass)<0) glass(m,at,v*1.25);
       else if((x-=mix.flute)<0) flute(m-12,at,BEAT*(1.6+Math.random()*2),v*1.5);
       else wood(m-12,at,v*2.6); }
     if(mix.wood>0.05&&Math.random()<0.42*mix.wood) wood(cur.notes[Math.floor(Math.random()*4)]-(Math.random()<0.5?12:0),t+BEAT*0.5,0.13*mix.wood);   /* and the marimba bounces along in between */
