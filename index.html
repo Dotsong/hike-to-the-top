@@ -1068,6 +1068,10 @@ const BIO={
         for(let k=0;k<4;k++){ const a=T.ry+k*1.57; put(T.bp,T.x+Math.cos(a)*cw*0.5,T.y+th+0.95,T.z+Math.sin(a)*cw*0.5,0.5,0.22,0.5,0,WHITE); } }
       else if(v<0.8){ for(let k=0;k<3;k++) put(T.cp,T.x+(k-1)*0.5,T.y,T.z+(k%2)*0.4,0.42,6+T.h*5+k,0.42,T.ry,pk(BLADES,T.n(23+k))); }                                                      /* blades of grass like green towers */
       else { const th=6+T.h*3, col=pk(PETALS,T.n(22)); put(T.tp,T.x,T.y,T.z,0.2,th,0.2,T.ry,GREENS[1]); put(T.bp,T.x,T.y+th,T.z,0.9,0.5,0.9,0,C('#ffd84a')); for(let k=0;k<6;k++){ const a=k*1.047; put(T.bp,T.x+Math.cos(a)*1.4,T.y+th,T.z+Math.sin(a)*1.4,0.9,0.3,0.9,0,col); } } },   /* a daisy the size of a parasol */
+    props(R){   /* grass, grass, grass: blades of every size from knee-high to taller than the mushrooms, in clumps, leaning every which way */
+      for(let c=0;c<6;c++){ const d=c<2?2.3+R.n(30+c)*2.2:4+Math.pow(R.n(30+c),1.3)*60, p=R.at(d,40+c); if(p.y<-800) continue; const big=R.n(50+c), n=3+Math.floor(R.n(60+c)*5), H0=d<7?0.6+big*1.9:big<0.5?0.8+big*4:big<0.85?3+big*6:9+big*7;   /* (only the small ones stand close to the path: the towering ones keep back, where they cannot get between the girls and whoever is watching them) */
+        for(let k=0;k<n;k++){ const id=200+c*20+k, hh=H0*(0.45+R.n(id)*0.85), w=(0.07+hh*0.03)*(0.7+R.n(id+300)*0.6), x=p.x+(R.n(id+600)-0.5)*(0.5+H0*0.12), z=p.z+(R.n(id+900)-0.5)*(0.5+H0*0.12); if(Math.abs(x-trailX(z))<1.7+w) continue;
+          put(P.coneF,x,p.y-0.1,z,w,hh,w*0.45,R.n(id+1200)*6.283,pk(BLADES,R.n(id+1500)),(R.n(id+1800)-0.5)*0.5,(R.n(id+2100)-0.5)*0.5); } } },
     lines:[['Did everything get big?','Or did we get small?'],['That mushroom has a ROOF.','You could live under it.'],'I\'m the size of a ladybird!',['Don\'t step on anything.','Everything is bigger than my foot!']],
     narr:['Either the garden had grown, or the sisters had shrunk. Nobody could say which.','A blade of grass leaned over to look at them.'],
     reveal:{t:'The giant garden',b:'Mushrooms like houses and grass like towers. Or perhaps two very small sisters.',narr:'Under the big leaves, the world had changed its mind about what size things should be.',lines:[[1,'June... the mushrooms are bigger than our HOUSE.'],[0,'I think we shrank, Pip.'],[1,'Best. Shrinking. Ever.']]},
@@ -2217,13 +2221,33 @@ function onVillage(){ const key=legKey(2), F=FOLK[key], V=villMeet, f=folk.list[
   V.say=(VILL_SAY[key]||F.meet).concat(known.friends.includes(key)?[[1,F.name+'! It\'s us again!'],[0,'Hello again! Are you coming to dinner this time too?']]:[]);   /* an old friend */
   hushBubbles(); if(EVT.cur) endEvent(); holdEvents(90); narrate(F.narr); showCaption({t:F.village,b:F.cap}); V.on=1; V.t=0; V.li=-1; V.last=null; party.vT=0; party.rest=99999; J.skip=Pp.skip=0; J.queue.length=Pp.queue.length=0; J.cur=Pp.cur=null;
   const hd=heading(VILLAGE_Z); J.queue.push({k:'walk',to:[trailX(VILLAGE_Z-0.9)-0.55,VILLAGE_Z-0.9],speed:1.1},{k:'pose',pose:'look',dur:99999,face:hd-1.2}); Pp.queue.push({k:'walk',to:[trailX(VILLAGE_Z-1.8)-0.5,VILLAGE_Z-1.8],speed:1.1},{k:'pose',pose:'point',dur:99999,face:hd-1.2}); }
+/* Dot's crumb: a piece of bread as big as a boulder, lying by the path until somebody strong enough comes along */
+const crumb=(()=>{ const g=new THREE.Group(), m1=L('#e3c58c'), m2=L('#c99f62'); g.add(ball(m1,0.5,1.1,0.85,1,0,0,0),ball(m2,0.3,1,0.9,1,0.3,0.18,0.1),ball(m1,0.28,1,1,1,-0.28,-0.1,0.22),ball(m2,0.24,1,1,1,0.05,-0.2,-0.3),ball(m1,0.2,1,1,1,-0.15,0.3,-0.15)); g.visible=false; scene.add(g); return {g,u:0,roll:0,a:[0,0],b:[0,0]}; })();
+function updateCrumb(){ const C=crumb, on=!!state.started&&mode==='trail'&&fork.site===2&&legKey(2)==='giant'&&Math.abs(party.s-VILLAGE_Z)<60; C.g.visible=on; if(!on) return;
+  if(!villMeet.on&&!fork.village){ C.u=0; C.roll=0; } const za=VILLAGE_Z+2.6, zb=VILLAGE_Z-1.2; C.a[0]=trailX(za)-1.9; C.a[1]=za; C.b[0]=trailX(zb)-4.55; C.b[1]=zb;
+  const x=lerp(C.a[0],C.b[0],C.u), z=lerp(C.a[1],C.b[1],C.u); C.g.position.set(x,groundY(x,z)+0.42,z); C.g.rotation.set(C.roll*2,Math.atan2(C.b[0]-C.a[0],C.b[1]-C.a[1]),0,'YXZ'); }
+/* and, further up the garden, the snail that has the right of way: as big as a garden shed, going nowhere in particular, very slowly */
+const snail=(()=>{ const g=new THREE.Group(), skin=L('#c9b890'), dk=L('#a8956c'), sh1=L('#b9703a'), sh2=L('#8e4f26'), eye=new THREE.MeshBasicMaterial({color:0x1c1612});
+  g.add(ball(skin,0.5,0.75,0.42,3.3,0,0.24,0.1),ball(dk,0.42,0.9,0.2,3.6,0,0.07,0.1),ball(skin,0.42,0.8,0.9,1,0,0.55,1.45));
+  const shell=new THREE.Group(); shell.position.set(0,1.25,-0.25); shell.add(ball(sh1,1.05,0.62,1,1,0,0,0)); for(const sd of [-1,1]) for(let k=0;k<3;k++){ const t=new THREE.Mesh(new THREE.TorusGeometry(0.82-k*0.27,0.07,6,22),sh2); t.rotation.y=Math.PI/2; t.position.set(sd*0.63,0.02*k,0.05*k); t.castShadow=true; shell.add(t); } g.add(shell);
+  const stalks=[-1,1].map(sd=>{ const piv=new THREE.Group(); piv.position.set(sd*0.16,0.82,1.6); const st=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.045,0.7,6),skin); st.position.y=0.35; piv.add(st,ball(skin,0.08,1,1,1,0,0.72,0),ball(eye,0.045,1,1,1,0,0.74,0.06)); piv.rotation.set(0.35,0,sd*-0.3); g.add(piv); return piv; });
+  [-1,1].forEach(sd=>g.add(ball(skin,0.035,1,1,3,sd*0.12,0.4,1.82))); g.scale.setScalar(1.25); g.visible=false; scene.add(g); return {g,shell,stalks,s:VILLAGE_Z+16,dir:1}; })();
+function updateSnail(dt){ const S=snail, on=!!state.started&&mode==='trail'&&fork.site===2&&legKey(2)==='giant'&&party.s>VILLAGE_Z-25&&party.s<MTN+20&&!mtnShut; S.g.visible=on; if(!on) return;
+  const A=VILLAGE_Z+13, B=MTN-9; S.s+=S.dir*0.11*dt*(0.6+0.4*Math.sin(time*1.3)); if(S.s>B){ S.s=B; S.dir=-1; } if(S.s<A){ S.s=A; S.dir=1; }
+  const lat=4.3+0.9*Math.sin(S.s*0.21), x=trailX(S.s)+lat, sl=(trailX(S.s+0.3)+0.9*Math.sin((S.s+0.3)*0.21)-trailX(S.s-0.3)-0.9*Math.sin((S.s-0.3)*0.21))/0.6; S.g.position.set(x,groundY(x,S.s),S.s); S.g.rotation.y=Math.atan2(sl*S.dir,S.dir);
+  S.g.scale.set(1.25,1.25,1.25*(1+0.06*Math.sin(time*1.3)));   /* it goes by stretching and gathering */ S.shell.rotation.x=0.05*Math.sin(time*1.3+1); S.stalks.forEach((p,i)=>{ p.rotation.x=0.35+0.22*Math.sin(time*0.7+i*1.9); p.rotation.z=(i?-1:1)*-0.3+0.15*Math.sin(time*0.5+i); }); }
 function updateVillageMeet(dt){ const V=villMeet, J=juneB, Pp=pipB, key=legKey(2), ok=!!state.started&&mode==='trail'&&fork.site===2&&!!FOLK[key]&&folk.list.length>0&&Math.abs(party.s-VILLAGE_Z)<60;
   V.here=ok; V.done=!!fork.village&&!V.on; if(ok&&folk.list[0]) V.head=folk.list[0].head;
   if(!ok){ if(V.on){ V.on=0; party.rest=0.01; J.gaze=Pp.gaze=null; } return; } if(!V.on) return;
-  V.t+=dt; V.head.getWorldPosition(V.eye); J.gaze=Pp.gaze=V.eye; const fx=V.f.g.position.x, fz=V.f.g.position.z, set=(b,pose)=>{ b.cur={k:'pose',pose,dur:99999,face:Math.atan2(fx-b.pos.x,fz-b.pos.y)}; b.queue.length=0; };
+  V.t+=dt; V.head.getWorldPosition(V.eye); meetGaze(V.eye); const fx=V.f.g.position.x, fz=V.f.g.position.z, set=(b,pose)=>{ b.cur={k:'pose',pose,dur:99999,face:Math.atan2(fx-b.pos.x,fz-b.pos.y)}; b.queue.length=0; };
   if(V.on===1){ if(J.cur&&J.cur.pose&&Pp.cur&&Pp.cur.pose&&V.t>1.4){ V.on=2; V.t=0; playScript(V.say); speakIn=9999; } return; }
-  if(curLine&&curLine!==V.last){ V.last=curLine; V.li++; } const ps=(VILL_POSE[V.fkey]||(()=>['look','point']))(V.li); set(J,ps[0]); set(Pp,ps[1]);
-  if(V.li>=V.say.length-1&&quiet()&&V.t>6){ V.on=0; J.gaze=Pp.gaze=null; J.cur=Pp.cur=null; party.rest=0.01; speakIn=10; BRAINS.forEach((b,i)=>b.queue.push({k:'pose',pose:'wave',dur:1.6,face:Math.atan2(fx-b.pos.x,fz-b.pos.y)})); } }
+  if(curLine&&curLine!==V.last){ V.last=curLine; V.li++; } const ps=(VILL_POSE[V.fkey]||(()=>['look','point']))(V.li);
+  if(V.fkey==='giant'&&V.li>=5&&crumb.u<1){   /* the crumb: June and Pip get behind it, shoulder to shoulder, and roll it all the way to Dot's door */
+    const C=crumb, x=lerp(C.a[0],C.b[0],C.u), z=lerp(C.a[1],C.b[1],C.u), L=Math.hypot(C.b[0]-C.a[0],C.b[1]-C.a[1]), dx=(C.b[0]-C.a[0])/L, dz=(C.b[1]-C.a[1])/L; let ready=true; J.gaze=Pp.gaze=null;
+    [J,Pp].forEach((b,i)=>{ const tx=x-dx*0.78+dz*(i?-0.34:0.34), tz=z-dz*0.78-dx*(i?-0.34:0.34), far=Math.hypot(tx-b.pos.x,tz-b.pos.y); if(far>0.45) ready=false; if(far>0.06){ b.cur={k:'walk',to:[tx,tz],speed:far>0.5?1.5:0.6}; b.queue.length=0; } else { b.cur={k:'pose',pose:'scoop',dur:99999,face:Math.atan2(dx,dz)}; b.queue.length=0; } });
+    if(ready){ C.u=Math.min(1,C.u+dt*0.5/L); C.roll+=dt*0.5/0.5; if(Math.floor(C.roll*0.8)!==Math.floor((C.roll-dt)*0.8)) Music.amb('thump'); } }
+  else { set(J,ps[0]); set(Pp,ps[1]); }
+  if(V.li>=V.say.length-1&&quiet()&&V.t>6&&(V.fkey!=='giant'||crumb.u>=1)){ V.on=0; J.gaze=Pp.gaze=null; J.cur=Pp.cur=null; party.rest=0.01; speakIn=10; BRAINS.forEach((b,i)=>b.queue.push({k:'pose',pose:'wave',dur:1.6,face:Math.atan2(fx-b.pos.x,fz-b.pos.y)})); } }
 /* Parkas for the cold places: a puffy coat over the dress with a fur hem, sleeves with fur cuffs, mittens, and a fur-trimmed hood.
    In the winter forest the hood is up (and pigtails and topknot are tucked inside it); in the other cold places (the alpine rock garden,
    the glow-wood at night, the crystal hollow, the mountain trail, the sky garden and the summit) it lies folded down behind the neck. The coats are always there, just out of sight until wanted. */
@@ -2331,7 +2355,7 @@ function startRest(){
 }
 function updateParty(dt){
   if(state.started){
-    if(!fork.river&&party.s>=39){ fork.river=true; onRiver(); }
+    if(!fork.river&&party.s>=(saved.secret||forceRiver?49.5:39)){ fork.river=true; onRiver(); }   /* (when the crossing is open they are right at the bend before they notice the stones) */
     if(!fork.deepSaid&&party.s>=57){ fork.deepSaid=true; onDeep(); }
     if(fork.stage===0&&party.s>=REST_S-0.36||fork.stage===4&&fork.site<2&&party.s>=SITES[fork.site+1].rest-2.36){ /* slow to a stop at the rest site */
       if(fork.stage===4) fork.site++; fork.stage=1; fork.t=0; party.vT=0; party.rest=0; const hd=heading(party.s);
@@ -2347,7 +2371,7 @@ function updateParty(dt){
     else { party.restIn-=dt; if(party.restIn<=0&&!EVT.cur&&!nearStop(30)&&gateK(party.s)<0.05&&!juneB.cur&&!pipB.cur&&!juneB.queue.length&&!pipB.queue.length&&quiet()) startRest(); }
   }
   if(state.started&&fork.site===2&&fork.stage===4&&!fork.village&&party.rest<=0&&party.s>=VILLAGE_Z-3.5&&party.s<VILLAGE_Z+5){ fork.village=true; onVillage(); }   /* the village: stop and say hello */
-  if(state.started&&fork.site===2&&fork.stage===4&&!fork.cloud&&party.s>=MTN+26&&party.s<MTN+50){ fork.cloud=true; onCloud(); }   /* halfway up the hill: the mist settles */
+  if(state.started&&fork.site===2&&fork.stage===4&&!fork.cloud&&party.s>=MTN+34.5&&party.s<MTN+52){ fork.cloud=true; onCloud(); }   /* a little over halfway up the hill, once the mist has really closed in */
   if(state.started&&fork.site===2&&fork.stage===4&&fork.tail<7&&party.s>=TAIL_AT[fork.tail]) onTail(TAIL_EV[fork.tail++]);   /* the mountain trail, the mist, the sky garden, the last cave, the top */
   if(state.started&&fork.stage===3&&!fork.entered&&party.s>=SITES[fork.site].a-2){ fork.entered=true; onGateEnter(); }
   if(state.started&&fork.site===0&&fork.stage===3&&!fork.gateEvt&&party.s>=GATE_OB-2){ fork.gateEvt=true; onGateObstacle(); }
@@ -2449,7 +2473,7 @@ function finishBrain(b,pose,walking,dt){
   g.head.rotation.set(rg.hx,rg.hy,rg.hz);
   /* when there is somebody to look at, she looks at them: the head turns and tips until her eyes are on the spot, whatever the rest of her is doing */
   if(b.gaze) b.gazeP=b.gaze; b.gk=damp(b.gk||0,b.gaze?1:0,4,dt);
-  if(b.gk>0.01&&b.gazeP){ const sc=g.g.scale.y, ex=b.gazeP.x-g.g.position.x, ey=b.gazeP.y-(g.g.position.y+(0.97-drop)*sc), ez=b.gazeP.z-g.g.position.z; let yaw=Math.atan2(ex,ez)-b.face; yaw=clamp(Math.atan2(Math.sin(yaw),Math.cos(yaw)),-1.15,1.15);
+  if(b.gk>0.01&&b.gazeP){ const sc=g.g.scale.y, ex=b.gazeP.x-g.g.position.x, ey=b.gazeP.y-(g.g.position.y+(0.97-drop)*sc), ez=b.gazeP.z-g.g.position.z; let yaw=Math.atan2(ex,ez)-b.face; yaw=clamp(Math.atan2(Math.sin(yaw),Math.cos(yaw)),b.gazeWide?-1.5:-1.15,b.gazeWide?1.5:1.15);
     const pit=clamp(Math.atan2(-ey,Math.hypot(ex,ez))-rg.lean-rg.tilt,-0.55,0.95); g.head.rotation.x=lerp(rg.hx,pit,b.gk); g.head.rotation.y=lerp(rg.hy,yaw,b.gk); g.head.rotation.z=rg.hz*(1-b.gk); }
   g.armL.rotation.set(rg.lax,0,rg.laz); g.armR.rotation.set(rg.rax,0,rg.raz);
   g.tails.forEach((t,i)=>{ t.rotation.z=(i?1:-1)*(0.1+Math.sin(time*2.2+i)*0.08)+(walking?Math.sin(b.walkPhase*2)*0.15:0); });
@@ -2971,10 +2995,10 @@ function warp(name,s,p,tail){
   picks[0]=p[0]; picks[1]=p[1]; picks[2]=p[2]; choice=p[0]; syncRoute();
   const n=p[2]?3:p[1]?2:p[0]?1:0; fork.site=Math.max(0,n-1); fork.stage=n===0?0:s<SITES[fork.site].b+1.2?3:4; fork.tail=tail||0;
   if(s==='secret'){ forceSecret=true; s='home'; }
-  if(s==='river'){ forceRiver=true; s=33; }   /* a few steps before the river, with the crossing allowed */
+  if(s==='river'){ forceRiver=true; s=43; }   /* a few steps before the river, with the crossing allowed */
   if(s==='falls'){ party.s=39; placeGirls(); enterFalls(); return; }
   if(s==='home'){ fork.site=2; fork.stage=4; fork.tail=7; fork.village=true; party.s=TOP_B-3; placeGirls(); enterHome(); return; }
-  fork.village=s>VILLAGE_Z+5; fork.cloud=s>MTN+30; fork.river=s>=39; fork.deepSaid=s>=57; fork.hopSaid=s>60; fork.entered=true; fork.gateEvt=n>1||s>GATE_OB;
+  fork.village=s>VILLAGE_Z+5; fork.cloud=s>MTN+36; fork.river=s>=(forceRiver||saved.secret?49.5:39); fork.deepSaid=s>=57; fork.hopSaid=s>60; fork.entered=true; fork.gateEvt=n>1||s>GATE_OB;
   party.s=s; party.v=party.vT=WALK; party.restIn=60+Math.random()*30; lookBack=s<5?1:0; hikeT=s<5?0:99;
   placeGirls(); groundRow=forestRow=null; camHd=heading(s); EVT.inT=20; speakIn=6;
   if(fork.stage===3) onGateEnter();
@@ -3995,11 +4019,11 @@ $('phoneBtn').addEventListener('click',answerPhone);
    crossed. If the player says yes, this scene follows: over the stepping stones, along the far bank to a waterfall, through the water into
    the hollow behind it, where a man in a striped sweater thanks them for seeing the whole thing through, and promises a third adventure. */
 let fallsS=null, riverAsk=0;
-function askRiver(){ riverAsk=1; party.vT=0; party.rest=99999; const hd=heading(party.s);
-  BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.queue.push({k:'pose',pose:'idle',dur:1},{k:'pose',pose:i?'point':'look',dur:9999,face:hd+1.2}); });
+function askRiver(){ riverAsk=1; party.vT=0; party.rest=99999; holdEvents(60); if(EVT.cur) endEvent(); const z=RIVER_Z+1.2, bx=x0(z)+riverBank(z)-0.9;
+  BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.queue.push({k:'walk',to:[bx-i*0.55,z-0.2-i*0.75],speed:1.3},{k:'pose',pose:i?'point':'look',dur:9999,face:1.35}); });   /* down to the water's edge first, and then they see it */
   narrate('They had been stopped by this river before. But today Pip looked at it differently.');
   playScript([[1,'June. Look at the rocks. They go ALL the way across.'],[0,'They do. We could cross on them, if we were really, really careful.'],[1,'I\'m the carefullest. Can we?']]); speakIn=9999; }
-function updateRiverAsk(){ if(riverAsk===1&&quiet()){ riverAsk=2; $('riverDock').hidden=false; } }
+function updateRiverAsk(){ if(riverAsk===1&&quiet()&&BRAINS.every(b=>b.cur&&b.cur.pose)){ riverAsk=2; $('riverDock').hidden=false; } }
 function answerRiver(cross){ if(riverAsk!==2) return; riverAsk=0; $('riverDock').hidden=true; hushBubbles();
   if(cross){ playScript([[0,'One stone at a time. Hold my hand.'],[1,'I\'m a river explorer!']]); startCross(); }
   else { playScript([[0,'Not today. The trail goes round to the right.'],[1,'Next time, river.']]); speakIn=12; party.rest=0.01; BRAINS.forEach(b=>{ b.queue.length=0; b.cur=null; }); } }
@@ -4137,7 +4161,7 @@ function leaveFalls(){ fallsS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={sound:k=>Music.amb(k),vill:()=>villMeet.on+':'+villMeet.li,meet:k=>{ const D=MEETS.find(d=>d.key===k); return D.on+':'+D.li+':'+D.done; },frogKing:()=>frogKing.on+':'+frogKing.li+':'+frogKing.done,hoist:()=>hoist.on+':'+hoist.t.toFixed(1)+':'+party.s.toFixed(1),ty:s=>trailY(s),bench:()=>bench.on+':'+bench.t.toFixed(0)+':'+party.s.toFixed(1)+':'+benchBirds.map(b=>b.st).join(''),bugs:()=>{ const o=giantObst(); return giantLife.map(c=>{ let m=99; const P=c.kind==='worm'?c.segs.map(q=>q.position):[{x:c.x,z:c.z}]; for(const q of P) for(const k of o) m=Math.min(m,Math.hypot(q.x-k.x,q.z-k.z)-k.r); return c.kind[0]+m.toFixed(2)+'@'+(P[0].x-trailX(P[0].z)).toFixed(1); }).join(' ')+' n'+o.length; },ambNow:()=>ambLast+' bed '+ambK+' wind '+windK+' water '+waterBed,lineOk:(tx,p)=>fitsHere(tx,p),menu:p=>(EVENT_MENU[p]||[]).join(','),summitPhase:()=>summit?summit.phase+':'+summit.leg:'',music:()=>Music.moodNow(),musicLevel:only=>Music.level(only),musicMood:(a,b,k,r,m)=>{ window.__moodLock=a?[a,b,k,r,m]:null; },known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>MK[k].classList.contains('on')),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={sound:k=>Music.amb(k),crumb:()=>crumb.u.toFixed(2)+' '+mcam.id+' '+villMeet.li,vill:()=>villMeet.on+':'+villMeet.li,meet:k=>{ const D=MEETS.find(d=>d.key===k); return D.on+':'+D.li+':'+D.done; },frogKing:()=>frogKing.on+':'+frogKing.li+':'+frogKing.done,hoist:()=>hoist.on+':'+hoist.t.toFixed(1)+':'+party.s.toFixed(1),ty:s=>trailY(s),bench:()=>bench.on+':'+bench.t.toFixed(0)+':'+party.s.toFixed(1)+':'+benchBirds.map(b=>b.st).join(''),bugs:()=>{ const o=giantObst(); return giantLife.map(c=>{ let m=99; const P=c.kind==='worm'?c.segs.map(q=>q.position):[{x:c.x,z:c.z}]; for(const q of P) for(const k of o) m=Math.min(m,Math.hypot(q.x-k.x,q.z-k.z)-k.r); return c.kind[0]+m.toFixed(2)+'@'+(P[0].x-trailX(P[0].z)).toFixed(1); }).join(' ')+' n'+o.length; },ambNow:()=>ambLast+' bed '+ambK+' wind '+windK+' water '+waterBed,lineOk:(tx,p)=>fitsHere(tx,p),menu:p=>(EVENT_MENU[p]||[]).join(','),summitPhase:()=>summit?summit.phase+':'+summit.leg:'',music:()=>Music.moodNow(),musicLevel:only=>Music.level(only),musicMood:(a,b,k,r,m)=>{ window.__moodLock=a?[a,b,k,r,m]:null; },known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>MK[k].classList.contains('on')),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
@@ -4347,7 +4371,7 @@ function nextLine(key,src){ const d=decks[key]||(decks[key]=[]); if(!d.length){ 
 /* one bubble at a time: every line waits its turn and stays up long enough to read */
 const lineTime=tx=>1.6+tx.length*0.06;
 function showLine(w,tx){ bubbles.forEach((bb,i)=>{ if(i!==w){ bb.t=0; bb.el.classList.remove('show'); } });
-  const bb=bubbles[w]; bb.el.querySelector('.txt').textContent=tx; bb.t=lineTime(tx)*(frogKing.on||villMeet.on||MEETS.some(D=>D.on)?1.7:1); bb.el.classList.add('show');   /* (in a meeting each line stays up a good deal longer) */ curLine={w,t:bb.t,T:bb.t,t0:performance.now()}; }
+  const bb=bubbles[w]; bb.el.querySelector('.txt').textContent=tx; bb.t=lineTime(tx)*(frogKing.on||villMeet.on||MEETS.some(D=>D.on)?1.7:1); bb.el.classList.add('show');   /* (in a meeting each line stays up a good deal longer) */ curLine={w,t:bb.t,T:bb.t,t0:performance.now(),tx,pw:lastSpoke}; lastSpoke=w; }
 function say(i,text){ script.push([i,text]); }
 function speak(line,i){ if(i===undefined) i=Math.random()<0.5?0:1;
   if(Array.isArray(line)) script.push([i,line[0]],[1-i,line[1]]); else script.push([i,line]); }
@@ -4466,6 +4490,10 @@ function updateSpeech(dt){
   bubbles.forEach((bb,i)=>bb.el.classList.toggle('right',xs[i]>innerWidth/2));
 }
 /* things that happen along the way wait for whoever is talking instead of cutting them off */
+let lastSpoke=-1; const sisEye=[new THREE.Vector3(),new THREE.Vector3()];
+/* who each girl looks at during a meeting: the stranger, mostly; but when one sister is talking to the other (she says her name, or is answering her) the two of them turn their heads and look at each other */
+function meetGaze(eye){ const c=curLine, J=juneB, Pp=pipB; if(c&&c.w<2&&(c.pw===1-c.w||new RegExp('\\b'+(c.w?'June':'Pip')+'\\b').test(c.tx))){ [june,pip].forEach((g,i)=>{ g.head.getWorldPosition(sisEye[i]); sisEye[i].y+=0.2*g.g.scale.y; }); J.gaze=sisEye[1]; Pp.gaze=sisEye[0]; J.gazeWide=Pp.gazeWide=true; }
+  else { J.gaze=Pp.gaze=eye; J.gazeWide=Pp.gazeWide=false; } }
 const meetBub={key:'',at:[]}, hp2=new THREE.Vector3();
 function announce(line){ const s=Math.random()<0.5?0:1; if(script.length>2) script.length=2;
   if(Array.isArray(line)) script.push([s,line[0]],[1-s,line[1]]); else script.push([s,line]); speakIn=9; }
@@ -5484,7 +5512,7 @@ function updateFrogKing(dt){ const K=frogKing, on=!!state.started&&mode==='trail
   if(K.on<3){ K.pos.set(trailX(FROGK_S),Y,FROGK_S); K.g.position.copy(K.pos); K.g.rotation.set(0,hd+Math.PI,0); } K.g.visible=true; K.lamp.position.set(K.pos.x,Y+0.9,FROGK_S-0.5); K.lamp.intensity=1.1;
   const talking=!!(curLine&&curLine.w===2); K.throat.scale.setScalar(1+(talking?0.5*Math.abs(Math.sin(time*7)):0.3*Math.max(0,Math.sin(time*2.2)))); K.body.rotation.x=talking?-0.1+0.05*Math.sin(time*7):0;
   if(K.on===0&&!K.pre&&party.s>FROGK_S-16){ K.pre=true; if(EVT.cur) endEvent(); holdEvents(45); hushBubbles(); }   /* as the camera begins to close in, whatever else was going on is over */
-  K.eye.set(K.g.position.x,K.g.position.y+0.42,K.g.position.z); if(K.on){ J.gaze=Pp.gaze=K.eye; }
+  K.eye.set(K.g.position.x,K.g.position.y+0.42,K.g.position.z); if(K.on){ meetGaze(K.eye); }
   if(K.on===0){ if(party.s>FROGK_S-1.4){ K.done=true; K.g.visible=false; K.lamp.intensity=0; return; }   /* (set down past him: he is not at home today) */
     if(fork.stage===4&&party.rest<=0&&party.s>FROGK_S-4.7){ K.on=1; K.t=0; K.li=-1; K.last=null; K.sn=-1; K.l8=0; K.ate=false; party.vT=0; party.rest=99999; holdEvents(90); hushBubbles();
       J.queue.length=Pp.queue.length=0; J.cur=Pp.cur=null; J.queue.push({k:'walk',to:[trailX(FROGK_S-2.2)-0.45,FROGK_S-2.2],speed:1.1},{k:'pose',pose:'look',dur:99999,face:hd}); Pp.queue.push({k:'walk',to:[trailX(FROGK_S-2.15)+0.45,FROGK_S-2.15],speed:1.1},{k:'pose',pose:'point',dur:99999,face:hd});
@@ -5594,7 +5622,7 @@ function updateMeets(dt){ for(const D of MEETS){ const here=!!state.started&&mod
     const x=trailX(D.s)+D.lat, J=juneB, Pp=pipB, sg=Math.sign(D.lat); D.g.position.set(x,floorY(x,D.s),D.s); D.g.rotation.y=Math.atan2(trailX(D.s-1.1)-x,-1.1);
     D.anim(D,time,D.on===2&&!!curLine&&curLine.w===2,dt); const set=(b,pose)=>{ b.cur={k:'pose',pose,dur:99999,face:Math.atan2(x-b.pos.x,D.s-b.pos.y)}; b.queue.length=0; };
     if(D.here&&!D.done&&!D.pre&&party.s>D.s-16&&party.s<D.s){ D.pre=true; if(EVT.cur) endEvent(); holdEvents(45); hushBubbles(); }
-    if(D.on){ D.head.getWorldPosition(D.eye||(D.eye=new THREE.Vector3())); D.eye.y-=0.45; J.gaze=Pp.gaze=D.eye; }
+    if(D.on){ D.head.getWorldPosition(D.eye||(D.eye=new THREE.Vector3())); D.eye.y-=0.45; meetGaze(D.eye); }
     if(D.on===0){ if(D.done){ if(D.afterSay&&!D.after&&fork.site===1&&party.s>D.afterS&&party.s<D.afterS+6&&quiet()&&party.rest<=0){ D.after=true; narrate(D.afterNarr); tell(D.afterSay); } continue; }
       if(party.s>D.s-1){ D.done=true; D.after=true; continue; }   /* (set down past them: no meeting today) */
       if(fork.site===1&&fork.stage===4&&party.rest<=0&&party.s>D.s-3.6){ D.on=1; D.t=0; D.li=-1; D.last=null; party.vT=0; party.rest=99999; holdEvents(90); hushBubbles(); J.queue.length=Pp.queue.length=0; J.cur=Pp.cur=null;
@@ -5614,13 +5642,14 @@ const mcam={k:0,pos:new THREE.Vector3(),look:new THREE.Vector3(),id:'',spk:'ots-
 function meetShot(){ let D=null, frog=false; if(frogKing.here&&(frogKing.on||party.s>FROGK_S-17)){ D=frogKing; frog=true; } else for(const M of MEETS.concat(villMeet)) if(M.here&&(M.on||(!M.done&&party.s>M.s-17&&party.s<M.s))){ D=M; break; }
   if(!D) return null; D.head.getWorldPosition(_ma); const jp=june.g.position, pp=pip.g.position; _mm.set((jp.x+pp.x)/2,(jp.y+pp.y)/2,(jp.z+pp.z)/2);
   let dx=_ma.x-_mm.x, dz=_ma.z-_mm.z; const dl=Math.hypot(dx,dz)||1; dx/=dl; dz/=dl; const sx=dz, sz=-dx, low=(frog||D.lowTalk)&&D.on===2&&D.li>=2, hy=_mm.y+(low?0.8:1.2), w=curLine?curLine.w:-1, P=mcam.p, Lk=mcam.l;
-  let id='behind'; if(D.on===2){ if(D.li<=1&&D.t<4.2) id='through'; else { if(w===2) mcam.spk='ots-girls'; else if(w===0||w===1){ mcam.spk='ots-actor'; mcam.who=w; } id=mcam.spk; if(frog&&D.sn>=0&&D.sn<3) id='snack'; if(D.panAt===D.li&&w===2&&D.crows) id='pan'; } }
+  let id='behind'; if(D.on===2){ if(D.li<=1&&D.t<4.2) id='through'; else { if(w===2) mcam.spk='ots-girls'; else if(w===0||w===1){ mcam.spk='ots-actor'; mcam.who=w; } id=mcam.spk; if(frog&&D.sn>=0&&D.sn<3) id='snack'; if(D.panAt===D.li&&w===2&&D.crows) id='pan'; if(D.village&&D.fkey==='giant'&&D.li>=5) id='crumb'; } }   /* (and the same wide view for the thanks afterwards, with the crumb at the door) */
   let kT=1;
   if(id==='behind'){ const S0=frog?FROGK_S:D.s, cs=party.s-clamp(5.8*zoom,3.6,9), cx=trailX(cs)+0.6;   /* on the way up to them the camera settles in behind the girls on the trail, as it does in the deep woods: little by little, over the last dozen metres */
     const hh=heading(party.s), fx=Math.sin(hh), fz=Math.cos(hh), bk=3.3; P.set(_mm.x-fx*bk,_mm.y+1.85,_mm.z-fz*bk); Lk.set(_mm.x+fx*2.6,_mm.y+0.95,_mm.z+fz*2.6); kT=D.on?1:smooth(S0-16,S0-6,party.s); }   /* (close enough behind that a bend in the path never hides them) */
   else if(id==='through'){ P.set(_mm.x+dx*0.5,hy-0.12,_mm.z+dz*0.5); Lk.copy(_ma); }
   else if(id==='pan'){ const u=smooth(0.12,0.9,1-curLine.t/curLine.T), c0=D.crows[0].c.getWorldPosition(_mp0), c1=D.crows[1].c.getWorldPosition(_mp1);   /* a slow pan, close in, along his arms: from the crow on his right to the crow on his left, neither of them going anywhere */
     Lk.copy(c0).lerp(c1,u); Lk.y+=0.1; P.set(Lk.x-dx*0.95,Lk.y+0.06,Lk.z-dz*0.95); }
+  else if(id==='crumb'){ const c=crumb.g.position; Lk.set(c.x,c.y+0.35,c.z); P.set(c.x+4.6,c.y+2.5,c.z+3.4); }   /* the crumb being rolled: from a little way off and above, so all of it can be seen */
   else if(id==='ots-girls'){ const b=low?2.0:1.5, sd=low?1.45:1.35; P.set(_mm.x-dx*b+sx*sd,hy+(low?1.35:0.8),_mm.z-dz*b+sz*sd); Lk.copy(_ma); if(D.shot&&D.shot.gZoom){ P.lerp(_ma,D.shot.gZoom); Lk.y-=D.shot.gDown||0; } if(D.shot&&D.shot.gLow){ P.y=_mm.y+D.shot.gLow; Lk.y-=0.25; } }   /* (or from down low, looking up at somebody tall) */   /* (for someone small or high up, the camera goes in closer) */   /* (higher and wider when they are crouching, to see past a backpack) */
   else if(id==='ots-actor'){ const g=(mcam.who?pip:june).g.position, Q=D.shot||{}, sd=Q.aSide===undefined?-0.75:Q.aSide, bk=Q.aBack||0.85; P.set(_ma.x+dx*bk+sx*sd,_ma.y+(Q.aUp||0.32),_ma.z+dz*bk+sz*sd); if(Q.aBoth) Lk.set(_mm.x,_mm.y+0.9,_mm.z); else Lk.set(g.x,g.y+(low?0.55:0.95),g.z); }   /* (or, where it suits, on both girls at once) */
   else { P.set(_ma.x-dx*0.75+sx*1.2,_ma.y+0.12,_ma.z-dz*0.75+sz*1.2); Lk.set(_ma.x-dx*0.62,_ma.y-0.2,_ma.z-dz*0.62); }   /* the snack: down at the planks, a hand's breadth from it */
@@ -5827,7 +5856,7 @@ function frame(now){
     moon.position.set(camera.position.x-150,camera.position.y+210,camera.position.z+520); stars.position.copy(camera.position); }
   moteFall+=dt*0.45*fallK; wheatU.value=time;
   glowLamp.intensity=1.25*nightK*(1-caveK); glowLamp.position.set(target.x+1.2,target.y+1.6,target.z+0.8);
-  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateRiverGold(); updateMarsh(dt); updateReeds(); updateRestLamps(); updateGateFade(); updateFrogKing(dt); updateMeets(dt); updateVillageMeet(dt); updateFactLife(dt); updateMarshVeil(); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); updateUpDrips(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
+  updateSkyWeather(party.s,mistK); updateCurtains(); updateWhale(dt); updateBench(dt); updateIcePond(); updateWinterBirds(dt); updateDriftRocks(); updateWindFx(dt); updateGlints(dt); updateChasm(); updatePondWater(); updateRiverGold(); updateMarsh(dt); updateReeds(); updateRestLamps(); updateGateFade(); updateFrogKing(dt); updateMeets(dt); updateVillageMeet(dt); updateCrumb(); updateSnail(dt); updateFactLife(dt); updateMarshVeil(); updateWillowLamps(); updatePondVeil(); updatePondFish(dt); updateUpDrips(dt); stepFades(dt); updateWillow(dt); siteKit.forEach(k=>{ if(k.log&&k.log.userData.flag) animFlag(k.log.userData.flag,time); }); updateVillagers();
   /* the sunbeams and mist are not there at all until the girls come over the hill; then they fade in on the way down */
   const reveal=smooth(52,62,party.s)*(1-smooth(GATE_A-4,GATE_A+4,party.s)), lit=reveal>0.002;
   beamMat.opacity=(0.15+0.03*Math.sin(time*0.7))*reveal; poolMat.opacity=beamMat.opacity*1.2;
