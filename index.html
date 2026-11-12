@@ -1123,7 +1123,7 @@ function buildGateway(E,look,far,rise){ const LG=12, sal=look.length*13+look.cha
         E('blob',cu,ch,w+k*0.05,L2*0.2,L2*0.5,0.07,pk2(LF,h(i,k+18)),tu); E('blob',cu,ch,w+k*0.05-0.05,0.035,L2*0.5,0.05,RIB,tu); } };
     for(const sd of [-1,1]){ fan(sd*3.3,-0.3,5,5.2,1.5,1+sd); fan(sd*5.4,0.5,6,6.6,1.9,4+sd); fan(sd*7.8,1.4,5,5.6,1.7,7+sd); fan(sd*4.3,-1.1,4,3.2,1.6,10+sd);
       for(let w=2.5,k=0;w<LG;w+=3,k++) fan(sd*(4.2+h(k,30+sd)*0.6),w,5,5+h(k,33+sd),1.6,20+k*2+sd); }
-    fan(0,13.5,7,7.5,2.2,40);   /* one great fan at the far end, behind everything */
+    if(far<40) fan(0,13.5,7,7.5,2.2,40);   /* (seen from the rest site, a great fan stands at the far end; on the trail that end is closed by leaves that open: see leafIris) */
     belt(2.3,(u,sd,i)=>{ leaf(sd,1.5+h(i,1)*3,100+i,Math.abs(u)+2.6,3.2+h(i,2)*1.6,2.4+h(i,3)); if(i%2===0) fan(u,2.8+h(i,20)*2.5,5,4+h(i,21)*3,1.7,200+i); for(let k=0;k<2;k++) E('cone',u+h(i,4+k)*1.2,0,2.5+h(i,6+k)*2,0.3,4.5+h(i,8+k)*3,0.3,pk2(BLADES,h(i,10+k))); }); return; }
   if(look==='willow'){   /* willows either side, and their long strands hanging to the ground like a bead curtain */
     const WL=[C('#9fd8b0'),C('#8fbf9f'),C('#bfe3c8'),C('#a8d49a')];
@@ -1718,6 +1718,40 @@ const fox=new THREE.Group();
   [-1,1].forEach(sd=>{ const ear=new THREE.Mesh(new THREE.ConeGeometry(0.055,0.16,4),dark); ear.position.set(sd*0.08,0.72,0.4); ear.castShadow=true; fox.add(ear);
     [0.24,-0.24].forEach(z=>fox.add(ball(dark,0.04,0.9,3.6,0.9,sd*0.1,0.14,z))); });
   fox.scale.setScalar(1.25); fox.visible=false; scene.add(fox); }
+/* In the giant garden, where the girls are the size of ladybirds, two of the neighbours are out for a walk: an ant as long as June is tall,
+   busy and quick, which wanders about on the far side of the path; and an inchworm longer still, looping its slow way along the edge of it. */
+const giantAnt=new THREE.Group(), giantWorm=new THREE.Group(), antLegs=[], wormSegs=[];
+{ const sh=L('#7a2e22'), dk=L('#4a1c18'), eye=new THREE.MeshBasicMaterial({color:0x140c10});
+  giantAnt.add(ball(sh,0.34,1,0.9,1.35,0,0.62,-0.62),ball(dk,0.2,1,0.95,1.2,0,0.6,-0.04),ball(sh,0.24,1,0.95,1.05,0,0.68,0.42),ball(eye,0.05,1,1,1,-0.14,0.76,0.56),ball(eye,0.05,1,1,1,0.14,0.76,0.56),
+    ball(dk,0.03,0.8,0.8,7,-0.12,0.95,0.78),ball(dk,0.03,0.8,0.8,7,0.12,0.95,0.78),ball(dk,0.035,3,1,1,0,0.6,0.64));
+  giantAnt.children[5].rotation.set(-0.5,0.35,0); giantAnt.children[6].rotation.set(-0.5,-0.35,0);
+  for(const sd of [-1,1]) for(let k=0;k<3;k++){ const piv=new THREE.Group(); piv.position.set(sd*0.14,0.58,-0.22+k*0.2); const up=ball(dk,0.03,9,1,1,sd*0.26,0.1,0), lo=ball(dk,0.028,1,11,1,sd*0.5,-0.2,0); up.rotation.z=sd*0.35; lo.rotation.z=sd*0.25; piv.add(up,lo); giantAnt.add(piv); antLegs.push({piv,ph:(k+(sd>0?1:0))%2*Math.PI,k}); }
+  const g1=L('#9ccf4a'), g2=L('#7fb53a'); for(let i=0;i<11;i++){ const m=ball(i%2?g2:g1,i===10?0.19:0.16,1,1,1,0,0,0); giantWorm.add(m); wormSegs.push(m); }
+  giantWorm.add(ball(eye,0.035,1,1,1,-0.08,0,0),ball(eye,0.035,1,1,1,0.08,0,0));
+  [giantAnt,giantWorm].forEach(g=>{ g.visible=false; scene.add(g); }); }
+const bugs={t:0,ax:0,az:0,ws:-1,wp:0};
+function updateGiantLife(dt){ const on=state.started&&mode==='trail'&&bioKeyAt(party.s)==='giant'&&gateK(party.s)<0.5; giantAnt.visible=giantWorm.visible=on; if(!on){ bugs.ws=-1; return; }
+  bugs.t+=dt; const t=bugs.t;
+  /* the ant: to and fro on the far side of the path, never still, always a little ahead of the girls */
+  { const s=party.s+6+5.5*Math.sin(t*0.16)+1.5*Math.sin(t*0.43), lat=-5.6-2.6*Math.sin(t*0.23+1)+0.8*Math.sin(t*0.61), x=trailX(s)+lat, dx=x-bugs.ax, dz=s-bugs.az, sp=Math.hypot(dx,dz)/Math.max(dt,1e-3);
+    giantAnt.position.set(x,groundY(x,s),s); if(sp>0.05) giantAnt.rotation.y=Math.atan2(dx,dz); bugs.ax=x; bugs.az=s; bugs.leg=(bugs.leg||0)+dt*clamp(sp,0.4,3)*7;
+    antLegs.forEach(l=>{ l.piv.rotation.y=Math.sin(bugs.leg+l.ph)*0.45; l.piv.rotation.z=Math.max(0,Math.cos(bugs.leg+l.ph))*0.12*(l.piv.position.x>0?1:-1); });
+    giantAnt.children[5].rotation.x=-0.5+0.15*Math.sin(t*5); giantAnt.children[6].rotation.x=-0.5+0.15*Math.sin(t*5+1.3); }
+  /* the inchworm: stretch out flat, then bring the back end up into a tall loop, again and again, along the near edge of the path; when the girls have left it behind it turns up again ahead of them */
+  { const L0=2.3, N=wormSegs.length; if(bugs.ws<0||bugs.ws<party.s-9||bugs.ws>party.s+26) bugs.ws=party.s+13;
+    bugs.wp+=dt*0.42; if(bugs.wp>=1){ bugs.wp-=1; bugs.ws+=L0*0.5; } const p=bugs.wp, c=0.5-0.5*Math.cos(6.283*p), Lc=L0*(1-0.5*c), tail=p<0.5?bugs.ws+L0-Lc:bugs.ws+L0*0.5;
+    wormSegs.forEach((m,i)=>{ const u=i/(N-1), z=tail+u*Lc, x=trailX(z)-2.75; m.position.set(x,groundY(x,z)+0.17+c*0.95*Math.sin(Math.PI*u),z); });
+    const hd=wormSegs[N-1].position, e=giantWorm.children; e[N].position.set(hd.x-0.08,hd.y+0.09,hd.z+0.15); e[N+1].position.set(hd.x+0.08,hd.y+0.09,hd.z+0.15); } }
+/* The far end of the giant garden's gateway is shut by a ring of leaves, overlapping like the blades of a camera's shutter. As the girls come
+   up to it the leaves swing aside, each on its own stalk at the rim, and the way out opens in the middle. */
+const leafIris=new THREE.Group(), irisBlades=[]; leafIris.visible=false; scene.add(leafIris);
+{ const LF=['#6aa857','#79b05a','#5d9b4f','#86b866'].map(c=>L(c)), rib=L('#a8cf7a'), NB=9, R=3.3;
+  for(let k=0;k<NB;k++){ const a=k/NB*6.283, piv=new THREE.Group(); piv.position.set(Math.cos(a)*R,Math.sin(a)*R,-k*0.035);
+    const bl=new THREE.Mesh(blobGeo,LF[k%4]); bl.scale.set(2.15,0.95,0.07); bl.position.x=1.95; const rb=new THREE.Mesh(blobGeo,rib); rb.scale.set(2.1,0.05,0.075); rb.position.set(1.95,0,-0.03);
+    const st=new THREE.Mesh(blobGeo,LF[2]); st.scale.set(0.5,0.09,0.09); st.position.x=-0.3; bl.castShadow=true; piv.add(bl,rb,st); leafIris.add(piv); irisBlades.push({piv,a}); } }
+function updateIris(){ const on=state.started&&mode==='trail'&&picks[2]&&legKey(2)==='giant'&&party.s>GA[2]-45&&party.s<GB[2]+30; leafIris.visible=on; if(!on) return;
+  const z=GA[2]+11.4, open=smooth(z-8.5,z-2.2,party.s); leafIris.position.set(trailX(z),trailY(z)+2.2,z); leafIris.rotation.y=heading(z);
+  irisBlades.forEach((b,k)=>{ b.piv.rotation.z=b.a+Math.PI-0.42+open*1.5+0.04*Math.sin(time*1.3+k); }); }   /* shut: every blade reaches in past the middle; open: they lie back along the rim */
 /* wild geese: grey-brown, long black necks, white chins, big slow wings; nine of them in a V */
 const gaggle=new THREE.Group(); gaggle.visible=false; scene.add(gaggle);
 const geese=[[0,0,0],[-1.5,0.15,-1.6],[1.5,0.1,-1.7],[-3,0.3,-3.2],[3,0.25,-3.4],[-4.5,0.4,-4.9],[4.6,0.45,-5.1],[-6,0.55,-6.6],[6.1,0.6,-6.8]].map(p=>{
@@ -4743,7 +4777,7 @@ function frame(now){
     m.sp.material.opacity=m.o*reveal*smooth(3,10,m.sp.position.distanceTo(camera.position))*(0.8+0.2*Math.sin(time*0.3+m.ph)); });
 
   /* the river glints, and can be heard from the bend */
-  riverBits.forEach((p,k)=>{ p.material.opacity=0.4+0.35*Math.sin(time*3.1+k*2.6); }); updateFish(dt);
+  riverBits.forEach((p,k)=>{ p.material.opacity=0.4+0.35*Math.sin(time*3.1+k*2.6); }); updateFish(dt); updateGiantLife(dt); updateIris();
   { const rk=state.started?Math.max(waterBed,Math.exp(-Math.pow((party.s-RIVER_Z+2)/13,2))):0; if(Math.abs(rk-riverHeard)>0.03){ riverHeard=rk; Music.river(rk); } }
 
   /* pollen in the sunbeams; past the fork it turns into leaves drifting down */
