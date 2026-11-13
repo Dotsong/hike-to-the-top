@@ -3636,7 +3636,7 @@ function onReveal(){
    The camera circles slowly on its own, and can be dragged right round. */
 let summit=null;
 /* the last stair: where it runs (x, z from the foot to the ridge), how steep the face is, and how high the ground is anywhere on it */
-const STAIR={zt:-5.3,zb:-19,slope:0.72,path:[[-4.6,-19],[4.6,-16.6],[-4.6,-14.2],[4.6,-11.8],[-4.6,-9.4],[1.6,-6.9],[0.2,-5.2]]};
+const STAIR={zt:-5.3,zb:-19,slope:0.72,path:[[-4.6,-19],[4.6,-16.6],[-4.6,-14.2],[4.6,-11.8],[-4.6,-9.4],[0,-8.1],[0,-5.0]]};   /* (the last flight goes straight up the middle, through the gap in the ridge) */
 const stairY=(x,z)=>z>=STAIR.zt?0:Math.round((z-STAIR.zt)*STAIR.slope/0.1)*0.1;
 const stairRamp=(x,z)=>z>=STAIR.zt?0:(z-STAIR.zt)*STAIR.slope+0.03;   /* what the girls actually walk on: the same face without the steps, so they glide up it and do not jolt from stone to stone */
 const stairX=z=>{ const P=STAIR.path; for(let i=0;i<P.length-1;i++) if(z>=P[i][1]&&z<=P[i+1][1]) return lerp(P[i][0],P[i+1][0],(z-P[i][1])/(P[i+1][1]-P[i][1])); return 0; };
@@ -3678,7 +3678,7 @@ function buildSummit(){
     for(let i=0;i<40;i++){ const sd=i%2?1:-1, z=STAIR.zb-6+r()*(STAIR.zt-STAIR.zb+6), x=sd*(6.6+r()*4.6), sz=0.8+r()*1.7; rock(x,stairY(x,z)+sz*0.25-0.2,z,sz*1.2,sz*0.8,sz); }   /* boulders either side of the stair */
     for(const sd of [-1,1]) for(let k=0;k<15;k++){ const z=STAIR.zt-0.6-k*2.1, sz=2.3+r()*1.5; rock(sd*(12.3+r()*1.2),stairY(0,z)-0.3-r()*1.2,z+r(),sz*1.15,sz*0.9,sz); if(k%2) rock(sd*(14.6+r()*1.5),stairY(0,z)-2.6-r()*2,z,sz*1.3,sz,sz*1.1); }   /* and bigger ones all down both edges of the face, so that it ends in broken rock and not in a straight line */
     for(let i=0;i<14;i++){ const z=STAIR.zb+r()*(STAIR.zt-STAIR.zb), x=(r()-0.5)*9, sz=0.25+r()*0.3; if(Math.abs(x-stairX(z))<1.6) continue; rock(x,stairY(x,z)+sz*0.2,z,sz*1.3,sz*0.7,sz); }
-    for(let i=0;i<16;i++){ const sd=i%2?1:-1, x=sd*(1.9+(i>>1)*1.25+r()*0.5), sz=1.3+r()*0.9; rock(x,0.15+r()*0.5,STAIR.zt-0.5-r()*0.8,sz*1.1,sz,sz*0.9); }   /* the ridge: it hides the top until the very last step */
+    for(let i=0;i<16;i++){ const sd=i%2?1:-1, x=sd*(2.55+(i>>1)*1.25+r()*0.5), sz=1.3+r()*0.9; rock(x,0.15+r()*0.5,STAIR.zt-0.5-r()*0.8,sz*1.1,sz,sz*0.9); }   /* the ridge: it hides the top until the very last step */
     /* prayer flags: strings of small squares, blue white red green yellow, sagging between two poles across each turn of the stair */
     const PRAY=['#3f7fd0','#f6f3ea','#d9443a','#3f9a55','#f0c63a'], pole=(x,z,h)=>{ const m=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.045,h,6),L('#6e5a48')); m.position.set(x,stairY(x,z)+h/2-0.1,z); m.castShadow=true; sc.add(m); return stairY(x,z)+h-0.15; };
     const string=(x0,z0,x1,z1,h)=>{ const y0=pole(x0,z0,h), y1=pole(x1,z1,h), n=Math.max(8,Math.round(Math.hypot(x1-x0,z1-z0)/0.42)), ry=Math.atan2(x1-x0,z1-z0)+Math.PI/2;
@@ -3871,8 +3871,8 @@ function updateStair(dt,rawDt){ const S=summit, P=STAIR.path, J=juneB, Pp=pipB;
   if(!J.cur&&!J.queue.length&&!Pp.cur&&!Pp.queue.length){
     if(S.leg>=P.length-1){ reachTop(); return; }
     const say=STAIR_SAY[S.leg]; if(say&&quiet()&&!S['said'+S.leg]){ S['said'+S.leg]=1; playScript(say); const hd=Math.atan2(P[S.leg+1][0]-P[S.leg][0],P[S.leg+1][1]-P[S.leg][1]); J.queue.push({k:'pose',pose:'point',dur:2.4,face:hd}); Pp.queue.push({k:'pose',pose:'look',dur:2.4,face:hd}); return; }
-    const a=P[S.leg], b=P[S.leg+1], len=Math.hypot(b[0]-a[0],b[1]-a[1]), ux=(b[0]-a[0])/len, uz=(b[1]-a[1])/len; S.leg++;
-    J.queue.push({k:'walk',to:[b[0],b[1]],speed:1.05}); Pp.queue.push({k:'walk',to:[b[0]-ux*0.95+uz*0.25,b[1]-uz*0.95-ux*0.25],speed:1.08}); } }
+    const a=P[S.leg], b=P[S.leg+1], len=Math.hypot(b[0]-a[0],b[1]-a[1]), ux=(b[0]-a[0])/len, uz=(b[1]-a[1])/len; const lat=S.leg>=P.length-3?0:0.25; S.leg++;   /* through the gap at the top they go one behind the other */
+    J.queue.push({k:'walk',to:[b[0],b[1]],speed:1.05}); Pp.queue.push({k:'walk',to:[b[0]-ux*0.95+uz*lat,b[1]-uz*0.95-ux*lat],speed:1.08}); } }
 function updateSummit(dt,rawDt){
   summit.t+=dt; BRAINS.forEach(b=>updateSummitBrain(b,dt)); summit.update(dt,time);
   /* When the girls have had their look round, it turns out they were followed: the friend they made in the village pops up from behind the
