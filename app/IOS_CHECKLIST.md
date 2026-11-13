@@ -85,7 +85,7 @@ At [appstoreconnect.apple.com](https://appstoreconnect.apple.com), go to **Apps*
 
 ### Screenshots
 
-Screenshots are not made yet. Take them in the simulator with **File → Save Screen** (⌘S). Apple's accepted sizes ([screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)):
+Ready-made screenshots are in `app/screenshots/`: ten for each slot, numbered in the order to upload. Drag them in. To retake any, use **File → Save Screen** (⌘S) in the simulator. Apple's accepted sizes ([screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications)):
 
 | Slot | Simulator to use | Size, portrait | Needed? |
 | --- | --- | --- | --- |
@@ -131,7 +131,6 @@ Then raise the **Build** number (and the **Version**, for a visible update), arc
 ## Still to do before you submit
 
 - [ ] Put a real contact email in `privacy.html`, replacing `[your contact email]`.
-- [ ] Take the screenshots (step 6).
 - [ ] Decide whether to keep the draft icon.
 - [ ] Decide whether the Testing button should ship at all. It is hidden behind the picture lock, but it can be removed for the store build.
 - [ ] Play the game through once on a real device. It has only been tested in a desktop browser so far.
@@ -144,6 +143,7 @@ Then raise the **Build** number (and the **Version**, for a visible update), arc
 | `capacitor.config.json` | App ID, name, background color, web-view settings |
 | `vendor-files/` | three.js r128 and the three fonts, with their licenses |
 | `www/` | The built offline game, made by `npm run build`; not stored in the repo |
+| `screenshots/` | Ten iPhone and ten iPad screenshots, plus a contact sheet of each |
 | `icon/` | `AppIcon-1024.png` and the `icon.svg` it was drawn from |
 | `APP_STORE_LISTING.md` | Ready-to-paste App Store text and the App Review note |
 | `IOS_CHECKLIST.md` | This guide, as a file in the repo |
