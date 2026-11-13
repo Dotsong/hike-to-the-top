@@ -2249,6 +2249,29 @@ function hiRig(g,b,rg,drop,walking,dt){ const H=g.hi, A=0.15, B=0.125;
     const want=torch?0:-(0.16+0.5*clamp(-ax/2.2,0,1)+(walking?0.2*Math.max(0,-ax):0)); const E=H.elbows[i]; E.rotation.x=damp(E.rotation.x,want,10,dt); });
   const say=curLine&&curLine.w===(g===june?0:1); H.oh.visible=!!say; H.smile.visible=!say; if(say) H.oh.scale.set(0.95,0.3+0.75*Math.abs(Math.sin(time*10.5)*Math.sin(time*3.7+1)),1);
 }
+/* Spaghetti, modelled: real strands looping over a low heap, sauce ladled on top, meatballs, cheese and a sprig of basil; on a plate
+   with a red line round its rim, or (big) in the serving bowl with its two painted bands and a wooden fork. */
+function hiSpaghetti(big){ const G=new THREE.Group(); let sd=big?31:7; const R=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  const lathe=(pts,seg)=>new THREE.LatheGeometry(new THREE.SplineCurve(pts.map(p=>new THREE.Vector2(p[0],p[1]))).getPoints(20),seg||40);
+  const lump=(r,seg,rows,f)=>{ const g=new THREE.SphereGeometry(r,seg,rows), p=g.attributes.position, v=new THREE.Vector3(); for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); f(v); p.setXYZ(i,v.x,v.y,v.z); } g.computeVertexNormals(); return g; };
+  const china=L(big?'#fffaf0':'#fff6ec',{side:THREE.DoubleSide}), pasta=L('#f3cf7a'), pasta2=L('#eebf62'), red=L('#c8402f'), meat=L('#7a4630');
+  const rad=big?0.2:0.125, high=big?0.105:0.055, y0=big?0.07:0.014, n=big?40:16, thick=big?0.0085:0.0075, dome=r=>high*Math.max(0,1-(r/rad)*(r/rad)), top=r=>dome(r)*1.2+(big?0.022:0.016);
+  if(big){ hiM(lathe([[0,0.022],[0.1,0.024],[0.19,0.05],[0.25,0.11],[0.275,0.17],[0.283,0.176],[0.29,0.17],[0.268,0.1],[0.2,0.03],[0.12,0.006],[0.1,0],[0,0]]),china,0,0,0,G);
+    [[0.150,0.2835,'#e8a03a'],[0.162,0.2885,'#d9534a']].forEach(([y,r,c])=>{ hiM(new THREE.TorusGeometry(r,0.0034,5,48),L(c),0,y,0,G).rotation.x=Math.PI/2; }); }
+  else { hiM(lathe([[0,0.012],[0.1,0.012],[0.145,0.016],[0.185,0.03],[0.215,0.036],[0.222,0.031],[0.2,0.02],[0.14,0.004],[0.09,0],[0,0]]),china,0,0,0,G); hiM(new THREE.TorusGeometry(0.203,0.0036,5,48),L('#d9534a'),0,0.0345,0,G).rotation.x=Math.PI/2; }
+  hiM(lump(rad*0.9,20,10,v=>{ const r=Math.hypot(v.x,v.z); v.y=v.y>0?dome(r/0.9)*0.86:v.y*0.05; }),pasta2,0,y0,0,G);
+  for(let k=0;k<n;k++){ const pts=[], turns=1.2+R()*2.2, a0=R()*6.283, r0=rad*(0.25+R()*0.6), wob=2+((R()*4)|0), ph=R()*6.283, lift=R(), stray=R()<0.12, len=22+((R()*14)|0), dir=R()<0.5?1:-1;
+    for(let i=0;i<=len;i++){ const u=i/len, a=a0+dir*u*turns*6.283, r=clamp(r0*(0.75+0.45*Math.sin(u*wob*6.283+ph))+(stray?rad*0.22*Math.sin(u*3.1):0),rad*0.04,rad*(stray?1.08:0.96));
+      pts.push(new THREE.Vector3(Math.sin(a)*r,y0+dome(Math.min(r,rad))*(0.82+0.3*lift)+thick*(0.6+1.8*lift)+thick*1.2*Math.sin(u*wob*9+ph*2),Math.cos(a)*r)); }
+    hiM(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),len*2,thick,5,false),k%3?pasta:pasta2,0,0,0,G); }
+  const sr=big?0.125:0.075; hiM(lump(sr,24,12,v=>{ const a=Math.atan2(v.x,v.z), r=Math.hypot(v.x,v.z)/sr, k=1+0.1*Math.sin(a*5+1)+0.06*Math.sin(a*9+2.2); v.x*=k; v.z*=k; const rr=Math.hypot(v.x,v.z); v.y=v.y>0?top(rr)+sr*0.16*(1-r*r):top(rr)-0.004; }),red,0,y0,0,G);
+  (big?[[0.06,0.03,0.026],[-0.055,0.035,0.027],[-0.01,-0.06,0.025],[0.075,-0.05,0.024],[-0.085,-0.04,0.024],[0.005,0.09,0.025]]:[[0.035,0.02,0.021],[-0.03,-0.012,0.023],[0,0.045,0.019]]).forEach(([x,z,r])=>{ const y=y0+top(Math.hypot(x,z))+(big?0.03:0.02);
+    hiM(new THREE.SphereGeometry(r,12,9),meat,x,y,z,G); hiM(lump(r*0.82,10,6,v=>{ const a=Math.atan2(v.x,v.z), k=1+0.2*Math.sin(a*4+x*20); v.x*=k; v.z*=k; v.y=v.y>0?v.y*0.42:v.y*0.02; }),red,x,y+r*0.72,z,G); });
+  { const cg=new THREE.BoxGeometry(0.008,0.003,0.018), cm=L('#fff3d0'), cr=big?0.15:0.085; for(let i=0;i<(big?40:18);i++){ const a=R()*6.283, r=cr*Math.sqrt(R()), c=hiM(cg,cm,Math.sin(a)*r,y0+top(r)+(big?0.022:0.014),Math.cos(a)*r,G); c.rotation.set(R()*0.6,R()*6.283,R()*0.6); } }
+  { const lf=new THREE.Group(), sc=big?0.85:0.55; lf.position.set(big?0:-0.012,y0+top(0.02)+(big?0.05:0.036),big?0:-0.03); lf.rotation.set(-0.25,big?1.1:0.6,0.1); lf.scale.setScalar(sc); G.add(lf);
+    [-0.55,0.5].forEach((a,i)=>{ const m=hiM(lump(0.05,10,6,v=>{ v.x*=0.62; v.y=-v.x*v.x*4+v.z*v.z*1.2; v.z*=1.25; v.x*=1-0.5*Math.max(0,v.z/0.06); }),L(i?'#4f9a4a':'#3f8a42',{side:THREE.DoubleSide}),Math.sin(a)*0.045,i*0.004,Math.cos(a)*0.045,lf); m.rotation.y=a; }); }
+  if(big){ const wood=L('#b98a5a'), fk=new THREE.Group(); fk.position.set(0.17,0.2,0.1); fk.rotation.set(0.35,-0.9,-0.95); G.add(fk); hiM(new THREE.CylinderGeometry(0.008,0.011,0.3,8),wood,0,0.12,0,fk); hiM(lump(0.034,10,6,v=>{ v.z*=0.35; v.y*=1.5; }),wood,0,-0.07,0,fk); }
+  G.traverse(o=>{ if(o.isMesh) o.castShadow=true; }); return G; }
 function makeGirl(o){ if(o.hi&&HI_MODELS) return makeGirlHi(o);
   const g=new THREE.Group(), skin=L(o.skin), hair=L(o.hair);
   const legs=[-0.08,0.08].map(x=>{const piv=new THREE.Group();piv.position.set(x,0.3,0);
@@ -4037,7 +4060,8 @@ function buildHome(){
   const chair=(x,z,seat,ry)=>{ const g=new THREE.Group(); box(0.56,0.06,0.56,'#a9744a',0,seat-0.03,0,g); box(0.56,0.8,0.06,'#a9744a',0,seat+0.42,-0.26,g);
     [[-0.24,-0.24],[0.24,-0.24],[-0.24,0.24],[0.24,0.24]].forEach(([a,b])=>box(0.06,seat-0.06,0.06,'#8a5a3c',a,(seat-0.06)/2,b,g)); g.position.set(x,0,z); g.rotation.y=ry; sc.add(g); };
   chair(-0.6,-1.12,SEAT_H+0.2,0); chair(0.6,-1.12,SEAT_H+0.2,0);   /* the girls' chairs are the tall ones */ chair(-2.0,0.1,0.84,Math.PI/2); chair(2.0,0.1,0.84,-Math.PI/2);
-  const plate=(x,z,big)=>{ const s=big?1.5:1; cyl(0.21*s,0.17*s,0.03,'#fff6ec',x,TY+0.027,z); const p=ball(0.15*s,'#f2cf6b',x,TY+0.075,z); p.scale.y=0.45; const q=ball(0.085*s,'#d9534a',x,TY+0.12,z); q.scale.y=0.45;
+  const dish={}, plate=(x,z,big)=>{ if(HI_MODELS){ const k=big?'b':'p', d=dish[k]?dish[k].clone():(dish[k]=hiSpaghetti(big)); d.position.set(x,TY+0.012,z); d.rotation.y=x*7+z*3; if(big) d.scale.setScalar(1.08); sc.add(d); return; }
+    const s=big?1.5:1; cyl(0.21*s,0.17*s,0.03,'#fff6ec',x,TY+0.027,z); const p=ball(0.15*s,'#f2cf6b',x,TY+0.075,z); p.scale.y=0.45; const q=ball(0.085*s,'#d9534a',x,TY+0.12,z); q.scale.y=0.45;
     ball(0.035,'#8a5a3c',x+0.05*s,TY+0.15,z+0.03); ball(0.035,'#8a5a3c',x-0.06*s,TY+0.14,z-0.04); };
   plate(-0.6,-0.42); plate(0.6,-0.42); plate(-1.05,0.12); plate(1.05,0.12); plate(0,0.22,true);
   [[-0.28,-0.3],[0.9,-0.28],[-0.92,0.5],[1.0,-0.2]].forEach(([x,z])=>cyl(0.045,0.04,0.13,new THREE.MeshLambertMaterial({color:0xbfe3ff,transparent:true,opacity:0.7}),x,TY+0.075,z));
