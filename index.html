@@ -4022,7 +4022,8 @@ function buildHome(){
   cyl(0.36,0.36,0.05,'#a9744a',px,0.9,pz); cyl(0.05,0.07,0.9,'#8a5a3c',px,0.45,pz); cyl(0.2,0.2,0.03,'#8a5a3c',px,0.015,pz);
   const phone=new THREE.Group(); phone.position.set(px,0.93,pz); phone.rotation.y=-0.7; sc.add(phone);
   const phM=new THREE.MeshLambertMaterial({color:0xd9534a,emissive:0xffd27a,emissiveIntensity:0});
-  { box(0.36,0.14,0.26,phM,0,0.07,0,phone); cyl(0.09,0.09,0.02,'#fff6ec',0,0.15,0.03,phone); box(0.42,0.06,0.07,phM,0,0.22,-0.04,phone); ball(0.06,phM,-0.2,0.2,-0.04,phone); ball(0.06,phM,0.2,0.2,-0.04,phone); }
+  { box(0.36,0.14,0.26,phM,0,0.07,0,phone); cyl(0.09,0.09,0.02,'#fff6ec',0,0.15,0.03,phone); }
+  const handset=new THREE.Group(); handset.position.set(0,0.22,-0.04); phone.add(handset); box(0.42,0.06,0.07,phM,0,0,0,handset); ball(0.06,phM,-0.2,-0.02,0,handset); ball(0.06,phM,0.2,-0.02,0,handset);   /* the receiver lifts off */
   const ringGlow=new THREE.PointLight(0xffe7a0,0,5,1.5); ringGlow.position.set(px-0.5,1.5,pz+0.4); sc.add(ringGlow);
   { box(1.3,0.08,0.1,'#8a5a3c',2.75,2.0,BZ+0.06); [['#d9506e',2.35,0.62],['#4fa0dc',2.8,0.5],['#e58fa6',3.15,0.7]].forEach(([c,x,h])=>{ ball(0.04,'#3a3340',x,2.0,BZ+0.13); const ct=box(0.34,h,0.14,c,x,1.95-h/2,BZ+0.16); ct.rotation.z=(x-2.8)*0.08; });
     [[2.4,'#d9506e'],[2.62,'#d9506e'],[2.95,'#4fa0dc'],[3.15,'#4fa0dc']].forEach(([x,c])=>{ box(0.16,0.26,0.26,c,x,0.13,BZ+0.35); }); }
@@ -4079,7 +4080,7 @@ function buildHome(){
      like to sit. The girls can see them. Mom and Dad cannot. */
   const now=FOLK[legKey(2)]?legKey(2):'glow', keys=[now].concat(friendsHome().filter(k=>k!==now)), SPOTS=[[-1.85,1.76,BZ+0.16,0.4],[0.42,TY+0.03,0.42,0.3],[0.55,2.72,BZ+0.25,0.34],[HW-0.45,0.97,2.55,0.36]];   /* on the window sill, on the table, on top of the bookshelf, on the kitchen counter */
   const pals=keys.map((k,i)=>{ const f=makeFolk(k,SPOTS[i][3]); f.spot=SPOTS[i]; f.g.position.set(f.spot[0],f.spot[1],f.spot[2]); sc.add(f.g); return f; }), pal=pals[0];
-  return {scene:sc,mom,dad,pal,pals,phone,phM,ringGlow,steam:home_steam,
+  return {scene:sc,mom,dad,pal,pals,phone,handset,phoneAt:[px,pz],phM,ringGlow,steam:home_steam,
     update(t,speaker){ home_steam.forEach((m,k)=>{ const u=(t*0.35+k/3)%1; m.position.y=1.42+u*0.9; m.scale.setScalar(0.6+u*1.2); m.material.opacity=0.45*(1-u); }); pals.forEach((f,i)=>{ animFolk(f,t,0.6); f.g.rotation.y=Math.sin(t*0.5+i*1.7)*0.5; }); [mom,dad].forEach((a,i)=>{ const ph=i*2.3, talking=speaker===3+i;
         const listen=speaker===0||speaker===1||speaker===3+(1-i);
         a.head.rotation.y=(i?0.25:-0.25)*Math.sin(t*0.4+ph)+(speaker===0||speaker===1?(i?-0.35:0.35):0)*0.6;   /* they look at whichever girl is talking */
@@ -4093,6 +4094,8 @@ function buildHome(){
     dispose(){ sc.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose(); }); } };
 }
 function updateHomeBrain(b,dt){
+  if(b.hw&&b.hw.length){ const w=b.hw[0]; if(moveToward(b,w[0],w[1],1.5,dt)<0.07) b.hw.shift(); finishBrain(b,'idle',true,dt); return; }   /* up from the table and across the room, or back again */
+  if(b.stand){ b.faceT=b.stand.face; finishBrain(b,b.stand.pose,false,dt); return; }
   if(!b.cur&&b.queue.length){ b.cur=b.queue.shift(); b.t=0; } b.t+=dt; let pose='sit';
   if(b.cur){ pose=b.cur.pose; if(b.t>=b.cur.dur) b.cur=null; }
   else { const mine=curLine&&curLine.w===BRAINS.indexOf(b); if(mine) b.queue.push({pose:pick(['sitwave','sitpoint','sitlook']),dur:1.8+Math.random()*1.2}); }   /* her arms come up only while she is the one telling the story; otherwise they hang at her sides */
@@ -4105,7 +4108,7 @@ function enterHome(){
     if(!forceSecret) remember('friends',legKey(2)); home=buildHome(); Object.assign(home,{t:0,done:false,cam0:camTheta,phase:0,pt:0});
     scene.remove(june.g,pip.g); home.scene.add(june.g,pip.g); june.pack.visible=pip.pack.visible=false; setTorches(0); endEvent();
     mode='home'; landY=()=>0.2; zoom=0.62; userPhi=0;   /* dinner opens close in on the table (0.5 is as close as the camera goes) */
-    BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(i?0.6:-0.6,-1.12); b.face=b.faceT=0; b.actIn=2+i*2.5; });
+    BRAINS.forEach((b,i)=>{ b.queue.length=0; b.cur=null; b.skip=0; b.hop=0; b.duck=0; b.pos.set(i?0.6:-0.6,-1.12); b.face=b.faceT=0; b.actIn=2+i*2.5; b.hw=null; b.stand=null; });
     bubbles[3].head=home.mom.head; bubbles[3].root=home.mom.g; bubbles[4].head=home.dad.head; bubbles[4].root=home.dad.g;
     hushBubbles(); hushNarrator(); playScript(homeScript()); speakIn=30;
     narrate('And just like that they were home, and it was spaghetti night.');
@@ -4120,8 +4123,8 @@ function updateHome(dt,rawDt){
       narrate('Dad smiled, and went on eating. He did not look at the window. If he had, he would have seen someone small there, waving.');
       theEnd(`Friends who have come home with you: ${nf} of 4. Places found: ${np} of 10. Dad's notes found: ${saved.notes.length} of 7.`); } }
   if(home.phase===1){ const k=0.5+0.5*Math.sin(time*14); home.phM.emissiveIntensity=k*0.9; home.ringGlow.intensity=k*1.3; home.phone.rotation.z=Math.sin(time*40)*0.05; if(Math.floor(time/2.6)!==Math.floor((time-dt)/2.6)) Music.sfx('ring'); }
-  else if(home.phase>=2){ home.phM.emissiveIntensity=0.25; home.ringGlow.intensity=0.5; home.phone.rotation.z=0; bubbles[5].head=home.phone; bubbles[5].root=home.phone;
-    if(home.phase===2&&home.t>home.pt+6&&quiet()){ home.phase=3; home.pt=home.t; narrate('So Glim and Dot and Plip and Ting joined hands, more or less, and the dining room filled up with light.'); Music.gust(); }
+  else if(home.phase>=2){ home.phM.emissiveIntensity=0.25; home.ringGlow.intensity=0.5; home.phone.rotation.z=0; bubbles[5].head=home.handset; bubbles[5].root=home.phone;
+    if(home.phase===2&&phoneStep()){ home.phase=3; home.pt=home.t; narrate('So Glim and Dot and Plip and Ting joined hands, more or less, and the dining room filled up with light.'); Music.gust(); }
     if(home.phase===3){ const u=home.t-home.pt; home.pals.forEach((f,i)=>{ const a=u*2.4+i*1.57, k=smooth(0,2.2,u); f.g.position.set(lerp(f.spot[0],Math.sin(a)*1.5,k),lerp(f.spot[1],2.1+Math.sin(u*3+i)*0.2,k),lerp(f.spot[2],-0.6+Math.cos(a)*1.5,k)); f.g.scale.setScalar(lerp(f.spot[3],0.6,k)); });
       home.ringGlow.position.set(0,2.2,-0.6); home.ringGlow.intensity=2.2*smooth(0.5,3.5,u); [june,pip].forEach(g=>{ g.g.position.y+=smooth(2.4,4.4,u)*1.6; });
       if(u>3.2&&!home.flash){ home.flash=true; Music.amb('lift'); Music.amb('twinkle'); Music.amb('chime'); const fd=$('fade'); fd.classList.add('white'); fd.style.transition='opacity 1.2s ease-in'; fd.classList.add('on'); }   /* the light fills the room, and then everything: a rising hum, a chime, and white */
@@ -4135,7 +4138,7 @@ function updateHome(dt,rawDt){
     const tx=Math.abs(ux)>1e-4?((ux>0?-HWb:HWb)-camera.position.x)/ux:-1e9, tz=Math.abs(uz)>1e-4?((uz>0?ZCb-HDb:ZCb+HDb)-camera.position.z)/uz:-1e9, enter=Math.max(0,tx,tz)*Math.cos(Math.asin(clamp(off.y/r,-1,1)));
     const nr=clamp(Math.max(r*0.3,enter+1.5),0.3,r-2.2); if(Math.abs(camera.near-nr)>0.01){ camera.near=nr; camera.updateProjectionMatrix(); } }
 }
-function leaveHome(){ camera.near=0.3; camera.updateProjectionMatrix(); $('phoneDock').hidden=true; bubbles[5].head=nobody.head; bubbles[5].root=nobody.g; home.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); june.pack.visible=pip.pack.visible=true;
+function leaveHome(){ if(home.handset.parent!==home.phone) home.phone.add(home.handset); BRAINS.forEach(b=>{ b.hw=null; b.stand=null; }); camera.near=0.3; camera.updateProjectionMatrix(); $('phoneDock').hidden=true; bubbles[5].head=nobody.head; bubbles[5].root=nobody.g; home.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); june.pack.visible=pip.pack.visible=true;
   bubbles[3].head=bubbles[4].head=nobody.head; bubbles[3].root=bubbles[4].root=nobody.g; home.dispose(); home=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
 /* the friend's offer at the summit, accepted */
 /* The four ways home. Each builds what it needs on the summit and returns a function that, given the seconds since the girls said yes, puts
@@ -4306,11 +4309,21 @@ function updateMoon(dt,rawDt){
 }
 function leaveMoon(){ moonS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g); scene.add(breathG); bubbles[5].head=nobody.head; bubbles[5].root=nobody.g; moonS.dispose(); moonS=null; mode='trail'; landY=groundY; zoom=1; userPhi=0; }
 /* answering the telephone */
-function answerPhone(){ if(mode!=='home'||!home||home.phase!==1) return; home.phase=2; home.pt=home.t; $('phoneDock').hidden=true; hushBubbles(); speakIn=60;
-  narrate('June picked it up. The voice on the other end came from a very long way off, and it was laughing.');
-  playScript([[0,'Hello? ...LUMI!'],[5,'June! Pip! I saw you! Four times, on top of your mountain, through my moon telescope!'],[1,'She SAW us! I TOLD you she could see us!'],
-    [5,'Four mountain tops deserves a party. In my castle. Tonight. Bring your friends!'],[0,'But how do we get to the Moon?'],[2,'Leave that to us. All four of us together: that is a great deal of magic.'],
-    [4,'Who are you two talking to? The phone didn\'t ring.'],[1,'Nobody, Dad! May we be excused?'],[3,'Go on, then. Don\'t stay up too late.']]); }
+function answerPhone(){ if(mode!=='home'||!home||home.phase!==1) return; home.phase=2; home.call=0; home.pt=home.t; $('phoneDock').hidden=true; hushBubbles(); speakIn=60;
+  const [px,pz]=home.phoneAt; juneB.cur=pipB.cur=null; juneB.queue.length=pipB.queue.length=0;
+  juneB.hw=[[-0.6,-2.0],[px-1.3,-2.1],[px-0.62,pz+0.5]]; pipB.hw=[[0.6,-2.15],[px-2.0,-1.75],[px-1.35,pz+1.25]];   /* round the back of the table to the corner by the hall door */
+  narrate('Two chairs scraped back. Nobody else at the table looked up.'); }
+function phoneStep(){ const H=home, J=juneB, Pp=pipB, [px,pz]=H.phoneAt, there=!J.hw.length&&!Pp.hw.length, hs=H.handset;
+  if(H.call===0&&there){ H.call=1; H.pt=H.t; const hand=june.hi?june.hi.hands[1]:june.armR; hand.add(hs); hs.position.set(0,june.hi?-0.04:-0.34,0.02); hs.rotation.set(0,0,Math.PI/2); hs.scale.setScalar(1/june.scale);   /* June lifts the receiver to her ear; Pip crowds in to listen */
+    J.stand={pose:'look',face:Math.atan2(px-J.pos.x,pz-J.pos.y)}; Pp.stand={pose:'idle',face:Math.atan2(J.pos.x-Pp.pos.x,J.pos.y-Pp.pos.y)}; Music.amb('ting');
+    narrate('June picked it up. The voice on the other end came from a very long way off, and it was laughing.');
+    playScript([[0,'Hello? ...LUMI!'],[5,'June! Pip! I saw you! Four times, on top of your mountain, through my moon telescope!'],[1,'She SAW us! I TOLD you she could see us!'],
+      [5,'Four mountain tops deserves a party. In my castle. Tonight. Bring your friends!'],[0,'But how do we get to the Moon?'],[2,'Leave that to us. All four of us together: that is a great deal of magic.'],[0,'We\'ll be right there. Bye, Lumi!']]); }
+  else if(H.call===1&&H.t>H.pt+6&&quiet()){ H.call=2; H.phone.add(hs); hs.position.set(0,0.22,-0.04); hs.rotation.set(0,0,0); hs.scale.setScalar(1); Music.amb('ting'); J.stand=Pp.stand=null;   /* down goes the receiver, and back they go to their places */
+    J.hw=[[px-1.3,-2.1],[-0.6,-2.0],[-0.6,-1.12]]; Pp.hw=[[px-2.0,-1.75],[0.6,-2.15],[0.6,-1.12]]; }
+  else if(H.call===2&&there){ H.call=3; H.pt=H.t; J.faceT=Pp.faceT=0; playScript([[4,'Who were you two talking to? The phone didn\'t ring.'],[1,'Nobody, Dad!'],[3,'Then sit down and finish your spaghetti, mountain climbers.'],[0,'Yes, Mom.']]); }
+  else if(H.call===3&&H.t>H.pt+4&&quiet()) return true;
+  return false; }
 $('phoneBtn').addEventListener('click',answerPhone);
 /* ---------- across the river: the waterfall, and who is behind it ---------- */
 /* Only after the secret ending has been seen. On the next hike the girls stop at the river and notice that, with care, the stones could be
@@ -4469,7 +4482,7 @@ function leaveFalls(){ fallsS.scene.remove(june.g,pip.g); scene.add(june.g,pip.g
 $('aspenBtn').addEventListener('click',()=>chooseTrail(-1));
 $('autumnBtn').addEventListener('click',()=>chooseTrail(1));
 /* for tools/smoke-test.js: jump the walk to a spot on the trail */
-window.hikeDebug={moon:()=>enterMoon(),fallsAt:z=>{ juneB.pos.y=z; pipB.pos.y=z-0.85; },sound:k=>Music.amb(k),crumb:()=>crumb.u.toFixed(2)+' '+mcam.id+' '+villMeet.li,vill:()=>villMeet.on+':'+villMeet.li,meet:k=>{ const D=MEETS.find(d=>d.key===k); return D.on+':'+D.li+':'+D.done; },frogKing:()=>frogKing.on+':'+frogKing.li+':'+frogKing.done,hoist:()=>hoist.on+':'+hoist.t.toFixed(1)+':'+party.s.toFixed(1),ty:s=>trailY(s),bench:()=>bench.on+':'+bench.t.toFixed(0)+':'+party.s.toFixed(1)+':'+benchBirds.map(b=>b.st).join(''),bugs:()=>{ const o=giantObst(); return giantLife.map(c=>{ let m=99; const P=c.kind==='worm'?c.segs.map(q=>q.position):[{x:c.x,z:c.z}]; for(const q of P) for(const k of o) m=Math.min(m,Math.hypot(q.x-k.x,q.z-k.z)-k.r); return c.kind[0]+m.toFixed(2)+'@'+(P[0].x-trailX(P[0].z)).toFixed(1); }).join(' ')+' n'+o.length; },ambNow:()=>ambLast+' bed '+ambK+' wind '+windK+' water '+waterBed,lineOk:(tx,p)=>fitsHere(tx,p),menu:p=>(EVENT_MENU[p]||[]).join(','),summitPhase:()=>summit?summit.phase+':'+summit.leg:'',music:()=>Music.moodNow(),musicLevel:only=>Music.level(only),musicMood:(a,b,k,r,m)=>{ window.__moodLock=a?[a,b,k,r,m]:null; },known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>MK[k].classList.contains('on')),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
+window.hikeDebug={ring:()=>{ home.phase=1; answerPhone(); },moon:()=>enterMoon(),fallsAt:z=>{ juneB.pos.y=z; pipB.pos.y=z-0.85; },sound:k=>Music.amb(k),crumb:()=>crumb.u.toFixed(2)+' '+mcam.id+' '+villMeet.li,vill:()=>villMeet.on+':'+villMeet.li,meet:k=>{ const D=MEETS.find(d=>d.key===k); return D.on+':'+D.li+':'+D.done; },frogKing:()=>frogKing.on+':'+frogKing.li+':'+frogKing.done,hoist:()=>hoist.on+':'+hoist.t.toFixed(1)+':'+party.s.toFixed(1),ty:s=>trailY(s),bench:()=>bench.on+':'+bench.t.toFixed(0)+':'+party.s.toFixed(1)+':'+benchBirds.map(b=>b.st).join(''),bugs:()=>{ const o=giantObst(); return giantLife.map(c=>{ let m=99; const P=c.kind==='worm'?c.segs.map(q=>q.position):[{x:c.x,z:c.z}]; for(const q of P) for(const k of o) m=Math.min(m,Math.hypot(q.x-k.x,q.z-k.z)-k.r); return c.kind[0]+m.toFixed(2)+'@'+(P[0].x-trailX(P[0].z)).toFixed(1); }).join(' ')+' n'+o.length; },ambNow:()=>ambLast+' bed '+ambK+' wind '+windK+' water '+waterBed,lineOk:(tx,p)=>fitsHere(tx,p),menu:p=>(EVENT_MENU[p]||[]).join(','),summitPhase:()=>summit?summit.phase+':'+summit.leg:'',music:()=>Music.moodNow(),musicLevel:only=>Music.level(only),musicMood:(a,b,k,r,m)=>{ window.__moodLock=a?[a,b,k,r,m]:null; },known:()=>JSON.stringify(known),knowUsed:()=>[...knowUsed].join(','),wonders:()=>wondersOn,whale:()=>whale.state+':'+whale.t.toFixed(1)+':'+whale.m.visible,bookmark:()=>JSON.stringify(loadMark()),cam:(t,p)=>{ camTheta=t; userPhi=p; idle=0; },star:t=>{ if(t!==undefined) peakStarT=t; return peakStarT; },facts:()=>found.length,marks:()=>Object.keys(MK).length,markShown:()=>Object.keys(MK).filter(k=>MK[k].classList.contains('on')),readFact:k=>openFact(k),walkTo(m){ party.s=m; placeGirls(); groundRow=forestRow=null; },pace:p=>{ if(p) setPace(p); return pace; },warp:(name)=>{ for(const g of zoneList()) for(const z of g[1]) if(z[0]===name){ warp(z[0],z[1],z[2],z[3]); return true; } return false; },stage:()=>fork.stage,site:()=>fork.site,tail:()=>fork.tail,place:()=>bioKeyAt(party.s),outfit:()=>june.parka.mode,homeDone:()=>!!(home&&home.done),moonDone:()=>!!(moonS&&moonS.done),fallsDone:()=>!!(fallsS&&fallsS.done),saved:()=>JSON.stringify(saved),folk:()=>folk.list.filter(f=>f.g.visible).length+':'+folk.key,breath:()=>puffs.filter(p=>p.life>0&&p.sp.visible).map(p=>+p.sp.scale.x.toFixed(2)),choice:()=>choice,mode:()=>mode,mapOpen:()=>$('mapScroll').classList.contains('open'),event(k){ endEvent(); startEvent(k); },eventNow:()=>EVT.cur&&EVT.cur.kind,amb:k=>Music.amb(k),turnToNote:()=>{ if(rest) camTheta+=NOTE_TH-rest.thNow; },noteShown:()=>!noteMark.hidden,ready:()=>!!(rest&&rest.ready)};
 /* ---------- the narrator ---------- */
 /* Tells the story from a little way off, one line at a time at the top of the screen: what is happening to the girls, not what they are saying.
    Lines wait their turn (the newest two are kept), each stays up long enough to read, and when nothing in particular is going on the
