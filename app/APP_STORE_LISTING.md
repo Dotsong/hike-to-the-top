@@ -29,6 +29,7 @@ FRIENDS ALONG THE WAY
 • A Frog King who would very much like a snack
 • A Snow Owl librarian, a Scarecrow and a wise Old Goat
 • Four tiny villages whose villagers each need a small favor
+• And if you find every place on the mountain, an invitation to somewhere much higher up
 
 A FACT BOOK TO FILL
 Little book tags float over things along the trail. Tap one to read a real, kid-friendly science fact about trees, animals, weather, rocks and more. There are 100 to collect, and some only appear while an animal is passing by. The story is make-believe; the facts stay true.
@@ -40,6 +41,7 @@ MADE FOR CALM
 • Gentle music that changes with each place
 • Funny, sweet conversations between the sisters
 • Adjustable text size for reading together
+• Detailed or simpler character models, to suit older devices
 • Stop for today at a rest spot and carry on tomorrow
 • No ads, no in-app purchases, no accounts, and no data collected
 • Works with no internet connection
@@ -72,6 +74,14 @@ https://dotsong.github.io/hike-to-the-top/privacy.html (after GitHub Pages is tu
 ## Notes for App Review
 
 The game plays itself: the two girls walk up the trail and the player reads along, looks around and picks a path at each fork. There is no login. Settings (in the pause menu) has a "Testing" button for grown-ups behind a picture lock; tap Pip, June, the goat, the frog, the scarecrow to open a menu that jumps to any part of the trail.
+
+## Screenshots and icon
+
+In `app/screenshots/`: ten for the large iPhone slot (1320 × 2868) and ten for the 13-inch iPad slot (2064 × 2752), numbered in upload order. The icon is `app/icon/AppIcon-1024.png`.
+
+## Copyright
+
+© 2026 Dotsong (change to the name you publish under)
 
 ## What's New (version 1.0)
 
