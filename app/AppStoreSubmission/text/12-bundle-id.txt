@@ -1,0 +1,7 @@
+com.michellebrunk.trailtothetop
+
+This exact ID must match in four places before you archive:
+1. app/capacitor.config.json (already set)
+2. Xcode -> App target -> Signing & Capabilities -> Bundle Identifier
+3. developer.apple.com -> Certificates, Identifiers & Profiles -> Identifiers
+4. App Store Connect -> New App -> Bundle ID

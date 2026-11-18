@@ -1,0 +1,3 @@
+2026 Michelle Brunk
+
+(App Store Connect adds the (c) sign itself. Change the name if you publish under a different one.)

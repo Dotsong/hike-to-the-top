@@ -1,0 +1,8 @@
+Primary category: Games (subcategories: Family, Educational)
+Secondary category: Education
+Found at: App Information -> Category
+
+Age rating: 4+ (answer No or None to every question)
+App Privacy: Data Not Collected
+Encryption question at submit: "None of the algorithms mentioned above"
+Marketing URL: optional, leave blank

@@ -75,13 +75,17 @@ https://dotsong.github.io/hike-to-the-top/privacy.html (after GitHub Pages is tu
 
 The game plays itself: the two girls walk up the trail and the player reads along, looks around and picks a path at each fork. There is no login. Settings (in the pause menu) has a "Testing" button for grown-ups behind a picture lock; tap Pip, June, the goat, the frog, the scarecrow to open a menu that jumps to any part of the trail.
 
-## Screenshots and icon
+## Screenshots, icon and header
 
-In `app/screenshots/`: ten for the large iPhone slot (1320 × 2868) and ten for the 13-inch iPad slot (2064 × 2752), numbered in upload order. The icon is `app/icon/AppIcon-1024.png`.
+In `app/AppStoreSubmission/`: every iPhone and iPad screenshot size, the icon, the 5244 × 2950 header image, and each text field as its own file. See its README.
 
 ## Copyright
 
-© 2026 Dotsong (change to the name you publish under)
+2026 Michelle Brunk (change to the name you publish under)
+
+## Bundle ID
+
+`com.michellebrunk.trailtothetop`
 
 ## What's New (version 1.0)
 

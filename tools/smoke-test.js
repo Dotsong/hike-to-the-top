@@ -18,7 +18,7 @@ const stub=fs.readFileSync(path.join(__dirname,'three-stub.js'),'utf8');
   await p.click('#beginBtn'); await p.waitForTimeout(3000);
   // the pace button steps through x2, x4, x8 and back to x1; the rest of the test runs at x4 so the rest scenes do not take all day
   const paces=[]; for(let k=0;k<4;k++){ await p.evaluate(()=>document.getElementById('paceBtn').click()); paces.push(await p.evaluate(()=>window.hikeDebug.pace()+'|'+document.getElementById('paceBtn').textContent)); }
-  if(paces.join(',')!=='2|Pace ×2,4|Pace ×4,8|Pace ×8,1|Pace ×1') errs.push('the pace button went '+paces.join(','));
+  if(paces.join(',')!=='2|Pace 2x,4|Pace 4x,8|Pace 8x,1|Pace 1x') errs.push('the pace button went '+paces.join(','));
   await p.evaluate(()=>window.hikeDebug.pace(4));
   await p.evaluate(()=>document.getElementById('bookBtn').click()); await p.waitForTimeout(500);
   const bookOpen=await p.evaluate(()=>!document.getElementById('bookScrim').hidden);
