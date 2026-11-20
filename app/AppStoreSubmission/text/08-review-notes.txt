@@ -1,1 +1,24 @@
-The game plays itself: the two girls walk up the trail and the player reads along, looks around and picks a path at each fork. There is no login. Settings (in the pause menu) has a "Testing" button for grown-ups behind a picture lock; tap Pip, June, the goat, the frog, the scarecrow to open a menu that jumps to any part of the trail.
+1. SCREEN RECORDING
+Recorded on a physical [DEVICE] running [iOS/iPadOS VERSION], starting from launching the app: [LINK TO RECORDING]
+The app has no accounts, no login, no user-generated content, no in-app purchases and no paid content, so none of those flows exist to show.
+
+2. PURPOSE AND AUDIENCE
+Trail to the Top is a gentle 3D storybook game for young children (about 4 to 8) and the parent who reads with them. Two sisters, June and Pip, hike up a small mountain behind their house. The girls walk on their own; the child and parent read the girls' speech bubbles aloud, look around, tap things along the trail and choose which way to go at three forks. Little book tags along the trail open real, kid-friendly science facts about trees, animals, weather and rocks, collected in a Fact Book (100 in all). The value is a calm, screen-time-friendly reading activity that builds reading aloud, curiosity about nature and simple choice-making, with nothing to win, no timers and no failure states.
+
+3. HOW TO USE THE MAIN FEATURES
+No login or setup is needed.
+- Launch, tap the title screen, read the How to Play page and tap to begin. The hike starts by itself.
+- Drag to look around. Tap a floating book tag to read a fact; tap the book button (under the pause button) to open the Fact Book.
+- At each of the three rest sites, tap one of the two paths to choose the way.
+- The pause button pauses the game and shows Dad's map of the trail. Settings is in the pause menu (music, pace, restart progress).
+- The "Pace" button speeds the walk up (2x, 4x, 8x) to see more of the trail quickly.
+- To jump straight to any part of the game: pause, open Settings, tap Testing, and tap the pictures in this order: Pip, June, the goat, the frog king, the scarecrow. This opens a menu listing every area, including the summit, dinner at home and the secret ending.
+
+4. EXTERNAL SERVICES
+None. The app uses no servers, analytics, ads, authentication, payment, data providers or AI services, and makes no network requests. Everything (the three.js 3D library and the fonts) is bundled inside the app, and it works fully offline. Progress is saved only on the device.
+
+5. REGIONAL DIFFERENCES
+None. The app works identically in all regions. It is in English.
+
+6. REGULATED INDUSTRY / THIRD-PARTY MATERIAL
+Not a regulated industry. All characters, story, art, music and text are original. Third-party components are open source and licensed for this use: three.js (MIT License) and the fonts Young Serif, Quicksand and Patrick Hand (SIL Open Font License); license files are included in the app.
